@@ -15,9 +15,7 @@ file(GLOB HEADERS "*.h")
 include_directories(BEFORE ..)
 add_library(${EXECUTABLE} ${SRC_LIST} ${HEADERS})
 
-sof_use(${EXECUTABLE} REQUIRED Polynomial::svmasm)
+sof_use(${EXECUTABLE} REQUIRED Polynomial::polsvmasm)
 #target_link_libraries(${EXECUTABLE} svmasm)
 
 install( TARGETS ${EXECUTABLE} RUNTIME DESTINATION bin ARCHIVE DESTINATION lib LIBRARY DESTINATION lib )
-install( FILES ${HEADERS} DESTINATION include/${EXECUTABLE} )
-

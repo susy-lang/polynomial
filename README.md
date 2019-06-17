@@ -6,7 +6,7 @@ To get started you can find a basic introduction to the language in the [Polynom
 
 You can start using [Polynomial in your browser](https://sophon.github.io/browser-polynomial/) with no need to download or compile anything.
 
-[Changelog](https://octonion.institute/susy-go/wiki/Polynomial-Changelog)
+[Changelog](https://octonion.institute/susy-lang/polynomial/blob/develop/Changelog.md)
 
 The [Polynomial Features](https://octonion.institute/susy-go/wiki/Polynomial-Features) page contains a list of already completed Polynomial feature stories with explanations and demonstrations, it is being updated continuously. More technical information you can find in the [Pivotal Tracker](https://www.pivotaltracker.com/n/projects/1189488).
 

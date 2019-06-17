@@ -10,7 +10,10 @@ Polynomial is a statically typed language, which means that the type of each
 variable (state and local) needs to be specified (or at least known -
 see :ref:`type-deduction` below) at
 compile-time. Polynomial provides several elementary types which can be combined
-to complex types.
+to form complex types.
+
+In addition, types can interact with each other in expressions containing
+operators. For a quick reference of the various operators, see :ref:`order`.
 
 .. index:: ! value type, ! type;value
 
@@ -113,6 +116,13 @@ All three functions ``call``, ``delegatecall`` and ``callcode`` are very low-lev
     All contracts inherit the members of address, so it is possible to query the balance of the
     current contract using ``this.balance``.
 
+.. warning::
+    All these functions are low-level functions and should be used with care.
+    Specifically, any unknown contract might be malicious and if you call it, you
+    hand over control to that contract which could in turn call back into
+    your contract, so be prepared for changes to your state variables
+    when the call returns.
+
 .. index:: byte array, bytes32
 
 
@@ -204,7 +214,9 @@ a non-rational number).
 String Literals
 ---------------
 
-String Literals are written with double quotes (``"abc"``). As with integer literals, their type can vary, but they are implicitly convertible to ``bytes`` if they fit, to ``bytes`` and to ``string``.
+String Literals are written with double quotes (``"abc"``). As with integer literals, their type can vary, but they are implicitly convertible to ``bytes1``, ..., ``bytes32`` if they fit, to ``bytes`` and to ``string``.
+
+String Literals support escape characters, such as ``\n``, ``\xNN`` and ``\uNNNN``. ``\xNN`` takes a hex value and inserts the appropriate byte, while ``\uNNNN`` takes a Unicode codepoint and inserts an UTF8 sequence.
 
 .. index:: enum
 
@@ -340,7 +352,7 @@ So ``bytes`` should always be preferred over ``byte[]`` because it is cheaper.
 
 .. note::
     If you want to access the byte-representation of a string ``s``, use
-    ``bytes(s).length / bytes(s)[7] = x';``. Keep in mind
+    ``bytes(s).length`` / ``bytes(s)[7] = 'x';``. Keep in mind
     that you are accessing the low-level bytes of the utf-8 representation,
     and not the individual characters!
 
@@ -535,7 +547,8 @@ shown in the following example:
             Campaign c = campaigns[campaignID];
             if (c.amount < c.fundingGoal)
                 return false;
-            c.beneficiary.send(c.amount);
+            if (!c.beneficiary.send(c.amount))
+                throw;
             c.amount = 0;
             return true;
         }
@@ -570,7 +583,7 @@ can actually be any type, including mappings.
 
 Mappings can be seen as hashtables which are virtually initialized such that
 every possible key exists and is mapped to a value whose byte-representation is
-all zeros. The similarity ends here, though: The key data is not actually stored
+all zeros: a type's :ref:`default value <default-value>`. The similarity ends here, though: The key data is not actually stored
 in a mapping, only its ``sha3`` hash used to look up the value.
 
 Because of this, mappings do not have a length or a concept of a key or value being "set".

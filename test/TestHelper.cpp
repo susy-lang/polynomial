@@ -14,46 +14,38 @@
 	You should have received a copy of the GNU General Public License
 	along with cpp-sophon.  If not, see <http://www.gnu.org/licenses/>.
 */
-/** @file TestHelper.cpp
- * @author Marko Simovic <markobarko@gmail.com>
- * @date 2014
- */
+/** @file TestHelper.h
+* @author Marko Simovic <markobarko@gmail.com>
+* @date 2014
+*/
 
+#include <boost/test/framework.hpp>
 #include "TestHelper.h"
-
 using namespace std;
+using namespace dev::test;
 
-namespace dev
+Options::Options(int argc, char** argv)
 {
-namespace test
-{
-
-namespace
-{
-	Listener* g_listener;
+	tArgc = 0;
+	tArgv = new char*[argc];
+	for (auto i = 0; i < argc; i++)
+	{
+		string arg = argv[i];
+		if (arg == "--ipc" && i + 1 < argc)
+		{
+			ipcPath = argv[i + 1];
+			i++;
+		}
+		else
+		{
+			tArgv[i] = argv[i];
+			tArgc++;
+		}
+	}
 }
 
-void Listener::registerListener(Listener& _listener)
+Options const& Options::get(int argc, char** argv)
 {
-	g_listener = &_listener;
+	static Options instance(argc, argv);
+	return instance;
 }
-
-void Listener::notifySuiteStarted(std::string const& _name)
-{
-	if (g_listener)
-		g_listener->suiteStarted(_name);
-}
-
-void Listener::notifyTestStarted(std::string const& _name)
-{
-	if (g_listener)
-		g_listener->testStarted(_name);
-}
-
-void Listener::notifyTestFinished()
-{
-	if (g_listener)
-		g_listener->testFinished();
-}
-
-} } // namespaces

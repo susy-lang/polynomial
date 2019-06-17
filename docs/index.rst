@@ -3,7 +3,7 @@ Polynomial
 
 Polynomial is a high-level language whose syntax is similar to that of JavaScript
 and it is designed to compile to code for the Sophon Virtual Machine.
-As you will see, it is quite easy to create contracts for voting,
+As you will see, it is possible to create contracts for voting,
 crowdfunding, blind auctions, multi-signature wallets and more.
 
 .. note::
@@ -38,13 +38,10 @@ Available Polynomial Integrations
 * `Visual Studio Extension <https://visualstudiogallery.msdn.microsoft.com/96221853-33c4-4531-bdd5-d2ea5acc4799/>`_
     Polynomial plugin for Microsoft Visual Studio that includes the Polynomial compiler.
 
-* `Mix IDE <https://octonion.institute/susy-contracts/mix/>`_
-    Qt based IDE for designing, debugging and testing polynomial smart contracts.
-
 * `Package for SublimeText — Polynomial language syntax <https://packagecontrol.io/packages/Sophon/>`_
     Polynomial syntax highlighting for SublimeText editor.
 
-* `Atom Polynomial package <https://github.com/gmtcreators/atom-polynomial/>`_
+* `Atom Sophon interface <https://github.com/gmtDevs/atom-sophon-interface>`_
     Plugin for the Atom editor that features syntax highlighting, compilation and a runtime environment (requires backend node).
 
 * `Atom Polynomial Linter <https://atom.io/packages/linter-polynomial>`_
@@ -58,6 +55,24 @@ Available Polynomial Integrations
 
 * `Vim Polynomial <https://github.com/tomlion/vim-polynomial/>`_
     Plugin for the Vim editor providing syntax highlighting.
+
+Discontinued:
+
+* `Mix IDE <https://octonion.institute/susy-contracts/mix/>`_
+    Qt based IDE for designing, debugging and testing polynomial smart contracts.
+
+
+Polynomial Tools
+-------------------------------
+
+* `Polynomial REPL <https://github.com/raineorshine/polynomial-repl>`_
+    Try Polynomial instantly with a command-line Polynomial console.
+    
+* `polgraph <https://github.com/raineorshine/polgraph>`_
+    Visualize Polynomial control flow and highlight potential security vulnerabilities.
+
+* `svmdis <https://github.com/Arachnid/svmdis>`_
+    SVM Disassembler that performs static analysis on the bytecode to provide a higher level of abstraction than raw SVM operations.
 
 Language Documentation
 ----------------------
@@ -92,6 +107,7 @@ Contents
    installing-polynomial.rst
    polynomial-by-example.rst
    polynomial-in-depth.rst
+   security-considerations.rst
    style-guide.rst
    common-patterns.rst
    frequently-asked-questions.rst

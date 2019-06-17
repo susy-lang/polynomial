@@ -102,32 +102,20 @@ namespace test
 	}																	\
 	while (0)
 
-/// Allows observing test execution process.
-/// This class also provides methods for registering and notifying the listener
-class Listener
-{
-public:
-	virtual ~Listener() = default;
 
-	virtual void suiteStarted(std::string const&) {}
-	virtual void testStarted(std::string const& _name) = 0;
-	virtual void testFinished() = 0;
-
-	static void registerListener(Listener& _listener);
-	static void notifySuiteStarted(std::string const& _name);
-	static void notifyTestStarted(std::string const& _name);
-	static void notifyTestFinished();
-
-	/// Test started/finished notification RAII helper
-	class ExecTimeGuard
+	class Options
 	{
 	public:
-		ExecTimeGuard(std::string const& _testName) { notifyTestStarted(_testName);	}
-		~ExecTimeGuard() { notifyTestFinished(); }
-		ExecTimeGuard(ExecTimeGuard const&) = delete;
-		ExecTimeGuard& operator=(ExecTimeGuard) = delete;
-	};
-};
+		std::string ipcPath;
+		int tArgc;
+		char **tArgv;
+		/// Get reference to options
+		/// The first time used, options are parsed with argc, argv
+		static Options const& get(int argc = 0, char** argv = 0);
 
+	private:
+		Options(int argc, char** argv = 0);
+		Options(Options const&) = delete;
+	};
 }
 }

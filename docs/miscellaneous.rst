@@ -95,6 +95,59 @@ is simplified to code which can also be compiled from
 
 even though the instructions contained a jump in the beginning.
 
+.. index:: source mappings
+
+***************
+Source Mappings
+***************
+
+As part of the AST output, the compiler provides the range of the source
+code that is represented by the respective node in the AST. This can be
+used for various purposes ranging from static analysis tools that report
+errors based on the AST and debugging tools that highlight local variables
+and their uses.
+
+Furthermore, the compiler can also generate a mapping from the bytecode
+to the range in the source code that generated the instruction. This is again
+important for static analysis tools that operate on bytecode level and
+for displaying the current position in the source code inside a debugger
+or for breakpoint handling.
+
+Both kinds of source mappings use integer indentifiers to refer to source files.
+These are regular array indices into a list of source files usually called
+``"sourceList"``, which is part of the combined-json and the output of
+the json / npm compiler.
+
+The source mappings inside the AST use the following
+notation:
+
+``s:l:f``
+
+Where ``s`` is the byte-offset to the start of the range in the source file,
+``l`` is the length of the source range in bytes and ``f`` is the source
+index mentioned above.
+
+The encoding in the source mapping for the bytecode is more complicated:
+It is a list of ``s:l:f:j`` separated by ``;``. Each of these
+elements corresponds to an instruction, i.e. you cannot use the byte offset
+but have to use the instruction offset (push instructions are longer than a single byte).
+The fields ``s``, ``l`` and ``f`` are as above and ``j`` can be either
+``i``, ``o`` or ``-`` signifying whether a jump instruction goes into a
+function, returns from a function or is a regular jump as part of e.g. a loop.
+
+In order to compress these source mappings especially for bytecode, the
+following rules are used:
+
+ - If a field is empty, the value of the preceding element is used.
+ - If a ``:`` is missing, all following fields are considered empty.
+
+This means the following source mappings represent the same information:
+
+``1:2:1;1:9:1;2:1:2;2:1:2;2:1:2``
+
+``1:2:1;:9;2::2;;``
+
+
 .. index:: ! commandline compiler, compiler;commandline, ! polc, ! linker
 
 .. _commandline-compiler:
@@ -145,37 +198,72 @@ Tips and Tricks
 * If you do **not** want your contracts to receive sophy when called via ``send``, you can add a throwing fallback function ``function() { throw; }``.
 * Initialise storage structs with a single assignment: ``x = MyStruct({a: 1, b: 2});``
 
-********
-Pitfalls
-********
-
-Unfortunately, there are some subtleties the compiler does not yet warn you about.
-
-- In ``for (var i = 0; i < arrayName.length; i++) { ... }``, the type of ``i`` will be ``uint8``, because this is the smallest type that is required to hold the value ``0``. If the array has more than 255 elements, the loop will not terminate.
-- If a contract receives Sophy (without a function being called), the fallback function is executed. The contract can only rely
-  on the "gas stipend" (2300 gas) being available to it at that time. This stipend is not enough to access storage in any way.
-  To be sure that your contract can receive Sophy in that way, check the gas requirements of the fallback function.
-- If you want to send sophy using ``address.send``, there are certain details to be aware of:
-
-  1. If the recipient is a contract, it causes its fallback function to be executed which can in turn call back into the sending contract
-  2. Sending Sophy can fail due to the call depth going above 1024. Since the caller is in total control of the call
-     depth, they can force the transfer to fail, so make sure to always check the return value of ``send``. Better yet,
-     write your contract using a pattern where the recipient can withdraw Sophy instead.
-  3. Sending Sophy can also fail because the recipient goes out of gas (either explicitly by using ``throw`` or
-     because the operation is just too expensive). If the return value of ``send`` is checked, this might provide a
-     means for the recipient to block progress in the sending contract. Again, the best practise here is to use
-     a "withdraw" pattern instead of a "send" pattern.
-
-- Loops that do not have a fixed number of iterations, e.g. loops that depends on storage values, have to be used carefully:
-  Due to the block gas limit, transactions can only consume a certain amount of gas. Either explicitly or just due to
-  normal operation, the number of iterations in a loop can grow beyond the block gas limit, which can cause the complete
-  contract to be stalled at a certain point. This does not apply at full extent to ``constant`` functions that are only executed
-  to read data from the blockchain. Still, such functions may be called by other contracts as part of on-chain operations
-  and stall those. Please be explicit about such cases in the documentation of your contracts.
-
 **********
 Cheatsheet
 **********
+
+.. index:: precedence
+
+.. _order:
+
+Order of Precedence of Operators
+================================
+
+The following is the order of precedence for operators, listed in order of evaluation.
+
++------------+-------------------------------------+--------------------------------------------+
+| Precedence | Description                         | Operator                                   |
++============+=====================================+============================================+
+| *1*        | Postfix increment and decrement     | ``++``, ``--``                             |
++            +-------------------------------------+--------------------------------------------+
+|            | Function-like call                  | ``<func>(<args...>)``                      |
++            +-------------------------------------+--------------------------------------------+
+|            | Array subscripting                  | ``<array>[<index>]``                       |
++            +-------------------------------------+--------------------------------------------+
+|            | Member access                       | ``<object>.<member>``                      |
++            +-------------------------------------+--------------------------------------------+
+|            | Parentheses                         | ``(<statement>)``                          |
++------------+-------------------------------------+--------------------------------------------+
+| *2*        | Prefix increment and decrement      | ``++``, ``--``                             |
++            +-------------------------------------+--------------------------------------------+
+|            | Unary plus and minus                | ``+``, ``-``                               |
++            +-------------------------------------+--------------------------------------------+
+|            | Unary operations                    | ``after``, ``delete``                      |
++            +-------------------------------------+--------------------------------------------+
+|            | Logical NOT                         | ``!``                                      |
++            +-------------------------------------+--------------------------------------------+
+|            | Bitwise NOT                         | ``~``                                      |
++------------+-------------------------------------+--------------------------------------------+
+| *3*        | Exponentiation                      | ``**``                                     |
++------------+-------------------------------------+--------------------------------------------+
+| *4*        | Multiplication, division and modulo | ``*``, ``/``, ``%``                        |
++------------+-------------------------------------+--------------------------------------------+
+| *5*        | Addition and subtraction            | ``+``, ``-``                               |
++------------+-------------------------------------+--------------------------------------------+
+| *6*        | Bitwise shift operators             | ``<<``, ``>>``                             |
++------------+-------------------------------------+--------------------------------------------+
+| *7*        | Bitwise AND                         | ``&``                                      |
++------------+-------------------------------------+--------------------------------------------+
+| *8*        | Bitwise XOR                         | ``^``                                      |
++------------+-------------------------------------+--------------------------------------------+
+| *9*        | Bitwise OR                          | ``|``                                      |
++------------+-------------------------------------+--------------------------------------------+
+| *10*       | Inequality operators                | ``<``, ``>``, ``<=``, ``>=``               |
++------------+-------------------------------------+--------------------------------------------+
+| *11*       | Equality operators                  | ``==``, ``!=``                             |
++------------+-------------------------------------+--------------------------------------------+
+| *12*       | Logical AND                         | ``&&``                                     |
++------------+-------------------------------------+--------------------------------------------+
+| *13*       | Logical OR                          | ``||``                                     |
++------------+-------------------------------------+--------------------------------------------+
+| *14*       | Ternary operator                    | ``<conditional> ? <if-true> : <if-false>`` |
++------------+-------------------------------------+--------------------------------------------+
+| *15*       | Assignment operators                | ``=``, ``|=``, ``^=``, ``&=``, ``<<=``,    |
+|            |                                     | ``>>=``, ``+=``, ``-=``, ``*=``, ``/=``,   |
+|            |                                     | ``%=``                                     |
++------------+-------------------------------------+--------------------------------------------+
+| *16*       | Comma operator                      | ``,``                                      |
++------------+-------------------------------------+--------------------------------------------+
 
 .. index:: block, coinbase, difficulty, number, block;number, timestamp, block;timestamp, msg, data, gas, sender, value, now, gas price, origin, sha3, ripemd160, sha256, ecrecover, addmod, mulmod, cryptography, this, super, selfdestruct, balance, send
 
@@ -220,7 +308,7 @@ Function Visibility Specifiers
 
 - ``public``: visible externally and internally (creates accessor function for storage/state variables)
 - ``private``: only visible in the current contract
-- ``external``: only visible externally (only for functions) - i.e. can only be message-called (via ``this.fun``)
+- ``external``: only visible externally (only for functions) - i.e. can only be message-called (via ``this.func``)
 - ``internal``: only visible internally
 
 

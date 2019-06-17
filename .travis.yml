@@ -1,11 +1,152 @@
-# This is used to verify that the documentation compiles.
-language: python
-python:
-  - "2.7"
-# command to install dependencies
-install: "pip install -q Sphinx==1.1.3 --use-mirrors"
-# command to run tests
-script: cd docs && sphinx-build -nW -b html -d _build/doctrees . _build/html
-# Flags used here, not in `make html`:
-#  -n   Run in nit-picky mode. Currently, this generates warnings for all missing references.
-#  -W   Turn warnings into errors. This means that the build stops at the first warning and sphinx-build exits with exit status 1.
+#------------------------------------------------------------------------------
+# TravisCI configuration file for polynomial.
+#
+# The documentation for polynomial is hosted at:
+#
+# http://polynomial.readthedocs.org
+#
+# ------------------------------------------------------------------------------
+# This file is part of cpp-sophon.
+#
+# cpp-sophon is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# cpp-sophon is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MSRCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with cpp-sophon.  If not, see <http://www.gnu.org/licenses/>
+#
+# (c) 2016 cpp-sophon contributors.
+#------------------------------------------------------------------------------
+
+language: cpp
+branches:
+    only:
+        - develop
+        - release
+        - standalone
+    except:
+        - /develop-v[0-9]/
+matrix:
+    include:
+        - os: linux
+          dist: trusty
+          sudo: required
+          compiler: gcc
+          env:
+              - TRAVIS_BUILD_TYPE=RelWithDebInfo
+              - ZIP_SUFFIX=ubuntu-trusty
+        - os: linux
+          dist: trusty
+          sudo: required
+          compiler: gcc
+          env:
+              - JOB=docs
+        - os: linux
+          dist: trusty
+          sudo: required
+          compiler: gcc
+          services:
+              - docker
+          before_install:
+              - docker pull trzeci/emscripten:sdk-tag-1.35.4-64bit
+          env:
+              - JOB=emscripten
+        - os: osx
+          osx_image: beta-xcode6.2
+          env:
+              - TRAVIS_BUILD_TYPE=RelWithDebInfo
+              - ZIP_SUFFIX=osx-mavericks
+        - os: osx
+          osx_image: xcode7.1
+          env:
+              - TRAVIS_BUILD_TYPE=RelWithDebInfo
+              - ZIP_SUFFIX=osx-yosemite
+        - os: osx
+          osx_image: xcode7.3
+          env:
+              # The use of Debug config here ONLY for El Capitan is a workaround for "The Heisenbug"
+              # See https://octonion.institute/susy-cpp/webthree-umbrella/issues/565
+              - TRAVIS_BUILD_TYPE=Debug
+              - ZIP_SUFFIX=osx-elcapitan
+        - os: osx
+          osx_image: xcode8
+          env:
+              # Look like "The Heisenbug" is occurring here too, so we'll do the same workaround.
+              # See https://travis-ci.org/susy-lang/polynomial/jobs/150240930
+              - TRAVIS_BUILD_TYPE=Debug
+              - ZIP_SUFFIX=macos-sierra
+git:
+    depth: 2
+
+cache:
+    ccache: true
+    directories:
+        - cryptopp
+        - boost_1_57_0
+        - build
+        - jsoncpp
+
+install:
+    - test $JOB != default -a $JOB != docs || ./scripts/install_deps.sh
+before_script:
+    - test $JOB != emscripten || ./scripts/build_emscripten.sh
+    - test $JOB != default || (mkdir -p build
+      && cd build
+      && cmake .. -DCMAKE_BUILD_TYPE=$TRAVIS_BUILD_TYPE
+      && make -j2
+      && cd ..
+      && ./scripts/release.sh $ZIP_SUFFIX )
+script:
+    # There are a variety of reliability issues with the Polynomial unit-tests at the time of
+    # writing (especially on macOS), so within TravisCI we will try to run the unit-tests
+    # up to 3 times before giving up and declaring the tests as broken.
+    #
+    # We should aim to remove this "retry logic" as soon as we can, because it is a
+    # band-aid for issues which need polving at their root.  Some of those issues will be
+    # in Polynomial's RPC setup and some will be in 'sof'.  It seems unlikely that Polynomial
+    # itself is broken from the failure messages which we are seeing.
+    #
+    # More details on known issues at https://octonion.institute/susy-lang/polynomial/issues/769    
+    - test $JOB != default || (cd $TRAVIS_BUILD_DIR && (./scripts/tests.sh || ./scripts/tests.sh || ./scripts/tests.sh) )
+    - test $JOB != docs || ./scripts/docs.sh
+env:
+    global:
+        - ENCRYPTION_LABEL="6d4541b72666"
+        - JOB=default
+
+# This is the deploy target for the Emscripten build.
+# It publishes the JS file which was compiled as part of the earlier 'build_emscripten.sh'
+# step to https://octonion.institute/susy-lang/polc-bin/tree/gh-pages/bin.
+# Both the build and deploy steps for Emscripten are only run within the Ubuntu
+# configurations (not for macOS).  That is controlled by conditionals within the bash
+# scripts because TravisCI doesn't provide much in the way of conditional logic.
+
+deploy:
+    provider: script
+    script: test $JOB != emscripten || scripts/release_emscripten.sh
+    skip_cleanup: true
+    on:
+        branch: develop
+
+# This is the deploy target for the native build (Linux and macOS)
+# which generates development ZIPs per commit.  We are in agreement
+# that this is probably noisy overkill, so will want to renable this
+# functionality wrapped in some conditionals so that it only runs
+# when building the 'release' branch.
+#
+#deploy:
+#    provider: releases
+#    api_key:
+#        secure: mGeDrlCbhPNQVqrk5wSqFZe/7C5HUIBWcZECJcFrEldN6ELj3a8mhDX9EWebidyFmZsf3ipKVMycJtXZHlH2kVZ0nZdRulq4bYhLiUFRaFQCHMW35dml5mxO/FPp+jhhZaylDUx+cI6AULbj8DvNFqSCfjx8qimRhJjRY4JHeG71N6g5+LU2/dA01D4Y97BUbQ5dYcmEyuEsriSpXOElIQIIv3+Q6MJNnLzxUA6EXsp4Qt3Qf3R1+EkI/RWOPbQsddpFNJBcBNOscCUFSZV3+ZK9E2RyHbPaL+Da4aJKVpgD7X1TFudq4PClMUTkg8CuJh/kvy9wkpaWyYHbLGQqu1vQ+NQ+vlTAKf8U+1xhC1IkX6nA+g4TlRksZRltRhpkBPnFoaQQGjD9eYyT1V/Htrn8Y/VGbYPBVa0GcEYXG5pDCBPz91RBpYwDcyUg9DEPNI6zYfQY8jA8xqtFwPX79Y22MDXIKhBskK00geuzh7Npy5Rnh4fLqVKMlffvYx3kwp444EFWtQ5jxbRCym2Th6EldkOM8Kble1JvixQtVb4s+DpTuwHCTrXZhwMuJpmwgRx52zyIsGrBPF3MOmdlwl+l0TD8UEJXt0JM1XSF1AROyYwXKDZQ9Qt4sd9ZKSWWaLJMEJf4kkZWYgTEI/FhOWlfshQCt8Z9S9r4fq2ywoo=
+#    file: $TRAVIS_BUILD_DIR/polynomial-develop-$ZIP_SUFFIX.zip
+#    skip_cleanup: true
+#    on:
+#        repo: susy-lang/polynomial
+#        branch: develop
+
