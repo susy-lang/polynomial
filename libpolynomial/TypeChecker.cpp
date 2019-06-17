@@ -43,14 +43,7 @@ bool TypeChecker::checkTypeRequirements(const ContractDefinition& _contract)
 		if (m_errors.empty())
 			throw; // Something is weird here, rather throw again.
 	}
-	bool success = true;
-	for (auto const& it: m_errors)
-		if (!dynamic_cast<Warning const*>(it.get()))
-		{
-			success = false;
-			break;
-		}
-	return success;
+	return Error::containsOnlyWarnings(m_errors);
 }
 
 TypePointer const& TypeChecker::type(Expression const& _expression) const
@@ -87,7 +80,7 @@ bool TypeChecker::visit(ContractDefinition const& _contract)
 		{
 			if (fallbackFunction)
 			{
-				auto err = make_shared<DeclarationError>();
+				auto err = make_shared<Error>(Error::Type::DeclarationError);
 				*err << errinfo_comment("Only one fallback function is allowed.");
 				m_errors.push_back(err);
 			}
@@ -143,7 +136,7 @@ void TypeChecker::checkContractDuplicateFunctions(ContractDefinition const& _con
 		for (; it != functions[_contract.name()].end(); ++it)
 			ssl.append("Another declaration is here:", (*it)->location());
 
-		auto err = make_shared<DeclarationError>();
+		auto err = make_shared<Error>(Error(Error::Type::DeclarationError));
 		*err <<
 			errinfo_sourceLocation(functions[_contract.name()].front()->location()) <<
 			errinfo_comment("More than one constructor defined.") <<
@@ -157,7 +150,7 @@ void TypeChecker::checkContractDuplicateFunctions(ContractDefinition const& _con
 			for (size_t j = i + 1; j < overloads.size(); ++j)
 				if (FunctionType(*overloads[i]).hasEqualArgumentTypes(FunctionType(*overloads[j])))
 				{
-					auto err = make_shared<DeclarationError>();
+					auto err = make_shared<Error>(Error(Error::Type::DeclarationError));
 					*err <<
 						errinfo_sourceLocation(overloads[j]->location()) <<
 						errinfo_comment("Function with same name and arguments defined twice.") <<
@@ -424,16 +417,17 @@ bool TypeChecker::visit(VariableDeclaration const& _variable)
 	// Note that assignments before the first declaration are legal because of the special scoping
 	// rules inherited from JavaScript.
 
-	// This only infers the type from its type name.
-	// If an explicit type is required, it throws, otherwise it returns TypePointer();
+	// type is filled either by ReferencesResolver directly from the type name or by
+	// TypeChecker at the VariableDeclarationStatement level.
 	TypePointer varType = _variable.annotation().type;
+	polAssert(!!varType, "Failed to infer variable type.");
 	if (_variable.isConstant())
 	{
 		if (!dynamic_cast<ContractDefinition const*>(_variable.scope()))
 			typeError(_variable, "Illegal use of \"constant\" specifier.");
 		if (!_variable.value())
 			typeError(_variable, "Uninitialized \"constant\" variable.");
-		if (varType && !varType->isValueType())
+		if (!varType->isValueType())
 		{
 			bool constImplemented = false;
 			if (auto arrayType = dynamic_cast<ArrayType const*>(varType.get()))
@@ -446,43 +440,8 @@ bool TypeChecker::visit(VariableDeclaration const& _variable)
 				);
 		}
 	}
-	if (varType)
-	{
-		if (_variable.value())
-			expectType(*_variable.value(), *varType);
-		else
-		{
-			if (auto ref = dynamic_cast<ReferenceType const *>(varType.get()))
-				if (ref->dataStoredIn(DataLocation::Storage) && _variable.isLocalVariable() && !_variable.isCallableParameter())
-				{
-					auto err = make_shared<Warning>();
-					*err <<
-						errinfo_sourceLocation(_variable.location()) <<
-						errinfo_comment("Uninitialized storage pointer. Did you mean '<type> memory " + _variable.name() + "'?");
-					m_errors.push_back(err);
-				}
-		}
-	}
-	else
-	{
-		// Infer type from value.
-		if (!_variable.value())
-			fatalTypeError(_variable, "Assignment necessary for type detection.");
-		_variable.value()->accept(*this);
-
-		TypePointer const& valueType = type(*_variable.value());
-		polAssert(!!valueType, "");
-		if (
-			valueType->category() == Type::Category::IntegerConstant &&
-			!dynamic_pointer_cast<IntegerConstantType const>(valueType)->integerType()
-		)
-			fatalTypeError(*_variable.value(), "Invalid integer constant " + valueType->toString() + ".");
-		else if (valueType->category() == Type::Category::Void)
-			fatalTypeError(_variable, "Variable cannot have void type.");
-		varType = valueType->mobileType();
-	}
-	polAssert(!!varType, "");
-	_variable.annotation().type = varType;
+	if (_variable.value())
+		expectType(*_variable.value(), *varType);
 	if (!_variable.isStateVariable())
 	{
 		if (varType->dataStoredIn(DataLocation::Memory) || varType->dataStoredIn(DataLocation::CallData))
@@ -601,13 +560,31 @@ void TypeChecker::endVisit(Return const& _return)
 		return;
 	ParameterList const* params = _return.annotation().functionReturnParameters;
 	if (!params)
+	{
 		typeError(_return, "Return arguments not allowed.");
+		return;
+	}
+	TypePointers returnTypes;
+	for (auto const& var: params->parameters())
+		returnTypes.push_back(type(*var));
+	if (auto tupleType = dynamic_cast<TupleType const*>(type(*_return.expression()).get()))
+	{
+		if (tupleType->components().size() != params->parameters().size())
+			typeError(_return, "Different number of arguments in return statement than in returns declaration.");
+		else if (!tupleType->isImplicitlyConvertibleTo(TupleType(returnTypes)))
+			typeError(
+				*_return.expression(),
+				"Return argument type " +
+				type(*_return.expression())->toString() +
+				" is not implicitly convertible to expected type " +
+				TupleType(returnTypes).toString(false) +
+				"."
+			);
+	}
 	else if (params->parameters().size() != 1)
 		typeError(_return, "Different number of arguments in return statement than in returns declaration.");
 	else
 	{
-		// this could later be changed such that the paramaters type is an anonymous struct type,
-		// but for now, we only allow one return parameter
 		TypePointer const& expected = type(*params->parameters().front());
 		if (!type(*_return.expression())->isImplicitlyConvertibleTo(*expected))
 			typeError(
@@ -619,6 +596,126 @@ void TypeChecker::endVisit(Return const& _return)
 				"."
 			);
 	}
+}
+
+bool TypeChecker::visit(VariableDeclarationStatement const& _statement)
+{
+	if (!_statement.initialValue())
+	{
+		// No initial value is only permitted for single variables with specified type.
+		if (_statement.declarations().size() != 1 || !_statement.declarations().front())
+			fatalTypeError(_statement, "Assignment necessary for type detection.");
+		VariableDeclaration const& varDecl = *_statement.declarations().front();
+		if (!varDecl.annotation().type)
+			fatalTypeError(_statement, "Assignment necessary for type detection.");
+		if (auto ref = dynamic_cast<ReferenceType const*>(type(varDecl).get()))
+		{
+			if (ref->dataStoredIn(DataLocation::Storage))
+			{
+				auto err = make_shared<Error>(Error::Type::Warning);
+				*err <<
+					errinfo_sourceLocation(varDecl.location()) <<
+					errinfo_comment("Uninitialized storage pointer. Did you mean '<type> memory " + varDecl.name() + "'?");
+				m_errors.push_back(err);
+			}
+		}
+		varDecl.accept(*this);
+		return false;
+	}
+
+	// Here we have an initial value and might have to derive some types before we can visit
+	// the variable declaration(s).
+
+	_statement.initialValue()->accept(*this);
+	TypePointers valueTypes;
+	if (auto tupleType = dynamic_cast<TupleType const*>(type(*_statement.initialValue()).get()))
+		valueTypes = tupleType->components();
+	else
+		valueTypes = TypePointers{type(*_statement.initialValue())};
+
+	// Determine which component is assigned to which variable.
+	// If numbers do not match, fill up if variables begin or end empty (not both).
+	vector<VariableDeclaration const*>& assignments = _statement.annotation().assignments;
+	assignments.resize(valueTypes.size(), nullptr);
+	vector<ASTPointer<VariableDeclaration>> const& variables = _statement.declarations();
+	if (variables.empty())
+	{
+		if (!valueTypes.empty())
+			fatalTypeError(
+				_statement,
+				"Too many components (" +
+				toString(valueTypes.size()) +
+				") in value for variable assignment (0) needed"
+			);
+	}
+	else if (valueTypes.size() != variables.size() && !variables.front() && !variables.back())
+		fatalTypeError(
+			_statement,
+			"Wildcard both at beginning and end of variable declaration list is only allowed "
+			"if the number of components is equal."
+		);
+	size_t minNumValues = variables.size();
+	if (!variables.empty() && (!variables.back() || !variables.front()))
+		--minNumValues;
+	if (valueTypes.size() < minNumValues)
+		fatalTypeError(
+			_statement,
+			"Not enough components (" +
+			toString(valueTypes.size()) +
+			") in value to assign all variables (" +
+			toString(minNumValues) + ")."
+		);
+	if (valueTypes.size() > variables.size() && variables.front() && variables.back())
+		fatalTypeError(
+			_statement,
+			"Too many components (" +
+			toString(valueTypes.size()) +
+			") in value for variable assignment (" +
+			toString(minNumValues) +
+			" needed)."
+		);
+	bool fillRight = !variables.empty() && (!variables.back() || variables.front());
+	for (size_t i = 0; i < min(variables.size(), valueTypes.size()); ++i)
+		if (fillRight)
+			assignments[i] = variables[i].get();
+		else
+			assignments[assignments.size() - i - 1] = variables[variables.size() - i - 1].get();
+
+	for (size_t i = 0; i < assignments.size(); ++i)
+	{
+		if (!assignments[i])
+			continue;
+		VariableDeclaration const& var = *assignments[i];
+		polAssert(!var.value(), "Value has to be tied to statement.");
+		TypePointer const& valueComponentType = valueTypes[i];
+		polAssert(!!valueComponentType, "");
+		if (!var.annotation().type)
+		{
+			// Infer type from value.
+			polAssert(!var.typeName(), "");
+			if (
+				valueComponentType->category() == Type::Category::IntegerConstant &&
+				!dynamic_pointer_cast<IntegerConstantType const>(valueComponentType)->integerType()
+			)
+				fatalTypeError(*_statement.initialValue(), "Invalid integer constant " + valueComponentType->toString() + ".");
+			var.annotation().type = valueComponentType->mobileType();
+			var.accept(*this);
+		}
+		else
+		{
+			var.accept(*this);
+			if (!valueComponentType->isImplicitlyConvertibleTo(*var.annotation().type))
+				typeError(
+					_statement,
+					"Type " +
+					valueComponentType->toString() +
+					" is not implicitly convertible to expected type " +
+					var.annotation().type->toString() +
+					"."
+				);
+		}
+	}
+	return false;
 }
 
 void TypeChecker::endVisit(ExpressionStatement const& _statement)
@@ -633,7 +730,13 @@ bool TypeChecker::visit(Assignment const& _assignment)
 	requireLValue(_assignment.leftHandSide());
 	TypePointer t = type(_assignment.leftHandSide());
 	_assignment.annotation().type = t;
-	if (t->category() == Type::Category::Mapping)
+	if (TupleType const* tupleType = dynamic_cast<TupleType const*>(t.get()))
+	{
+		// Sequenced assignments of tuples is not valid, make the result a "void" type.
+		_assignment.annotation().type = make_shared<TupleType>();
+		expectType(_assignment.rightHandSide(), *tupleType);
+	}
+	else if (t->category() == Type::Category::Mapping)
 	{
 		typeError(_assignment, "Mappings cannot be assigned to.");
 		_assignment.rightHandSide().accept(*this);
@@ -658,6 +761,51 @@ bool TypeChecker::visit(Assignment const& _assignment)
 				" and " +
 				type(_assignment.rightHandSide())->toString()
 			);
+	}
+	return false;
+}
+
+bool TypeChecker::visit(TupleExpression const& _tuple)
+{
+	vector<ASTPointer<Expression>> const& components = _tuple.components();
+	TypePointers types;
+	if (_tuple.annotation().lValueRequested)
+	{
+		for (auto const& component: components)
+			if (component)
+			{
+				requireLValue(*component);
+				types.push_back(type(*component));
+			}
+			else
+				types.push_back(TypePointer());
+		_tuple.annotation().type = make_shared<TupleType>(types);
+		// If some of the components are not LValues, the error is reported above.
+		_tuple.annotation().isLValue = true;
+	}
+	else
+	{
+		for (size_t i = 0; i < components.size(); ++i)
+		{
+			// Outside of an lvalue-context, the only situation where a component can be empty is (x,).
+			if (!components[i] && !(i == 1 && components.size() == 2))
+				fatalTypeError(_tuple, "Tuple component cannot be empty.");
+			else if (components[i])
+			{
+				components[i]->accept(*this);
+				types.push_back(type(*components[i]));
+			}
+			else
+				types.push_back(TypePointer());
+		}
+		if (components.size() == 1)
+			_tuple.annotation().type = type(*components[0]);
+		else
+		{
+			if (components.size() == 2 && !components[1])
+				types.pop_back();
+			_tuple.annotation().type = make_shared<TupleType>(types);
+		}
 	}
 	return false;
 }
@@ -785,23 +933,14 @@ bool TypeChecker::visit(FunctionCall const& _functionCall)
 	if (!functionType)
 	{
 		typeError(_functionCall, "Type is not callable");
-		_functionCall.annotation().type = make_shared<VoidType>();
+		_functionCall.annotation().type = make_shared<TupleType>();
 		return false;
 	}
+	else if (functionType->returnParameterTypes().size() == 1)
+		_functionCall.annotation().type = functionType->returnParameterTypes().front();
 	else
-	{
-		// @todo actually the return type should be an anonymous struct,
-		// but we change it to the type of the first return value until we have anonymous
-		// structs and tuples
-		if (functionType->returnParameterTypes().empty())
-			_functionCall.annotation().type = make_shared<VoidType>();
-		else
-			_functionCall.annotation().type = functionType->returnParameterTypes().front();
-	}
+		_functionCall.annotation().type = make_shared<TupleType>(functionType->returnParameterTypes());
 
-	//@todo would be nice to create a struct type from the arguments
-	// and then ask if that is implicitly convertible to the struct represented by the
-	// function parameters
 	TypePointers const& parameterTypes = functionType->parameterTypes();
 	if (!functionType->takesArbitraryParameters() && parameterTypes.size() != arguments.size())
 	{
@@ -1166,15 +1305,15 @@ void TypeChecker::expectType(Expression const& _expression, Type const& _expecte
 
 void TypeChecker::requireLValue(Expression const& _expression)
 {
+	_expression.annotation().lValueRequested = true;
 	_expression.accept(*this);
 	if (!_expression.annotation().isLValue)
 		typeError(_expression, "Expression has to be an lvalue.");
-	_expression.annotation().lValueRequested = true;
 }
 
 void TypeChecker::typeError(ASTNode const& _node, string const& _description)
 {
-	auto err = make_shared<TypeError>();
+	auto err = make_shared<Error>(Error::Type::TypeError);
 	*err <<
 		errinfo_sourceLocation(_node.location()) <<
 		errinfo_comment(_description);

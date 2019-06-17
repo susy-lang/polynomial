@@ -75,7 +75,7 @@ public:
 
 	/// Creates a @ref TypeError exception and decorates it with the location of the node and
 	/// the given description
-	TypeError createTypeError(std::string const& _description) const;
+	Error createTypeError(std::string const& _description) const;
 
 	///@todo make this const-safe by providing a different way to access the annotation
 	virtual ASTAnnotation& annotation() const;
@@ -558,7 +558,9 @@ protected:
 
 private:
 	ASTPointer<TypeName> m_typeName; ///< can be empty ("var")
-	ASTPointer<Expression> m_value; ///< the assigned value, can be missing
+	/// Initially assigned value, can be missing. For local variables, this is stored inside
+	/// VariableDeclarationStatement and not here.
+	ASTPointer<Expression> m_value;
 	bool m_isStateVariable; ///< whether or not this is a contract state variable
 	bool m_isIndexed; ///< whether this is an indexed variable (used by events).
 	bool m_isConstant; ///< whether the variable is a compile-time constant.
@@ -658,10 +660,14 @@ class MagicVariableDeclaration: public Declaration
 public:
 	MagicVariableDeclaration(ASTString const& _name, std::shared_ptr<Type const> const& _type):
 		Declaration(SourceLocation(), std::make_shared<ASTString>(_name)), m_type(_type) {}
-	virtual void accept(ASTVisitor&) override { BOOST_THROW_EXCEPTION(InternalCompilerError()
-							<< errinfo_comment("MagicVariableDeclaration used inside real AST.")); }
-	virtual void accept(ASTConstVisitor&) const override { BOOST_THROW_EXCEPTION(InternalCompilerError()
-							<< errinfo_comment("MagicVariableDeclaration used inside real AST.")); }
+	virtual void accept(ASTVisitor&) override
+	{
+		BOOST_THROW_EXCEPTION(InternalCompilerError() << errinfo_comment("MagicVariableDeclaration used inside real AST."));
+	}
+	virtual void accept(ASTConstVisitor&) const override
+	{
+		BOOST_THROW_EXCEPTION(InternalCompilerError() << errinfo_comment("MagicVariableDeclaration used inside real AST."));
+	}
 
 	virtual TypePointer type(ContractDefinition const*) const override { return m_type; }
 
@@ -963,20 +969,33 @@ public:
  * Definition of a variable as a statement inside a function. It requires a type name (which can
  * also be "var") but the actual assignment can be missing.
  * Examples: var a = 2; uint256 a;
+ * As a second form, multiple variables can be declared, cannot have a type and must be assigned
+ * right away. If the first or last component is unnamed, it can "consume" an arbitrary number
+ * of components.
+ * Examples: var (a, b) = f(); var (a,,,c) = g(); var (a,) = d();
  */
 class VariableDeclarationStatement: public Statement
 {
 public:
-	VariableDeclarationStatement(SourceLocation const& _location, ASTPointer<VariableDeclaration> _variable):
-		Statement(_location), m_variable(_variable) {}
+	VariableDeclarationStatement(
+		SourceLocation const& _location,
+		std::vector<ASTPointer<VariableDeclaration>> const& _variables,
+		ASTPointer<Expression> const& _initialValue
+	):
+		Statement(_location), m_variables(_variables), m_initialValue(_initialValue) {}
 	virtual void accept(ASTVisitor& _visitor) override;
 	virtual void accept(ASTConstVisitor& _visitor) const override;
 
-	VariableDeclaration const& declaration() const { return *m_variable; }
-	Expression const* expression() const { return m_variable->value().get(); }
+	VariableDeclarationStatementAnnotation& annotation() const override;
+
+	std::vector<ASTPointer<VariableDeclaration>> const& declarations() const { return m_variables; }
+	Expression const* initialValue() const { return m_initialValue.get(); }
 
 private:
-	ASTPointer<VariableDeclaration> m_variable;
+	/// List of variables, some of which can be empty pointers (unnamed components).
+	std::vector<ASTPointer<VariableDeclaration>> m_variables;
+	/// The assigned expression / initial value.
+	ASTPointer<Expression> m_initialValue;
 };
 
 /**
@@ -1046,6 +1065,30 @@ private:
 	ASTPointer<Expression> m_leftHandSide;
 	Token::Value m_assigmentOperator;
 	ASTPointer<Expression> m_rightHandSide;
+};
+
+/**
+ * Tuple or just parenthesized expression.
+ * Examples: (1, 2), (x,), (x), ()
+ * Individual components might be empty shared pointers (as in the second example).
+ * The respective types in lvalue context are: 2-tuple, 2-tuple (with wildcard), type of x, 0-tuple
+ * Not in lvalue context: 2-tuple, _1_-tuple, type of x, 0-tuple.
+ */
+class TupleExpression: public Expression
+{
+public:
+	TupleExpression(
+		SourceLocation const& _location,
+		std::vector<ASTPointer<Expression>> const& _components
+	):
+		Expression(_location), m_components(_components) {}
+	virtual void accept(ASTVisitor& _visitor) override;
+	virtual void accept(ASTConstVisitor& _visitor) const override;
+
+	std::vector<ASTPointer<Expression>> const& components() const { return m_components; }
+
+private:
+	std::vector<ASTPointer<Expression>> m_components;
 };
 
 /**

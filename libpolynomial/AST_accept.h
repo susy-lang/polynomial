@@ -516,14 +516,26 @@ void ExpressionStatement::accept(ASTConstVisitor& _visitor) const
 void VariableDeclarationStatement::accept(ASTVisitor& _visitor)
 {
 	if (_visitor.visit(*this))
-		m_variable->accept(_visitor);
+	{
+		for (ASTPointer<VariableDeclaration> const& var: m_variables)
+			if (var)
+				var->accept(_visitor);
+		if (m_initialValue)
+			m_initialValue->accept(_visitor);
+	}
 	_visitor.endVisit(*this);
 }
 
 void VariableDeclarationStatement::accept(ASTConstVisitor& _visitor) const
 {
 	if (_visitor.visit(*this))
-		m_variable->accept(_visitor);
+	{
+		for (ASTPointer<VariableDeclaration> const& var: m_variables)
+			if (var)
+				var->accept(_visitor);
+		if (m_initialValue)
+			m_initialValue->accept(_visitor);
+	}
 	_visitor.endVisit(*this);
 }
 
@@ -544,6 +556,24 @@ void Assignment::accept(ASTConstVisitor& _visitor) const
 		m_leftHandSide->accept(_visitor);
 		m_rightHandSide->accept(_visitor);
 	}
+	_visitor.endVisit(*this);
+}
+
+void TupleExpression::accept(ASTVisitor& _visitor)
+{
+	if (_visitor.visit(*this))
+		for (auto const& component: m_components)
+			if (component)
+				component->accept(_visitor);
+	_visitor.endVisit(*this);
+}
+
+void TupleExpression::accept(ASTConstVisitor& _visitor) const
+{
+	if (_visitor.visit(*this))
+		for (auto const& component: m_components)
+			if (component)
+				component->accept(_visitor);
 	_visitor.endVisit(*this);
 }
 

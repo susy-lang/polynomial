@@ -51,9 +51,9 @@ ASTAnnotation& ASTNode::annotation() const
 	return *m_annotation;
 }
 
-TypeError ASTNode::createTypeError(string const& _description) const
+Error ASTNode::createTypeError(string const& _description) const
 {
-	return TypeError() << errinfo_sourceLocation(location()) << errinfo_comment(_description);
+	return Error(Error::Type::TypeError) << errinfo_sourceLocation(location()) << errinfo_comment(_description);
 }
 
 map<FixedHash<4>, FunctionTypePointer> ContractDefinition::interfaceFunctions() const
@@ -115,29 +115,26 @@ vector<pair<FixedHash<4>, FunctionTypePointer>> const& ContractDefinition::inter
 		m_interfaceFunctionList.reset(new vector<pair<FixedHash<4>, FunctionTypePointer>>());
 		for (ContractDefinition const* contract: annotation().linearizedBaseContracts)
 		{
+			vector<FunctionTypePointer> functions;
 			for (ASTPointer<FunctionDefinition> const& f: contract->definedFunctions())
+				if (f->isPartOfExternalInterface())
+					functions.push_back(make_shared<FunctionType>(*f, false));
+			for (ASTPointer<VariableDeclaration> const& v: contract->stateVariables())
+				if (v->isPartOfExternalInterface())
+					functions.push_back(make_shared<FunctionType>(*v));
+			for (FunctionTypePointer const& fun: functions)
 			{
-				if (!f->isPartOfExternalInterface())
+				if (!fun->interfaceFunctionType())
+					// Fails hopefully because we already registered the error
 					continue;
-				string functionSignature = f->externalSignature();
+				string functionSignature = fun->externalSignature();
 				if (signaturesSeen.count(functionSignature) == 0)
 				{
-					functionsSeen.insert(f->name());
 					signaturesSeen.insert(functionSignature);
 					FixedHash<4> hash(dev::sha3(functionSignature));
-					m_interfaceFunctionList->push_back(make_pair(hash, make_shared<FunctionType>(*f, false)));
+					m_interfaceFunctionList->push_back(make_pair(hash, fun));
 				}
 			}
-
-			for (ASTPointer<VariableDeclaration> const& v: contract->stateVariables())
-				if (functionsSeen.count(v->name()) == 0 && v->isPartOfExternalInterface())
-				{
-					FunctionType ftype(*v);
-					polAssert(!!v->annotation().type.get(), "");
-					functionsSeen.insert(v->name());
-					FixedHash<4> hash(dev::sha3(ftype.externalSignature()));
-					m_interfaceFunctionList->push_back(make_pair(hash, make_shared<FunctionType>(*v)));
-				}
 		}
 	}
 	return *m_interfaceFunctionList;
@@ -323,6 +320,13 @@ ReturnAnnotation& Return::annotation() const
 	if (!m_annotation)
 		m_annotation = new ReturnAnnotation();
 	return static_cast<ReturnAnnotation&>(*m_annotation);
+}
+
+VariableDeclarationStatementAnnotation& VariableDeclarationStatement::annotation() const
+{
+	if (!m_annotation)
+		m_annotation = new VariableDeclarationStatementAnnotation();
+	return static_cast<VariableDeclarationStatementAnnotation&>(*m_annotation);
 }
 
 ExpressionAnnotation& Expression::annotation() const

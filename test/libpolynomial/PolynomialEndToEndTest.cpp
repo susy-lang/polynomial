@@ -3452,6 +3452,7 @@ BOOST_AUTO_TEST_CASE(array_copy_target_leftover2)
 		asString(fromHex("0000000000000000"))
 	));
 }
+
 BOOST_AUTO_TEST_CASE(array_copy_storage_storage_struct)
 {
 	char const* sourceCode = R"(
@@ -3474,6 +3475,45 @@ BOOST_AUTO_TEST_CASE(array_copy_storage_storage_struct)
 	compileAndRun(sourceCode);
 	BOOST_CHECK(callContractFunction("test()") == encodeArgs(4, 5));
 	BOOST_CHECK(m_state.storage(m_contractAddress).empty());
+}
+
+BOOST_AUTO_TEST_CASE(array_push)
+{
+	char const* sourceCode = R"(
+		contract c {
+			uint[] data;
+			function test() returns (uint x, uint y, uint z, uint l) {
+				data.push(5);
+				x = data[0];
+				data.push(4);
+				y = data[1];
+				l = data.push(3);
+				z = data[2];
+			}
+		}
+	)";
+	compileAndRun(sourceCode);
+	BOOST_CHECK(callContractFunction("test()") == encodeArgs(5, 4, 3, 3));
+}
+
+BOOST_AUTO_TEST_CASE(byte_array_push)
+{
+	char const* sourceCode = R"(
+		contract c {
+			bytes data;
+			function test() returns (bool x) {
+				if (data.push(5) != 1)  return true;
+				if (data[0] != 5) return true;
+				data.push(4);
+				if (data[1] != 4) return true;
+				uint l = data.push(3);
+				if (data[2] != 3) return true;
+				if (l != 3) return true;
+			}
+		}
+	)";
+	compileAndRun(sourceCode);
+	BOOST_CHECK(callContractFunction("test()") == encodeArgs(false));
 }
 
 BOOST_AUTO_TEST_CASE(external_array_args)
@@ -4705,7 +4745,7 @@ BOOST_AUTO_TEST_CASE(dev_title_at_function_error)
 	"  function mul(uint a, uint second) returns(uint d) { return a * 7 + second; }\n"
 	"}\n";
 
-	compileRequireThrow<DocstringParsingError>(sourceCode);
+	compileRequireError(sourceCode, Error::Type::DocstringParsingError);
 }
 
 BOOST_AUTO_TEST_CASE(dev_documenting_nonexistant_param)
@@ -4717,7 +4757,7 @@ BOOST_AUTO_TEST_CASE(dev_documenting_nonexistant_param)
 	"  function mul(uint a, uint second) returns(uint d) { return a * 7 + second; }\n"
 	"}\n";
 
-	compileRequireThrow<DocstringParsingError>(sourceCode);
+	compileRequireError(sourceCode, Error::Type::DocstringParsingError);
 }
 
 
@@ -5611,6 +5651,140 @@ BOOST_AUTO_TEST_CASE(reject_sophy_sent_to_library)
 	BOOST_CHECK(callContractFunction("f(address)", encodeArgs(u160(m_contractAddress))) == encodeArgs(true));
 	BOOST_CHECK_EQUAL(m_state.balance(m_contractAddress), 10);
 	BOOST_CHECK_EQUAL(m_state.balance(libraryAddress), 0);
+}
+
+BOOST_AUTO_TEST_CASE(multi_variable_declaration)
+{
+	char const* sourceCode = R"(
+		contract C {
+			function g() returns (uint a, uint b, uint c) {
+				a = 1; b = 2; c = 3;
+			}
+			function f() returns (bool) {
+				var (x, y, z) = g();
+				if (x != 1 || y != 2 || z != 3) return false;
+				var (, a,) = g();
+				if (a != 2) return false;
+				var (b,) = g();
+				if (b != 1) return false;
+				var (,c) = g();
+				if (c != 3) return false;
+				return true;
+			}
+		}
+	)";
+	compileAndRun(sourceCode);
+	BOOST_CHECK(callContractFunction("f()", encodeArgs()) == encodeArgs(true));
+}
+
+BOOST_AUTO_TEST_CASE(tuples)
+{
+	char const* sourceCode = R"(
+		contract C {
+			uint[] data;
+			function g() internal returns (uint a, uint b, uint[] storage c) {
+				return (1, 2, data);
+			}
+			function h() external returns (uint a, uint b) {
+				return (5, 6);
+			}
+			function f() returns (uint) {
+				data.length = 1;
+				data[0] = 3;
+				uint a; uint b;
+				(a, b) = this.h();
+				if (a != 5 || b != 6) return 1;
+				uint[] storage c;
+				(a, b, c) = g();
+				if (a != 1 || b != 2 || c[0] != 3) return 2;
+				(a, b) = (b, a);
+				if (a != 2 || b != 1) return 3;
+				(a, , b, ) = (8, 9, 10, 11, 12);
+				if (a != 8 || b != 10) return 4;
+			}
+		}
+	)";
+	compileAndRun(sourceCode);
+	BOOST_CHECK(callContractFunction("f()") == encodeArgs(u256(0)));
+}
+
+BOOST_AUTO_TEST_CASE(destructuring_assignment)
+{
+	char const* sourceCode = R"(
+		contract C {
+			uint x = 7;
+			bytes data;
+			uint[] y;
+			uint[] arrayData;
+			function returnsArray() returns (uint[]) {
+				arrayData.length = 9;
+				arrayData[2] = 5;
+				arrayData[7] = 4;
+				return arrayData;
+			}
+			function f(bytes s) returns (uint) {
+				uint loc;
+				uint[] memory memArray;
+				(loc, x, y, data, arrayData[3]) = (8, 4, returnsArray(), s, 2);
+				if (loc != 8) return 1;
+				if (x != 4) return 2;
+				if (y.length != 9) return 3;
+				if (y[2] != 5) return 4;
+				if (y[7] != 4) return 5;
+				if (data.length != s.length) return 6;
+				if (data[3] != s[3]) return 7;
+				if (arrayData[3] != 2) return 8;
+				(memArray, loc) = (arrayData, 3);
+				if (loc != 3) return 9;
+				if (memArray.length != arrayData.length) return 10;
+				bytes memory memBytes;
+				(x, memBytes, y[2], ) = (456, s, 789, 101112, 131415);
+				if (x != 456 || memBytes.length != s.length || y[2] != 789) return 11;
+			}
+		}
+	)";
+	compileAndRun(sourceCode);
+	BOOST_CHECK(callContractFunction("f(bytes)", u256(0x20), u256(5), string("abcde")) == encodeArgs(u256(0)));
+}
+
+BOOST_AUTO_TEST_CASE(destructuring_assignment_wildcard)
+{
+	char const* sourceCode = R"(
+		contract C {
+			function f() returns (uint) {
+				uint a;
+				uint b;
+				uint c;
+				(a,) = (1,);
+				if (a != 1) return 1;
+				(,b) = (2,3,4);
+				if (b != 4) return 2;
+				(, c,) = (5,6,7);
+				if (c != 6) return 3;
+				(a, b,) = (11, 12, 13);
+				if (a != 11 || b != 12) return 4;
+				(, a, b) = (11, 12, 13);
+				if (a != 12 || b != 13) return 5;
+			}
+		}
+	)";
+	compileAndRun(sourceCode);
+	BOOST_CHECK(callContractFunction("f()") == encodeArgs(u256(0)));
+}
+
+BOOST_AUTO_TEST_CASE(lone_struct_array_type)
+{
+	char const* sourceCode = R"(
+		contract C {
+			struct s { uint a; uint b;}
+			function f() returns (uint) {
+				s[7][]; // This is only the type, should not have any effect
+				return 3;
+			}
+		}
+	)";
+	compileAndRun(sourceCode);
+	BOOST_CHECK(callContractFunction("f()") == encodeArgs(u256(3)));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

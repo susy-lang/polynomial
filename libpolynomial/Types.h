@@ -132,8 +132,8 @@ public:
 	enum class Category
 	{
 		Integer, IntegerConstant, StringLiteral, Bool, Real, Array,
-		FixedBytes, Contract, Struct, Function, Enum,
-		Mapping, Void, TypeType, Modifier, Magic
+		FixedBytes, Contract, Struct, Function, Enum, Tuple,
+		Mapping, TypeType, Modifier, Magic
 	};
 
 	/// @{
@@ -210,6 +210,13 @@ public:
 	/// @returns true if this is a non-value type and the data of this type is stored at the
 	/// given location.
 	virtual bool dataStoredIn(DataLocation) const { return false; }
+	/// @returns the type of a temporary during assignment to a variable of the given type.
+	/// Specifically, returns the requested itself if it can be dynamically allocated (or is a value type)
+	/// and the mobile type otherwise.
+	virtual TypePointer closestTemporaryType(TypePointer const& _targetType) const
+	{
+		return _targetType->dataStoredIn(DataLocation::Storage) ? mobileType() : _targetType;
+	}
 
 	/// Returns the list of all members of this type. Default implementation: no members.
 	virtual MemberList const& members() const { return EmptyMemberList; }
@@ -505,10 +512,7 @@ public:
 	virtual unsigned sizeOnStack() const override;
 	virtual std::string toString(bool _short) const override;
 	virtual std::string canonicalName(bool _addDataLocation) const override;
-	virtual MemberList const& members() const override
-	{
-		return isString() ? EmptyMemberList : s_arrayTypeMemberList;
-	}
+	virtual MemberList const& members() const override;
 	virtual TypePointer encodingType() const override;
 	virtual TypePointer decodingType() const override;
 	virtual TypePointer interfaceType(bool _inLibrary) const override;
@@ -532,7 +536,8 @@ private:
 	TypePointer m_baseType;
 	bool m_hasDynamicLength = true;
 	u256 m_length;
-	static const MemberList s_arrayTypeMemberList;
+	/// List of member types, will be lazy-initialized because of recursive references.
+	mutable std::unique_ptr<MemberList> m_members;
 };
 
 /**
@@ -683,6 +688,33 @@ private:
 };
 
 /**
+ * Type that can hold a finite sequence of values of different types.
+ * In some cases, the components are empty pointers (when used as placeholders).
+ */
+class TupleType: public Type
+{
+public:
+	virtual Category category() const override { return Category::Tuple; }
+	explicit TupleType(std::vector<TypePointer> const& _types = std::vector<TypePointer>()): m_components(_types) {}
+	virtual bool isImplicitlyConvertibleTo(Type const& _other) const override;
+	virtual bool operator==(Type const& _other) const override;
+	virtual TypePointer binaryOperatorResult(Token::Value, TypePointer const&) const override { return TypePointer(); }
+	virtual std::string toString(bool) const override;
+	virtual bool canBeStored() const override { return false; }
+	virtual u256 storageSize() const override;
+	virtual bool canLiveOutsideStorage() const override { return false; }
+	virtual unsigned sizeOnStack() const override;
+	virtual TypePointer mobileType() const override;
+	/// Converts components to their temporary types and performs some wildcard matching.
+	virtual TypePointer closestTemporaryType(TypePointer const& _targetType) const override;
+
+	std::vector<TypePointer> const& components() const { return m_components; }
+
+private:
+	std::vector<TypePointer> const m_components;
+};
+
+/**
  * The type of a function, identified by its (return) parameter types.
  * @todo the return parameters should also have names, i.e. return parameters should be a struct
  * type.
@@ -714,7 +746,9 @@ public:
 		Event, ///< syntactic sugar for LOG*
 		SetGas, ///< modify the default gas value for the function call
 		SetValue, ///< modify the default value transfer for the function call
-		BlockHash ///< BLOCKHASH
+		BlockHash, ///< BLOCKHASH
+		ArrayPush, ///< .push() to a dynamically sized array in storage
+		ByteArrayPush ///< .push() to a dynamically sized byte array in storage
 	};
 
 	virtual Category category() const override { return Category::Function; }
@@ -872,24 +906,6 @@ public:
 private:
 	TypePointer m_keyType;
 	TypePointer m_valueType;
-};
-
-/**
- * The void type, can only be implicitly used as the type that is returned by functions without
- * return parameters.
- */
-class VoidType: public Type
-{
-public:
-	virtual Category category() const override { return Category::Void; }
-	VoidType() {}
-
-	virtual TypePointer binaryOperatorResult(Token::Value, TypePointer const&) const override { return TypePointer(); }
-	virtual std::string toString(bool) const override { return "void"; }
-	virtual bool canBeStored() const override { return false; }
-	virtual u256 storageSize() const override;
-	virtual bool canLiveOutsideStorage() const override { return false; }
-	virtual unsigned sizeOnStack() const override { return 0; }
 };
 
 /**

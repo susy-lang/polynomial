@@ -33,6 +33,7 @@
 #include <libdevcore/FixedHash.h>
 #include <libsvmasm/SourceLocation.h>
 #include <libsvmasm/LinkerObject.h>
+#include <libpolynomial/Exceptions.h>
 
 namespace dev
 {
@@ -55,7 +56,7 @@ class SourceUnit;
 class Compiler;
 class GlobalContext;
 class InterfaceHandler;
-struct Error;
+class Error;
 
 enum class DocumentationType: uint8_t
 {
@@ -164,7 +165,8 @@ public:
 	std::tuple<int, int, int, int> positionFromSourceLocation(SourceLocation const& _sourceLocation) const;
 
 	/// @returns the list of errors that occured during parsing and type checking.
-	std::vector<std::shared_ptr<Error const>> const& errors() const { return m_errors; }
+	ErrorList const& errors() const { return m_errors; }
+
 
 private:
 	/**
@@ -212,7 +214,7 @@ private:
 	std::shared_ptr<GlobalContext> m_globalContext;
 	std::vector<Source const*> m_sourceOrder;
 	std::map<std::string const, Contract> m_contracts;
-	std::vector<std::shared_ptr<Error const>> m_errors;
+	ErrorList m_errors;
 };
 
 }

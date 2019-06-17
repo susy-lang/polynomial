@@ -179,17 +179,12 @@ bool ExpressionCompiler::visit(Assignment const& _assignment)
 {
 	CompilerContext::LocationSetter locationSetter(m_context, _assignment);
 	_assignment.rightHandSide().accept(*this);
-	TypePointer type = _assignment.rightHandSide().annotation().type;
-	if (!_assignment.annotation().type->dataStoredIn(DataLocation::Storage))
-	{
-		utils().convertType(*type, *_assignment.annotation().type);
-		type = _assignment.annotation().type;
-	}
-	else
-	{
-		utils().convertType(*type, *type->mobileType());
-		type = type->mobileType();
-	}
+	// Perform some conversion already. This will convert storage types to memory and literals
+	// to their actual type, but will not convert e.g. memory to storage.
+	TypePointer type = _assignment.rightHandSide().annotation().type->closestTemporaryType(
+		_assignment.leftHandSide().annotation().type
+	);
+	utils().convertType(*_assignment.rightHandSide().annotation().type, *type);
 
 	_assignment.leftHandSide().accept(*this);
 	polAssert(!!m_currentLValue, "LValue not retrieved.");
@@ -218,6 +213,26 @@ bool ExpressionCompiler::visit(Assignment const& _assignment)
 	}
 	m_currentLValue->storeValue(*type, _assignment.location());
 	m_currentLValue.reset();
+	return false;
+}
+
+bool ExpressionCompiler::visit(TupleExpression const& _tuple)
+{
+	vector<unique_ptr<LValue>> lvalues;
+	for (auto const& component: _tuple.components())
+		if (component)
+		{
+			component->accept(*this);
+			if (_tuple.annotation().lValueRequested)
+			{
+				polAssert(!!m_currentLValue, "");
+				lvalues.push_back(move(m_currentLValue));
+			}
+		}
+		else if (_tuple.annotation().lValueRequested)
+			lvalues.push_back(unique_ptr<LValue>());
+	if (_tuple.annotation().lValueRequested)
+		m_currentLValue.reset(new TupleObject(m_context, move(lvalues)));
 	return false;
 }
 
@@ -427,11 +442,6 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 			unsigned returnParametersSize = CompilerUtils::sizeOnStack(function.returnParameterTypes());
 			// callee adds return parameters, but removes arguments and return label
 			m_context.adjustStackOffset(returnParametersSize - CompilerUtils::sizeOnStack(function.parameterTypes()) - 1);
-
-			// @todo for now, the return value of a function is its first return value, so remove
-			// all others
-			for (unsigned i = 1; i < function.returnParameterTypes().size(); ++i)
-				utils().popStackElement(*function.returnParameterTypes()[i]);
 			break;
 		}
 		case Location::External:
@@ -628,6 +638,43 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 			appendExternalFunctionCall(function, arguments);
 			break;
 		}
+		case Location::ByteArrayPush:
+		case Location::ArrayPush:
+		{
+			_functionCall.expression().accept(*this);
+			polAssert(function.parameterTypes().size() == 1, "");
+			polAssert(!!function.parameterTypes()[0], "");
+			TypePointer const& paramType = function.parameterTypes()[0];
+			shared_ptr<ArrayType> arrayType =
+				function.location() == Location::ArrayPush ?
+				make_shared<ArrayType>(DataLocation::Storage, paramType) :
+				make_shared<ArrayType>(DataLocation::Storage);
+			// get the current length
+			ArrayUtils(m_context).retrieveLength(*arrayType);
+			m_context << sof::Instruction::DUP1;
+			// stack: ArrayReference currentLength currentLength
+			m_context << u256(1) << sof::Instruction::ADD;
+			// stack: ArrayReference currentLength newLength
+			m_context << sof::Instruction::DUP3 << sof::Instruction::DUP2;
+			ArrayUtils(m_context).resizeDynamicArray(*arrayType);
+			m_context << sof::Instruction::SWAP2 << sof::Instruction::SWAP1;
+			// stack: newLength ArrayReference oldLength
+			ArrayUtils(m_context).accessIndex(*arrayType, false);
+
+			// stack: newLength storageSlot slotOffset
+			arguments[0]->accept(*this);
+			// stack: newLength storageSlot slotOffset argValue
+			TypePointer type = arguments[0]->annotation().type->closestTemporaryType(arrayType->baseType());
+			utils().convertType(*arguments[0]->annotation().type, *type);
+			utils().moveToStackTop(1 + type->sizeOnStack());
+			utils().moveToStackTop(1 + type->sizeOnStack());
+			// stack: newLength argValue storageSlot slotOffset
+			if (function.location() == Location::ArrayPush)
+				StorageItem(m_context, *paramType).storeValue(*type, _functionCall.location(), true);
+			else
+				StorageByteArrayElement(m_context).storeValue(*type, _functionCall.location(), true);
+			break;
+		}
 		default:
 			BOOST_THROW_EXCEPTION(InternalCompilerError() << errinfo_comment("Invalid function type."));
 		}
@@ -789,26 +836,37 @@ void ExpressionCompiler::endVisit(MemberAccess const& _memberAccess)
 	}
 	case Type::Category::Array:
 	{
-		polAssert(member == "length", "Illegal array member.");
 		auto const& type = dynamic_cast<ArrayType const&>(*_memberAccess.expression().annotation().type);
-		if (!type.isDynamicallySized())
+		if (member == "length")
 		{
-			utils().popStackElement(type);
-			m_context << type.length();
+			if (!type.isDynamicallySized())
+			{
+				utils().popStackElement(type);
+				m_context << type.length();
+			}
+			else
+				switch (type.location())
+				{
+				case DataLocation::CallData:
+					m_context << sof::Instruction::SWAP1 << sof::Instruction::POP;
+					break;
+				case DataLocation::Storage:
+					setLValue<StorageArrayLength>(_memberAccess, type);
+					break;
+				case DataLocation::Memory:
+					m_context << sof::Instruction::MLOAD;
+					break;
+				}
+		}
+		else if (member == "push")
+		{
+			polAssert(
+				type.isDynamicallySized() && type.location() == DataLocation::Storage,
+				"Tried to use .push() on a non-dynamically sized array"
+			);
 		}
 		else
-			switch (type.location())
-			{
-			case DataLocation::CallData:
-				m_context << sof::Instruction::SWAP1 << sof::Instruction::POP;
-				break;
-			case DataLocation::Storage:
-				setLValue<StorageArrayLength>(_memberAccess, type);
-				break;
-			case DataLocation::Memory:
-				m_context << sof::Instruction::MLOAD;
-				break;
-			}
+			polAssert(false, "Illegal array member.");
 		break;
 	}
 	default:
@@ -892,6 +950,12 @@ bool ExpressionCompiler::visit(IndexAccess const& _indexAccess)
 			break;
 		}
 	}
+	else if (baseType.category() == Type::Category::TypeType)
+	{
+		polAssert(baseType.sizeOnStack() == 0, "");
+		polAssert(_indexAccess.annotation().type->sizeOnStack() == 0, "");
+		// no-op - this seems to be a lone array type (`structType[];`)
+	}
 	else
 		polAssert(false, "Index access only allowed for mappings or arrays.");
 
@@ -942,6 +1006,10 @@ void ExpressionCompiler::endVisit(Identifier const& _identifier)
 		// no-op
 	}
 	else if (dynamic_cast<EnumDefinition const*>(declaration))
+	{
+		// no-op
+	}
+	else if (dynamic_cast<StructDefinition const*>(declaration))
 	{
 		// no-op
 	}
@@ -1123,19 +1191,15 @@ void ExpressionCompiler::appendExternalFunctionCall(
 	bool returnSuccessCondition = funKind == FunctionKind::Bare || funKind == FunctionKind::BareCallCode;
 	bool isCallCode = funKind == FunctionKind::BareCallCode || funKind == FunctionKind::CallCode;
 
-	//@todo only return the first return value for now
-	Type const* firstReturnType =
-		_functionType.returnParameterTypes().empty() ?
-		nullptr :
-		_functionType.returnParameterTypes().front().get();
 	unsigned retSize = 0;
 	if (returnSuccessCondition)
 		retSize = 0; // return value actually is success condition
-	else if (firstReturnType)
-	{
-		retSize = firstReturnType->calldataEncodedSize();
-		polAssert(retSize > 0, "Unable to return dynamic type from external call.");
-	}
+	else
+		for (auto const& retType: _functionType.returnParameterTypes())
+		{
+			polAssert(retType->calldataEncodedSize() > 0, "Unable to return dynamic type from external call.");
+			retSize += retType->calldataEncodedSize();
+		}
 
 	// Evaluate arguments.
 	TypePointers argumentTypes;
@@ -1255,16 +1319,20 @@ void ExpressionCompiler::appendExternalFunctionCall(
 		utils().loadFromMemoryDynamic(IntegerType(160), false, true, false);
 		utils().convertType(IntegerType(160), FixedBytesType(20));
 	}
-	else if (firstReturnType)
+	else if (!_functionType.returnParameterTypes().empty())
 	{
 		utils().fetchFreeMemoryPointer();
-		if (dynamic_cast<ReferenceType const*>(firstReturnType))
+		bool memoryNeeded = false;
+		for (auto const& retType: _functionType.returnParameterTypes())
 		{
-			utils().loadFromMemoryDynamic(*firstReturnType, false, true, true);
-			utils().storeFreeMemoryPointer();
+			utils().loadFromMemoryDynamic(*retType, false, true, true);
+			if (dynamic_cast<ReferenceType const*>(retType.get()))
+				memoryNeeded = true;
 		}
+		if (memoryNeeded)
+			utils().storeFreeMemoryPointer();
 		else
-			utils().loadFromMemoryDynamic(*firstReturnType, false, true, false);
+			m_context << sof::Instruction::POP;
 	}
 }
 

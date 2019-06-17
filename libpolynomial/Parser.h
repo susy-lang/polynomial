@@ -34,7 +34,7 @@ class Scanner;
 class Parser
 {
 public:
-	Parser() {}
+	Parser(ErrorList& errors): m_errors(errors){};
 
 	ASTPointer<SourceUnit> parse(std::shared_ptr<Scanner> const& _scanner);
 	std::shared_ptr<std::string const> const& sourceName() const;
@@ -125,14 +125,14 @@ private:
 	/// For source code of the form "a[][8]" ("IndexAccessStructure"), this is not possible to
 	/// decide with constant look-ahead.
 	LookAheadInfo peekStatementType() const;
-	/// Returns a typename parsed in look-ahead fashion from something like "a[8][2**70]".
+	/// Returns a typename parsed in look-ahead fashion from something like "a.b[8][2**70]".
 	ASTPointer<TypeName> typeNameIndexAccessStructure(
-		ASTPointer<PrimaryExpression> const& _primary,
+		std::vector<ASTPointer<PrimaryExpression>> const& _path,
 		std::vector<std::pair<ASTPointer<Expression>, SourceLocation>> const& _indices
 	);
-	/// Returns an expression parsed in look-ahead fashion from something like "a[8][2**70]".
+	/// Returns an expression parsed in look-ahead fashion from something like "a.b[8][2**70]".
 	ASTPointer<Expression> expressionFromIndexAccessStructure(
-		ASTPointer<PrimaryExpression> const& _primary,
+		std::vector<ASTPointer<PrimaryExpression>> const& _path,
 		std::vector<std::pair<ASTPointer<Expression>, SourceLocation>> const& _indices
 	);
 	/// If current token value is not _value, throw exception otherwise advance token.
@@ -145,13 +145,19 @@ private:
 	/// Creates an empty ParameterList at the current location (used if parameters can be omitted).
 	ASTPointer<ParameterList> createEmptyParameterList();
 
-	/// Creates a @ref ParserError exception and annotates it with the current position and the
+	/// Creates a @ref ParserError and annotates it with the current position and the
 	/// given @a _description.
-	ParserError createParserError(std::string const& _description) const;
+	void parserError(std::string const& _description);
+
+	/// Creates a @ref ParserError and annotates it with the current position and the
+	/// given @a _description. Throws the FatalError.
+	void fatalParserError(std::string const& _description);
 
 	std::shared_ptr<Scanner> m_scanner;
 	/// Flag that signifies whether '_' is parsed as a PlaceholderStatement or a regular identifier.
 	bool m_insideModifier = false;
+	/// The reference to the list of errors and warning to add errors/warnings during parsing
+	ErrorList& m_errors;
 };
 
 }

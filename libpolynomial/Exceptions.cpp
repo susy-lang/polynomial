@@ -15,25 +15,38 @@
 	along with cpp-sophon.  If not, see <http://www.gnu.org/licenses/>.
 */
 /**
- * @author Christian <c@sofdev.com>
- * @date 2014
- * Polynomial Utilities.
+ * @author Liana <liana@sofdev.com>
+ * @date 2015
+ * Polynomial exception hierarchy.
  */
 
-#pragma once
-
-#include <libdevcore/Assertions.h>
 #include <libpolynomial/Exceptions.h>
+#include <libpolynomial/Utils.h>
 
-namespace dev
+using namespace dev;
+using namespace dev::polynomial;
+
+Error::Error(Type _type): m_type(_type)
 {
-namespace polynomial
-{
-struct InternalCompilerError;
+	switch(m_type)
+	{
+		case Type::DeclarationError:
+			m_typeName = "Declaration Error";
+			break;
+		case Type::DocstringParsingError:
+			m_typeName = "Docstring Parsing Error";
+			break;
+		case Type::ParserError:
+			m_typeName = "Parser Error";
+			break;
+		case Type::TypeError:
+			m_typeName = "Type Error";
+			break;
+		case Type::Warning:
+			m_typeName = "Warning";
+			break;
+		default:
+			polAssert(false, "");
+			break;
+	}
 }
-}
-
-/// Assertion that throws an InternalCompilerError containing the given description if it is not met.
-#define polAssert(CONDITION, DESCRIPTION) \
-	assertThrow(CONDITION, ::dev::polynomial::InternalCompilerError, DESCRIPTION)
-

@@ -597,13 +597,20 @@ bool Compiler::visit(Break const& _breakStatement)
 bool Compiler::visit(Return const& _return)
 {
 	CompilerContext::LocationSetter locationSetter(m_context, _return);
-	//@todo modifications are needed to make this work with functions returning multiple values
 	if (Expression const* expression = _return.expression())
 	{
 		polAssert(_return.annotation().functionReturnParameters, "Invalid return parameters pointer.");
-		VariableDeclaration const& firstVariable = *_return.annotation().functionReturnParameters->parameters().front();
-		compileExpression(*expression, firstVariable.annotation().type);
-		CompilerUtils(m_context).moveToStackVariable(firstVariable);
+		vector<ASTPointer<VariableDeclaration>> const& returnParameters =
+			_return.annotation().functionReturnParameters->parameters();
+		TypePointers types;
+		for (auto const& retVariable: returnParameters)
+			types.push_back(retVariable->annotation().type);
+
+		TypePointer expectedType = types.size() == 1 ? types.front() : make_shared<TupleType>(types);
+		compileExpression(*expression, expectedType);
+
+		for (auto const& retVariable: boost::adaptors::reverse(returnParameters))
+			CompilerUtils(m_context).moveToStackVariable(*retVariable);
 	}
 	for (unsigned i = 0; i < m_stackCleanupForReturn; ++i)
 		m_context << sof::Instruction::POP;
@@ -623,10 +630,30 @@ bool Compiler::visit(VariableDeclarationStatement const& _variableDeclarationSta
 {
 	StackHeightChecker checker(m_context);
 	CompilerContext::LocationSetter locationSetter(m_context, _variableDeclarationStatement);
-	if (Expression const* expression = _variableDeclarationStatement.expression())
+	if (Expression const* expression = _variableDeclarationStatement.initialValue())
 	{
-		compileExpression(*expression, _variableDeclarationStatement.declaration().annotation().type);
-		CompilerUtils(m_context).moveToStackVariable(_variableDeclarationStatement.declaration());
+		CompilerUtils utils(m_context);
+		compileExpression(*expression);
+		TypePointers valueTypes;
+		if (auto tupleType = dynamic_cast<TupleType const*>(expression->annotation().type.get()))
+			valueTypes = tupleType->components();
+		else
+			valueTypes = TypePointers{expression->annotation().type};
+		auto const& assignments = _variableDeclarationStatement.annotation().assignments;
+		polAssert(assignments.size() == valueTypes.size(), "");
+		for (size_t i = 0; i < assignments.size(); ++i)
+		{
+			size_t j = assignments.size() - i - 1;
+			polAssert(!!valueTypes[j], "");
+			VariableDeclaration const* varDecl = assignments[j];
+			if (!varDecl)
+				utils.popStackElement(*valueTypes[j]);
+			else
+			{
+				utils.convertType(*valueTypes[j], *varDecl->annotation().type);
+				utils.moveToStackVariable(*varDecl);
+			}
+		}
 	}
 	checker.check();
 	return false;

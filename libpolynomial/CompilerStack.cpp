@@ -97,27 +97,37 @@ void CompilerStack::setSource(string const& _sourceCode)
 
 bool CompilerStack::parse()
 {
+	//reset
 	m_errors.clear();
+	m_parseSuccessful = false;
 
 	for (auto& sourcePair: m_sources)
 	{
 		sourcePair.second.scanner->reset();
-		sourcePair.second.ast = Parser().parse(sourcePair.second.scanner);
+		sourcePair.second.ast = Parser(m_errors).parse(sourcePair.second.scanner);
+		if (!sourcePair.second.ast)
+			polAssert(!Error::containsOnlyWarnings(m_errors), "Parser returned null but did not report error.");
 	}
+	if (!Error::containsOnlyWarnings(m_errors))
+		// errors while parsing. sould stop before type checking
+		return false;
+
 	resolveImports();
 
 	m_globalContext = make_shared<GlobalContext>();
-	NameAndTypeResolver resolver(m_globalContext->declarations());
+	NameAndTypeResolver resolver(m_globalContext->declarations(), m_errors);
 	for (Source const* source: m_sourceOrder)
-		resolver.registerDeclarations(*source->ast);
+		if (!resolver.registerDeclarations(*source->ast))
+			return false;
+
 	for (Source const* source: m_sourceOrder)
 		for (ASTPointer<ASTNode> const& node: source->ast->nodes())
 			if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 			{
 				m_globalContext->setCurrentContract(*contract);
-				resolver.updateDeclaration(*m_globalContext->currentThis());
-				resolver.updateDeclaration(*m_globalContext->currentSuper());
-				resolver.resolveNamesAndTypes(*contract);
+				if (!resolver.updateDeclaration(*m_globalContext->currentThis())) return false;
+				if (!resolver.updateDeclaration(*m_globalContext->currentSuper())) return false;
+				if (!resolver.resolveNamesAndTypes(*contract)) return false;
 				m_contracts[contract->name()].contract = contract;
 			}
 
@@ -129,7 +139,7 @@ bool CompilerStack::parse()
 			{
 				m_globalContext->setCurrentContract(*contract);
 				resolver.updateDeclaration(*m_globalContext->currentThis());
-				TypeChecker typeChecker;
+				TypeChecker typeChecker(m_errors);
 				if (typeChecker.checkTypeRequirements(*contract))
 				{
 					contract->setDevDocumentation(interfaceHandler.devDocumentation(*contract));
@@ -137,8 +147,8 @@ bool CompilerStack::parse()
 				}
 				else
 					typesFine = false;
+
 				m_contracts[contract->name()].contract = contract;
-				m_errors += typeChecker.errors();
 			}
 	m_parseSuccessful = typesFine;
 	return m_parseSuccessful;
@@ -253,9 +263,8 @@ string const& CompilerStack::metadata(string const& _contractName, Documentation
 	if (!m_parseSuccessful)
 		BOOST_THROW_EXCEPTION(CompilerError() << errinfo_comment("Parsing was not successful."));
 
-	Contract const& currentContract = contract(_contractName);
-
 	std::unique_ptr<string const>* doc;
+	Contract const& currentContract = contract(_contractName);
 
 	// checks wheather we already have the documentation
 	switch (_type)
@@ -345,10 +354,11 @@ void CompilerStack::resolveImports()
 				string const& id = import->identifier();
 				if (!m_sources.count(id))
 					BOOST_THROW_EXCEPTION(
-						ParserError()
-							  << errinfo_sourceLocation(import->location())
-							  << errinfo_comment("Source not found.")
+						Error(Error::Type::ParserError)
+							<< errinfo_sourceLocation(import->location())
+							<< errinfo_comment("Source not found.")
 					);
+
 				toposort(&m_sources[id]);
 			}
 		sourceOrder.push_back(_source);
@@ -414,10 +424,12 @@ CompilerStack::Source const& CompilerStack::source(string const& _sourceName) co
 	auto it = m_sources.find(_sourceName);
 	if (it == m_sources.end())
 		BOOST_THROW_EXCEPTION(CompilerError() << errinfo_comment("Given source file not found."));
+
 	return it->second;
 }
 
 CompilerStack::Contract::Contract(): interfaceHandler(make_shared<InterfaceHandler>()) {}
+
 
 }
 }

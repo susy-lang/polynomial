@@ -50,7 +50,7 @@ void StorageOffsets::computeOffsets(TypePointers const& _types)
 			byteOffset = 0;
 		}
 		if (slotOffset >= bigint(1) << 256)
-			BOOST_THROW_EXCEPTION(TypeError() << errinfo_comment("Object too large for storage."));
+			BOOST_THROW_EXCEPTION(Error(Error::Type::TypeError) << errinfo_comment("Object too large for storage."));
 		offsets[i] = make_pair(u256(slotOffset), byteOffset);
 		polAssert(type->storageSize() >= 1, "Invalid storage size.");
 		if (type->storageSize() == 1 && byteOffset + type->storageBytes() <= 32)
@@ -64,7 +64,7 @@ void StorageOffsets::computeOffsets(TypePointers const& _types)
 	if (byteOffset > 0)
 		++slotOffset;
 	if (slotOffset >= bigint(1) << 256)
-		BOOST_THROW_EXCEPTION(TypeError() << errinfo_comment("Object too large for storage."));
+		BOOST_THROW_EXCEPTION(Error(Error::Type::TypeError) << errinfo_comment("Object too large for storage."));
 	m_storageSize = u256(slotOffset);
 	swap(m_offsets, offsets);
 }
@@ -223,7 +223,7 @@ TypePointer IntegerType::unaryOperatorResult(Token::Value _operator) const
 {
 	// "delete" is ok for all integer types
 	if (_operator == Token::Delete)
-		return make_shared<VoidType>();
+		return make_shared<TupleType>();
 	// no further unary operators for addresses
 	else if (isAddress())
 		return TypePointer();
@@ -562,7 +562,7 @@ TypePointer FixedBytesType::unaryOperatorResult(Token::Value _operator) const
 {
 	// "delete" and "~" is okay for FixedBytesType
 	if (_operator == Token::Delete)
-		return make_shared<VoidType>();
+		return make_shared<TupleType>();
 	else if (_operator == Token::BitNot)
 		return shared_from_this();
 
@@ -617,7 +617,7 @@ u256 BoolType::literalValue(Literal const* _literal) const
 TypePointer BoolType::unaryOperatorResult(Token::Value _operator) const
 {
 	if (_operator == Token::Delete)
-		return make_shared<VoidType>();
+		return make_shared<TupleType>();
 	return (_operator == Token::Not) ? shared_from_this() : TypePointer();
 }
 
@@ -658,7 +658,7 @@ bool ContractType::isExplicitlyConvertibleTo(Type const& _convertTo) const
 
 TypePointer ContractType::unaryOperatorResult(Token::Value _operator) const
 {
-	return _operator == Token::Delete ? make_shared<VoidType>() : TypePointer();
+	return _operator == Token::Delete ? make_shared<TupleType>() : TypePointer();
 }
 
 TypePointer ReferenceType::unaryOperatorResult(Token::Value _operator) const
@@ -672,9 +672,9 @@ TypePointer ReferenceType::unaryOperatorResult(Token::Value _operator) const
 	case DataLocation::CallData:
 		return TypePointer();
 	case DataLocation::Memory:
-		return make_shared<VoidType>();
+		return make_shared<TupleType>();
 	case DataLocation::Storage:
-		return m_isPointer ? TypePointer() : make_shared<VoidType>();
+		return m_isPointer ? TypePointer() : make_shared<TupleType>();
 	default:
 		polAssert(false, "");
 	}
@@ -805,7 +805,7 @@ u256 ArrayType::storageSize() const
 	else
 		size = bigint(length()) * baseType()->storageSize();
 	if (size >= bigint(1) << 256)
-		BOOST_THROW_EXCEPTION(TypeError() << errinfo_comment("Array too large for storage."));
+		BOOST_THROW_EXCEPTION(Error(Error::Type::TypeError) << errinfo_comment("Array too large for storage."));
 	return max<u256>(1, u256(size));
 }
 
@@ -856,6 +856,28 @@ string ArrayType::canonicalName(bool _addDataLocation) const
 	if (_addDataLocation && location() == DataLocation::Storage)
 		ret += " storage";
 	return ret;
+}
+
+MemberList const& ArrayType::members() const
+{
+	if (!m_members)
+	{
+		MemberList::MemberMap members;
+		if (!isString())
+		{
+			members.push_back({"length", make_shared<IntegerType>(256)});
+			if (isDynamicallySized() && location() == DataLocation::Storage)
+				members.push_back({"push", make_shared<FunctionType>(
+					TypePointers{baseType()},
+					TypePointers{make_shared<IntegerType>(256)},
+					strings{string()},
+					strings{string()},
+					isByteArray() ? FunctionType::Location::ByteArrayPush : FunctionType::Location::ArrayPush
+				)});
+		}
+		m_members.reset(new MemberList(members));
+	}
+	return *m_members;
 }
 
 TypePointer ArrayType::encodingType() const
@@ -912,8 +934,6 @@ TypePointer ArrayType::copyForLocation(DataLocation _location, bool _isPointer) 
 	copy->m_length = m_length;
 	return copy;
 }
-
-const MemberList ArrayType::s_arrayTypeMemberList({{"length", make_shared<IntegerType>(256)}});
 
 bool ContractType::operator==(Type const& _other) const
 {
@@ -1175,7 +1195,7 @@ set<string> StructType::membersMissingInMemory() const
 
 TypePointer EnumType::unaryOperatorResult(Token::Value _operator) const
 {
-	return _operator == Token::Delete ? make_shared<VoidType>() : TypePointer();
+	return _operator == Token::Delete ? make_shared<TupleType>() : TypePointer();
 }
 
 bool EnumType::operator==(Type const& _other) const
@@ -1220,6 +1240,97 @@ unsigned int EnumType::memberValue(ASTString const& _member) const
 		++index;
 	}
 	BOOST_THROW_EXCEPTION(m_enum.createTypeError("Requested unknown enum value ." + _member));
+}
+
+bool TupleType::isImplicitlyConvertibleTo(Type const& _other) const
+{
+	if (auto tupleType = dynamic_cast<TupleType const*>(&_other))
+	{
+		TypePointers const& targets = tupleType->components();
+		if (targets.empty())
+			return components().empty();
+		if (components().size() != targets.size() && !targets.front() && !targets.back())
+			return false; // (,a,) = (1,2,3,4) - unable to position `a` in the tuple.
+		size_t minNumValues = targets.size();
+		if (!targets.back() || !targets.front())
+			--minNumValues; // wildcards can also match 0 components
+		if (components().size() < minNumValues)
+			return false;
+		if (components().size() > targets.size() && targets.front() && targets.back())
+			return false; // larger source and no wildcard
+		bool fillRight = !targets.back() || targets.front();
+		for (size_t i = 0; i < min(targets.size(), components().size()); ++i)
+		{
+			auto const& s = components()[fillRight ? i : components().size() - i - 1];
+			auto const& t = targets[fillRight ? i : targets.size() - i - 1];
+			if (!s && t)
+				return false;
+			else if (s && t && !s->isImplicitlyConvertibleTo(*t))
+				return false;
+		}
+		return true;
+	}
+	else
+		return false;
+}
+
+bool TupleType::operator==(Type const& _other) const
+{
+	if (auto tupleType = dynamic_cast<TupleType const*>(&_other))
+		return components() == tupleType->components();
+	else
+		return false;
+}
+
+string TupleType::toString(bool _short) const
+{
+	if (components().empty())
+		return "tuple()";
+	string str = "tuple(";
+	for (auto const& t: components())
+		str += (t ? t->toString(_short) : "") + ",";
+	str.pop_back();
+	return str + ")";
+}
+
+u256 TupleType::storageSize() const
+{
+	BOOST_THROW_EXCEPTION(
+		InternalCompilerError() <<
+		errinfo_comment("Storage size of non-storable tuple type requested.")
+	);
+}
+
+unsigned TupleType::sizeOnStack() const
+{
+	unsigned size = 0;
+	for (auto const& t: components())
+		size += t ? t->sizeOnStack() : 0;
+	return size;
+}
+
+TypePointer TupleType::mobileType() const
+{
+	TypePointers mobiles;
+	for (auto const& c: components())
+		mobiles.push_back(c ? c->mobileType() : TypePointer());
+	return make_shared<TupleType>(mobiles);
+}
+
+TypePointer TupleType::closestTemporaryType(TypePointer const& _targetType) const
+{
+	polAssert(!!_targetType, "");
+	TypePointers const& targetComponents = dynamic_cast<TupleType const&>(*_targetType).components();
+	bool fillRight = !targetComponents.empty() && (!targetComponents.back() || targetComponents.front());
+	TypePointers tempComponents(targetComponents.size());
+	for (size_t i = 0; i < min(targetComponents.size(), components().size()); ++i)
+	{
+		size_t si = fillRight ? i : components().size() - i - 1;
+		size_t ti = fillRight ? i : targetComponents.size() - i - 1;
+		if (components()[si] && targetComponents[ti])
+			tempComponents[ti] = components()[si]->closestTemporaryType(targetComponents[ti]);
+	}
+	return make_shared<TupleType>(tempComponents);
 }
 
 FunctionType::FunctionType(FunctionDefinition const& _function, bool _isInternal):
@@ -1386,6 +1497,8 @@ unsigned FunctionType::sizeOnStack() const
 	else if (location == Location::Bare || location == Location::BareCallCode)
 		size = 1;
 	else if (location == Location::Internal)
+		size = 1;
+	else if (location == Location::ArrayPush || location == Location::ByteArrayPush)
 		size = 1;
 	if (m_gasSet)
 		size++;
@@ -1581,14 +1694,15 @@ FunctionTypePointer FunctionType::asMemberFunction(bool _inLibrary) const
 			parameterTypes.push_back(t);
 	}
 
-	//@todo make this more intelligent once we support destructuring assignments
+	// Removes dynamic types.
 	TypePointers returnParameterTypes;
 	vector<string> returnParameterNames;
-	if (!m_returnParameterTypes.empty() && m_returnParameterTypes.front()->calldataEncodedSize() > 0)
-	{
-		returnParameterTypes.push_back(m_returnParameterTypes.front());
-		returnParameterNames.push_back(m_returnParameterNames.front());
-	}
+	for (size_t i = 0; i < m_returnParameterTypes.size(); ++i)
+		if (m_returnParameterTypes[i]->calldataEncodedSize() > 0)
+		{
+			returnParameterTypes.push_back(m_returnParameterTypes[i]);
+			returnParameterNames.push_back(m_returnParameterNames[i]);
+		}
 	return make_shared<FunctionType>(
 		parameterTypes,
 		returnParameterTypes,
@@ -1645,13 +1759,6 @@ string MappingType::toString(bool _short) const
 string MappingType::canonicalName(bool) const
 {
 	return "mapping(" + keyType()->canonicalName(false) + " => " + valueType()->canonicalName(false) + ")";
-}
-
-u256 VoidType::storageSize() const
-{
-	BOOST_THROW_EXCEPTION(
-		InternalCompilerError()
-			<< errinfo_comment("Storage size of non-storable void type requested."));
 }
 
 bool TypeType::operator==(Type const& _other) const
