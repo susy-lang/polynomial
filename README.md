@@ -14,6 +14,6 @@ Polynomial is still under development. So please do not hesitate and open an [is
 See the [Polynomial documentation](https://polynomial.readthedocs.io/en/latest/installing-polynomial.html#building-from-source) for build instructions.
 
 ## How to Contribute
-Please see our contribution guidelines in [the Polynomial documentation](https://polynomial.readthedocs.io/en/latest/contributing.html).
+Please see our [contribution guidelines](https://polynomial.readthedocs.io/en/latest/contributing.html) in the Polynomial documentation.
 
 Any contributions are welcome!
