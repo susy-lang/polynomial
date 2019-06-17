@@ -21,7 +21,6 @@
  */
 
 #include <libpolynomial/interface/SourceReferenceFormatter.h>
-#include <libpolynomial/interface/CompilerStack.h>
 #include <libpolynomial/parsing/Scanner.h>
 #include <libpolynomial/interface/Exceptions.h>
 
@@ -85,16 +84,16 @@ void SourceReferenceFormatter::printExceptionInformation(
 	ostream& _stream,
 	Exception const& _exception,
 	string const& _name,
-	CompilerStack const& _compiler
+	function<Scanner const&(string const&)> const& _scannerFromSourceName
 )
 {
 	SourceLocation const* location = boost::get_error_info<errinfo_sourceLocation>(_exception);
 	auto secondarylocation = boost::get_error_info<errinfo_secondarySourceLocation>(_exception);
 	Scanner const* scannerPtr = nullptr;
 
-	if (location)
+	if (location && location->sourceName)
 	{
-		scannerPtr = &_compiler.scanner(*location->sourceName);
+		scannerPtr = &_scannerFromSourceName(*location->sourceName);
 		printSourceName(_stream, *location, *scannerPtr);
 	}
 
@@ -102,9 +101,9 @@ void SourceReferenceFormatter::printExceptionInformation(
 	if (string const* description = boost::get_error_info<errinfo_comment>(_exception))
 		_stream << ": " << *description << endl;
 
-	if (location)
+	if (location && location->sourceName)
 	{
-		scannerPtr = &_compiler.scanner(*location->sourceName);
+		scannerPtr = &_scannerFromSourceName(*location->sourceName);
 		printSourceLocation(_stream, *location, *scannerPtr);
 	}
 
@@ -112,8 +111,13 @@ void SourceReferenceFormatter::printExceptionInformation(
 	{
 		for (auto info: secondarylocation->infos)
 		{
-			scannerPtr = &_compiler.scanner(*info.second.sourceName);
 			_stream << info.first << " ";
+			if (!info.second.sourceName)
+			{
+				_stream << endl;
+				continue;
+			}
+			scannerPtr = &_scannerFromSourceName(*info.second.sourceName);
 			printSourceName(_stream, info.second, *scannerPtr);
 			_stream << endl;
 			printSourceLocation(_stream, info.second, *scannerPtr);

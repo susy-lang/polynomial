@@ -26,6 +26,7 @@
 #include <libsvmcore/Instruction.h>
 #include <libsofcore/ChainOperationParams.h>
 #include <libsvmasm/Assembly.h>
+#include <libpolynomial/inlineasm/AsmCodeGen.h>
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/codegen/ExpressionCompiler.h>
 #include <libpolynomial/codegen/CompilerUtils.h>
@@ -494,6 +495,91 @@ bool Compiler::visit(FunctionDefinition const& _function)
 
 	if (!_function.isConstructor())
 		m_context.appendJump(sof::AssemblyItem::JumpType::OutOfFunction);
+	return false;
+}
+
+bool Compiler::visit(InlineAssembly const& _inlineAssembly)
+{
+	ErrorList errors;
+	assembly::CodeGenerator codeGen(_inlineAssembly.operations(), errors);
+	int startStackHeight = m_context.stackHeight();
+	m_context.appendInlineAssembly(codeGen.assemble(
+		[&](assembly::Identifier const& _identifier, sof::Assembly& _assembly, assembly::CodeGenerator::IdentifierContext _context) {
+			auto ref = _inlineAssembly.annotation().externalReferences.find(&_identifier);
+			if (ref == _inlineAssembly.annotation().externalReferences.end())
+				return false;
+			Declaration const* decl = ref->second;
+			polAssert(!!decl, "");
+			if (_context == assembly::CodeGenerator::IdentifierContext::RValue)
+			{
+				polAssert(!!decl->type(), "Type of declaration required but not yet determined.");
+				if (/*FunctionDefinition const* functionDef = */dynamic_cast<FunctionDefinition const*>(decl))
+				{
+					polAssert(false, "Referencing local functions in inline assembly not yet implemented.");
+					// This does not work directly, because the label does not exist in _assembly
+					// (it is a fresh assembly object).
+					// _assembly.append(m_context.virtualFunctionEntryLabel(*functionDef).pushTag());
+				}
+				else if (auto variable = dynamic_cast<VariableDeclaration const*>(decl))
+				{
+					polAssert(!variable->isConstant(), "");
+					if (m_context.isLocalVariable(variable))
+					{
+						int stackDiff = _assembly.deposit() + startStackHeight - m_context.baseStackOffsetOfVariable(*variable);
+						if (stackDiff < 1 || stackDiff > 16)
+							BOOST_THROW_EXCEPTION(
+								CompilerError() <<
+								errinfo_comment("Stack too deep, try removing local variables.")
+							);
+						for (unsigned i = 0; i < variable->type()->sizeOnStack(); ++i)
+							_assembly.append(sof::dupInstruction(stackDiff));
+					}
+					else
+					{
+						polAssert(m_context.isStateVariable(variable), "Invalid variable type.");
+						auto const& location = m_context.storageLocationOfVariable(*variable);
+						if (!variable->type()->isValueType())
+						{
+							polAssert(location.second == 0, "Intra-slot offest assumed to be zero.");
+							_assembly.append(location.first);
+						}
+						else
+						{
+							_assembly.append(location.first);
+							_assembly.append(u256(location.second));
+						}
+					}
+				}
+				else if (auto contract = dynamic_cast<ContractDefinition const*>(decl))
+				{
+					polAssert(contract->isLibrary(), "");
+					_assembly.appendLibraryAddress(contract->name());
+				}
+				else
+					polAssert(false, "Invalid declaration type.");
+			} else {
+				// lvalue context
+				auto variable = dynamic_cast<VariableDeclaration const*>(decl);
+				polAssert(
+					!!variable || !m_context.isLocalVariable(variable),
+					"Can only assign to stack variables in inline assembly."
+				);
+				unsigned size = variable->type()->sizeOnStack();
+				int stackDiff = _assembly.deposit() + startStackHeight - m_context.baseStackOffsetOfVariable(*variable) - size;
+				if (stackDiff > 16 || stackDiff < 1)
+					BOOST_THROW_EXCEPTION(
+						CompilerError() <<
+						errinfo_comment("Stack too deep, try removing local variables.")
+					);
+				for (unsigned i = 0; i < size; ++i) {
+					_assembly.append(sof::swapInstruction(stackDiff));
+					_assembly.append(sof::Instruction::POP);
+				}
+			}
+			return true;
+		}
+	));
+	polAssert(errors.empty(), "Code generation for inline assembly with errors requested.");
 	return false;
 }
 

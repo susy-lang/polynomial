@@ -172,6 +172,24 @@ Are mappings iterable?
 Mappings themselves are not iterable, but you can use a higher-level
 datastructure on top of it, for example the `iterable mapping <https://octonion.institute/susy-contracts/dapp-bin/blob/master/library/iterable_mapping.pol>`_.
 
+Can I put arrays inside of a mapping? How do I make a mapping of a mapping?
+===========================================================================
+
+Mappings are already syntactically similar to arrays as they are, therefore it doesn't make much sense to store an array in them. Rather what you should do is create a mapping of a mapping. 
+
+An example of this would be::
+
+    contract c {
+        struct myStruct {
+            uint someNumber;
+            string someString;
+        }
+        mapping(uint => mapping(string => myStruct)) myDynamicMapping;
+        function storeInMapping() {
+            myDynamicMapping[1]["Foo"] = myStruct(2, "Bar");
+        }
+    }
+
 Can you return an array or a string from a polynomial function call?
 ==================================================================
 
@@ -613,6 +631,7 @@ Note that the full code of the created contract has to be included in the creato
 This also means that cyclic creations are not possible (because the contract would have
 to contain its own code) - at least not in a general way.
 
+
 How do you create 2-dimensional arrays?
 =======================================
 
@@ -646,6 +665,39 @@ gas and return your 20 Wei).
 
 In the above example, the low-level function `call` is used to invoke another
 contract with `p.data` as payload and `p.amount` Wei is sent with that call.
+
+What happens to a struct's mapping when copying over a struct?
+==============================================================
+
+This is a very interesting question. Suppose that we have a contract field set up like such::
+
+    struct user{
+        mapping(string => address) usedContracts;
+    }
+    function somefunction{
+       user user1;
+       user1.usedContracts["Hello"] = "World";
+       user user2 = user1;
+    }
+
+In this case, the mapping of the struct being copied over into the userList is ignored as there is no "list of mapped keys".
+Therefore it is not possible to find out which values should be copied over.
+
+How do I initialize a contract with only a specific amount of wei?
+==================================================================
+
+Currently the approach is a little ugly, but there is little that can be done to improve it.
+In the case of a `contract A` calling a new instance of `contract B`, parentheses have to be used around
+`new B` because `B.value` would refer to a member of `B` called `value`.
+You will need to make sure that you have both contracts aware of each other's presence.
+In this example::
+    contract B {}
+    contract A {
+        address child;
+        function test() {
+            child = (new B).value(10)(); //construct a new B with 10 wei
+        }
+    }
 
 Can a contract function accept a two-dimensional array?
 =======================================================

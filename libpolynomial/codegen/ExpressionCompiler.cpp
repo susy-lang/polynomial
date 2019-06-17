@@ -185,7 +185,8 @@ bool ExpressionCompiler::visit(Conditional const& _condition)
 	utils().convertType(*_condition.falseExpression().annotation().type, *_condition.annotation().type);
 	sof::AssemblyItem endTag = m_context.appendJumpToNew();
 	m_context << trueTag;
-	m_context.adjustStackOffset(-_condition.annotation().type->sizeOnStack());
+	int offset = _condition.annotation().type->sizeOnStack();
+	m_context.adjustStackOffset(-offset);
 	_condition.trueExpression().accept(*this);
 	utils().convertType(*_condition.trueExpression().annotation().type, *_condition.annotation().type);
 	m_context << endTag;
@@ -1068,6 +1069,7 @@ bool ExpressionCompiler::visit(IndexAccess const& _indexAccess)
 		polAssert(_indexAccess.indexExpression(), "Index expression expected.");
 
 		_indexAccess.indexExpression()->accept(*this);
+		utils().convertType(*_indexAccess.indexExpression()->annotation().type, IntegerType(256), true);
 		// stack layout: <base_ref> [<length>] <index>
 		ArrayUtils(m_context).accessIndex(arrayType);
 		switch (arrayType.location())
@@ -1103,6 +1105,7 @@ bool ExpressionCompiler::visit(IndexAccess const& _indexAccess)
 		polAssert(_indexAccess.indexExpression(), "Index expression expected.");
 
 		_indexAccess.indexExpression()->accept(*this);
+		utils().convertType(*_indexAccess.indexExpression()->annotation().type, IntegerType(256), true);
 		// stack layout: <value> <index>
 		// check out-of-bounds access
 		m_context << u256(fixedBytesType.numBytes());
