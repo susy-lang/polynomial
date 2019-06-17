@@ -1,0 +1,74 @@
+/*
+	This file is part of cpp-sophon.
+
+	cpp-sophon is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	cpp-sophon is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MSRCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with cpp-sophon.  If not, see <http://www.gnu.org/licenses/>.
+*/
+/**
+ * @author Lefteris <lefteris@sofdev.com>
+ * @date 2014
+ * Polynomial command line interface.
+ */
+#pragma once
+
+#include <libpolynomial/CompilerStack.h>
+#include <memory>
+#include <boost/program_options.hpp>
+
+namespace dev
+{
+namespace polynomial
+{
+
+//forward declaration
+enum class DocumentationType: uint8_t;
+
+class CommandLineInterface
+{
+public:
+	CommandLineInterface() {}
+
+	/// Parse command line arguments and return false if we should not continue
+	bool parseArguments(int _argc, char** _argv);
+	/// Parse the files and create source code objects
+	bool processInput();
+	/// Perform actions on the input depending on provided compiler arguments
+	void actOnInput();
+
+private:
+	void handleCombinedJSON();
+	void handleAst(std::string const& _argStr);
+	void handleBinary(std::string const& _contract);
+	void handleOpcode(std::string const& _contract);
+	void handleBytecode(std::string const& _contract);
+	void handleSignatureHashes(std::string const& _contract);
+	void handleMeta(DocumentationType _type,
+					std::string const& _contract);
+	void handleGasEstimation(std::string const& _contract);
+
+
+	/// Create a file in the given directory
+	/// @arg _fileName the name of the file
+	/// @arg _data to be written
+	void createFile(std::string const& _fileName, std::string const& _data);
+
+	/// Compiler arguments variable map
+	boost::program_options::variables_map m_args;
+	/// map of input files to source code strings
+	std::map<std::string, std::string> m_sourceCodes;
+	/// Polynomial compiler stack
+	std::unique_ptr<dev::polynomial::CompilerStack> m_compiler;
+};
+
+}
+}
