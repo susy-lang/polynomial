@@ -23,6 +23,7 @@
 #pragma once
 
 #include <libdevcore/Assertions.h>
+#include <libpolynomial/Exceptions.h>
 
 /// Assertion that throws an InternalCompilerError containing the given description if it is not met.
 #define polAssert(CONDITION, DESCRIPTION) \

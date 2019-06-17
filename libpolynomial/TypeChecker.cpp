@@ -43,8 +43,14 @@ bool TypeChecker::checkTypeRequirements(const ContractDefinition& _contract)
 		if (m_errors.empty())
 			throw; // Something is weird here, rather throw again.
 	}
-
-	return m_errors.empty();
+	bool success = true;
+	for (auto const& it: m_errors)
+		if (!dynamic_cast<Warning const*>(it.get()))
+		{
+			success = false;
+			break;
+		}
+	return success;
 }
 
 TypePointer const& TypeChecker::type(Expression const& _expression) const
@@ -293,7 +299,7 @@ void TypeChecker::checkContractExternalTypeClashes(ContractDefinition const& _co
 			if (f->isPartOfExternalInterface())
 			{
 				auto functionType = make_shared<FunctionType>(*f);
-				externalDeclarations[functionType->externalSignature(f->name())].push_back(
+				externalDeclarations[functionType->externalSignature()].push_back(
 					make_pair(f.get(), functionType)
 				);
 			}
@@ -301,7 +307,7 @@ void TypeChecker::checkContractExternalTypeClashes(ContractDefinition const& _co
 			if (v->isPartOfExternalInterface())
 			{
 				auto functionType = make_shared<FunctionType>(*v);
-				externalDeclarations[functionType->externalSignature(v->name())].push_back(
+				externalDeclarations[functionType->externalSignature()].push_back(
 					make_pair(v.get(), functionType)
 				);
 			}
@@ -391,12 +397,13 @@ bool TypeChecker::visit(StructDefinition const& _struct)
 
 bool TypeChecker::visit(FunctionDefinition const& _function)
 {
+	bool isLibraryFunction = dynamic_cast<ContractDefinition const&>(*_function.scope()).isLibrary();
 	for (ASTPointer<VariableDeclaration> const& var: _function.parameters() + _function.returnParameters())
 	{
 		if (!type(*var)->canLiveOutsideStorage())
 			typeError(*var, "Type is required to live outside storage.");
-		if (_function.visibility() >= FunctionDefinition::Visibility::Public && !(type(*var)->externalType()))
-			typeError(*var, "Internal type is not allowed for public and external functions.");
+		if (_function.visibility() >= FunctionDefinition::Visibility::Public && !(type(*var)->interfaceType(isLibraryFunction)))
+			fatalTypeError(*var, "Internal type is not allowed for public or external functions.");
 	}
 	for (ASTPointer<ModifierInvocation> const& modifier: _function.modifiers())
 		visitManually(
@@ -443,6 +450,18 @@ bool TypeChecker::visit(VariableDeclaration const& _variable)
 	{
 		if (_variable.value())
 			expectType(*_variable.value(), *varType);
+		else
+		{
+			if (auto ref = dynamic_cast<ReferenceType const *>(varType.get()))
+				if (ref->dataStoredIn(DataLocation::Storage) && _variable.isLocalVariable() && !_variable.isCallableParameter())
+				{
+					auto err = make_shared<Warning>();
+					*err <<
+						errinfo_sourceLocation(_variable.location()) <<
+						errinfo_comment("Uninitialized storage pointer. Did you mean '<type> memory " + _variable.name() + "'?");
+					m_errors.push_back(err);
+				}
+		}
 	}
 	else
 	{
@@ -472,7 +491,7 @@ bool TypeChecker::visit(VariableDeclaration const& _variable)
 	}
 	else if (
 		_variable.visibility() >= VariableDeclaration::Visibility::Public &&
-		!FunctionType(_variable).externalType()
+		!FunctionType(_variable).interfaceFunctionType()
 	)
 		typeError(_variable, "Internal type is not allowed for public state variables.");
 	return false;
@@ -535,11 +554,13 @@ bool TypeChecker::visit(EventDefinition const& _eventDef)
 	{
 		if (var->isIndexed())
 			numIndexed++;
-		if (numIndexed > 3)
+		if (_eventDef.isAnonymous() && numIndexed > 4)
+			typeError(_eventDef, "More than 4 indexed arguments for anonymous event.");
+		else if (!_eventDef.isAnonymous() && numIndexed > 3)
 			typeError(_eventDef, "More than 3 indexed arguments for event.");
 		if (!type(*var)->canLiveOutsideStorage())
 			typeError(*var, "Type is required to live outside storage.");
-		if (!type(*var)->externalType())
+		if (!type(*var)->interfaceType(false))
 			typeError(*var, "Internal type is not allowed as event parameter type.");
 	}
 	return false;
@@ -803,10 +824,15 @@ bool TypeChecker::visit(FunctionCall const& _functionCall)
 	{
 		// call by positional arguments
 		for (size_t i = 0; i < arguments.size(); ++i)
-			if (
-				!functionType->takesArbitraryParameters() &&
-				!type(*arguments[i])->isImplicitlyConvertibleTo(*parameterTypes[i])
-			)
+		{
+			auto const& argType = type(*arguments[i]);
+			if (functionType->takesArbitraryParameters())
+			{
+				if (auto t = dynamic_cast<IntegerConstantType const*>(argType.get()))
+					if (!t->integerType())
+						typeError(*arguments[i], "Integer constant too large.");
+			}
+			else if (!type(*arguments[i])->isImplicitlyConvertibleTo(*parameterTypes[i]))
 				typeError(
 					*arguments[i],
 					"Invalid type for argument in function call. "
@@ -816,6 +842,7 @@ bool TypeChecker::visit(FunctionCall const& _functionCall)
 					parameterTypes[i]->toString() +
 					" requested."
 				);
+		}
 	}
 	else
 	{
@@ -887,12 +914,15 @@ void TypeChecker::endVisit(NewExpression const& _newExpression)
 		typeError(_newExpression, "Trying to create an instance of an abstract contract.");
 
 	auto scopeContract = _newExpression.contractName().annotation().contractScope;
-	auto const& bases = contract->annotation().linearizedBaseContracts;
-	polAssert(!bases.empty(), "Linearized base contracts not yet available.");
-	if (find(bases.begin(), bases.end(), scopeContract) != bases.end())
+	scopeContract->annotation().contractDependencies.insert(contract);
+	polAssert(
+		!contract->annotation().linearizedBaseContracts.empty(),
+		"Linearized base contracts not yet available."
+	);
+	if (contractDependenciesAreCyclic(*scopeContract))
 		typeError(
 			_newExpression,
-			"Circular reference for contract creation: cannot create instance of derived or same contract."
+			"Circular reference for contract creation (cannot create instance of derived or same contract)."
 		);
 
 	auto contractType = make_shared<ContractType>(*contract);
@@ -1095,6 +1125,22 @@ void TypeChecker::endVisit(Literal const& _literal)
 	_literal.annotation().type = Type::forLiteral(_literal);
 	if (!_literal.annotation().type)
 		fatalTypeError(_literal, "Invalid literal value.");
+}
+
+bool TypeChecker::contractDependenciesAreCyclic(
+	ContractDefinition const& _contract,
+	std::set<ContractDefinition const*> const& _seenContracts
+) const
+{
+	// Naive depth-first search that remembers nodes already seen.
+	if (_seenContracts.count(&_contract))
+		return true;
+	set<ContractDefinition const*> seen(_seenContracts);
+	seen.insert(&_contract);
+	for (auto const* c: _contract.annotation().contractDependencies)
+		if (contractDependenciesAreCyclic(*c, seen))
+			return true;
+	return false;
 }
 
 Declaration const& TypeChecker::dereference(Identifier const& _identifier)

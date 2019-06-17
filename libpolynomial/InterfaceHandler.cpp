@@ -1,5 +1,6 @@
 
 #include <libpolynomial/InterfaceHandler.h>
+#include <boost/range/irange.hpp>
 #include <libpolynomial/AST.h>
 #include <libpolynomial/CompilerStack.h>
 using namespace std;
@@ -57,18 +58,18 @@ string InterfaceHandler::abiInterface(ContractDefinition const& _contractDef)
 
 	for (auto it: _contractDef.interfaceFunctions())
 	{
-		auto externalFunctionType = it.second->externalFunctionType();
+		auto externalFunctionType = it.second->interfaceFunctionType();
 		Json::Value method;
 		method["type"] = "function";
 		method["name"] = it.second->declaration().name();
 		method["constant"] = it.second->isConstant();
 		method["inputs"] = populateParameters(
 			externalFunctionType->parameterNames(),
-			externalFunctionType->parameterTypeNames()
+			externalFunctionType->parameterTypeNames(_contractDef.isLibrary())
 		);
 		method["outputs"] = populateParameters(
 			externalFunctionType->returnParameterNames(),
-			externalFunctionType->returnParameterTypeNames()
+			externalFunctionType->returnParameterTypeNames(_contractDef.isLibrary())
 		);
 		abi.append(method);
 	}
@@ -76,11 +77,11 @@ string InterfaceHandler::abiInterface(ContractDefinition const& _contractDef)
 	{
 		Json::Value method;
 		method["type"] = "constructor";
-		auto externalFunction = FunctionType(*_contractDef.constructor()).externalFunctionType();
+		auto externalFunction = FunctionType(*_contractDef.constructor()).interfaceFunctionType();
 		polAssert(!!externalFunction, "");
 		method["inputs"] = populateParameters(
 			externalFunction->parameterNames(),
-			externalFunction->parameterTypeNames()
+			externalFunction->parameterTypeNames(_contractDef.isLibrary())
 		);
 		abi.append(method);
 	}
@@ -96,7 +97,7 @@ string InterfaceHandler::abiInterface(ContractDefinition const& _contractDef)
 		{
 			Json::Value input;
 			input["name"] = p->name();
-			input["type"] = p->annotation().type->toString(true);
+			input["type"] = p->annotation().type->canonicalName(false);
 			input["indexed"] = p->isIndexed();
 			params.append(input);
 		}
@@ -108,33 +109,64 @@ string InterfaceHandler::abiInterface(ContractDefinition const& _contractDef)
 
 string InterfaceHandler::ABIPolynomialInterface(ContractDefinition const& _contractDef)
 {
-	string ret = "contract " + _contractDef.name() + "{";
+	string ret = (_contractDef.isLibrary() ? "library " : "contract ") + _contractDef.name() + "{";
 
 	auto populateParameters = [](vector<string> const& _paramNames, vector<string> const& _paramTypes)
 	{
-		string r = "";
-		polAssert(_paramNames.size() == _paramTypes.size(), "Names and types vector size does not match");
-		for (unsigned i = 0; i < _paramNames.size(); ++i)
-			r += (r.size() ? "," : "(") + _paramTypes[i] + " " + _paramNames[i];
-		return r.size() ? r + ")" : "()";
+		string ret = "(";
+		for (size_t i = 0; i < _paramNames.size(); ++i)
+			ret += _paramTypes[i] + " " + _paramNames[i] + ",";
+		if (ret.size() != 1)
+			ret.pop_back();
+		return ret + ")";
 	};
+	// If this is a library, include all its enum and struct types. Should be more intelligent
+	// in the future and check what is actually used (it might even use types from other libraries
+	// or contracts or in the global scope).
+	if (_contractDef.isLibrary())
+	{
+		for (auto const& stru: _contractDef.definedStructs())
+		{
+			ret += "struct " + stru->name() + "{";
+			for (ASTPointer<VariableDeclaration> const& _member: stru->members())
+				ret += _member->type(nullptr)->canonicalName(false) + " " + _member->name() + ";";
+			ret += "}";
+		}
+		for (auto const& enu: _contractDef.definedEnums())
+		{
+			ret += "enum " + enu->name() + "{";
+			for (ASTPointer<EnumValue> const& val: enu->members())
+				ret += val->name() + ",";
+			if (ret.back() == ',')
+				ret.pop_back();
+			ret += "}";
+		}
+	}
 	if (_contractDef.constructor())
 	{
-		auto externalFunction = FunctionType(*_contractDef.constructor()).externalFunctionType();
+		auto externalFunction = FunctionType(*_contractDef.constructor()).interfaceFunctionType();
 		polAssert(!!externalFunction, "");
 		ret +=
 			"function " +
 			_contractDef.name() +
-			populateParameters(externalFunction->parameterNames(), externalFunction->parameterTypeNames()) +
+			populateParameters(
+				externalFunction->parameterNames(),
+				externalFunction->parameterTypeNames(_contractDef.isLibrary())
+			) +
 			";";
 	}
 	for (auto const& it: _contractDef.interfaceFunctions())
 	{
 		ret += "function " + it.second->declaration().name() +
-			populateParameters(it.second->parameterNames(), it.second->parameterTypeNames()) +
-			(it.second->isConstant() ? "constant " : "");
+			populateParameters(
+				it.second->parameterNames(),
+				it.second->parameterTypeNames(_contractDef.isLibrary())
+			) + (it.second->isConstant() ? "constant " : "");
 		if (it.second->returnParameterTypes().size())
-			ret += "returns" + populateParameters(it.second->returnParameterNames(), it.second->returnParameterTypeNames());
+			ret += "returns" + populateParameters(
+				it.second->returnParameterNames(),
+				it.second->returnParameterTypeNames(_contractDef.isLibrary())
+			);
 		else if (ret.back() == ' ')
 			ret.pop_back();
 		ret += ";";

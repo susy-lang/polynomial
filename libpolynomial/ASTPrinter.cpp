@@ -21,6 +21,7 @@
  */
 
 #include <libpolynomial/ASTPrinter.h>
+#include <boost/algorithm/string/join.hpp>
 #include <libpolynomial/AST.h>
 
 using namespace std;
@@ -151,7 +152,7 @@ bool ASTPrinter::visit(ElementaryTypeName const& _node)
 
 bool ASTPrinter::visit(UserDefinedTypeName const& _node)
 {
-	writeLine("UserDefinedTypeName \"" + _node.name() + "\"");
+	writeLine("UserDefinedTypeName \"" + boost::algorithm::join(_node.namePath(), ".") + "\"");
 	printSourcePart(_node);
 	return goDeeper();
 }

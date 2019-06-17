@@ -1,10 +1,10 @@
 # The Polynomial Contract-Oriented Programming Language
-
+[![Join the chat at https://gitter.im/susy-lang/polynomial](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/susy-lang/polynomial?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 ## Useful links
 
 To get started you can find a basic introduction to the language in [Polynomial Tutorial](https://octonion.institute/susy-go/wiki/Polynomial-Tutorial).
 
-You can start using [Polynomial in your browser](https://chrissof.github.io/browser-polynomial/) with no need to download or compile anything. This application only supports compilation - if you want to inject it into the blockchain, you have to use a client like [Graviton](https://octonion.institute/susy-go/susy-graviton/wiki) or [AlsofZero](https://octonion.institute/susy-cpp/cpp-sophon/wiki/Using-AlsofZero).
+You can start using [Polynomial in your browser](https://chrissof.github.io/browser-polynomial/) with no need to download or compile anything. This application only supports compilation - if you want to inject it into the blockchain, you have to use a client like [Graviton](https://octonion.institute/susy-go/susy-graviton/wiki) or [AlsofZero](https://octonion.institute/susy-cpp/alsofzero).
 
 Also check out more documentations for [Polynomial ABI](https://octonion.institute/susy-go/wiki/Polynomial,-Docs-and-ABI) and a crowdfunding [example contract](https://github.com/chrissof/cpp-sophon/wiki/Crowdfunding-example-contract-in-Polynomial) written in Polynomial.
 
@@ -16,7 +16,7 @@ Polynomial is still under development. So please do not hesitate and open an [is
 
 ## Building
 
-See the [Wiki](https://octonion.institute/susy-cpp/cpp-sophon/wiki) for build instructions, compatibility information and build tips. 
+See the [Wiki](https://octonion.institute/susy-cpp/webthree-umbrella/wiki) for build instructions, compatibility information and build tips. 
 
 ## How to Contribute
 
@@ -32,4 +32,4 @@ Please add yourself in the `@author` doxygen  section of the file your are addin
 with the same wording as the one you listed yourself in the external contributors section above,
 only replacing the word **contribution** by **file**
 
-Please read [CodingStandards.txt](CodingStandards.txt) thoroughly before making alterations to the code base. Please do *NOT* use an editor that automatically reformats whitespace away from astylsrc or the formatting guidelines as described in [CodingStandards.txt](CodingStandards.txt).
+Please read [CodingStandards.txt](https://octonion.institute/susy-cpp/webthree-umbrella/blob/develop/CodingStandards.txt) thoroughly before making alterations to the code base. Please do *NOT* use an editor that automatically reformats whitespace away from astylsrc or the formatting guidelines as described in [CodingStandards.txt](https://octonion.institute/susy-cpp/webthree-umbrella/blob/develop/CodingStandards.txt).

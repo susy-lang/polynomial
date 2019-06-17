@@ -45,7 +45,7 @@ namespace
 {
 
 pair<ASTPointer<SourceUnit>, shared_ptr<Exception const>>
-parseAnalyseAndReturnError(string const& _source)
+parseAnalyseAndReturnError(string const& _source, bool _reportWarnings = false)
 {
 	Parser parser;
 	ASTPointer<SourceUnit> sourceUnit;
@@ -54,9 +54,9 @@ parseAnalyseAndReturnError(string const& _source)
 	try
 	{
 		sourceUnit = parser.parse(std::make_shared<Scanner>(CharStream(_source)));
-		NameAndTypeResolver resolver({});
-		resolver.registerDeclarations(*sourceUnit);
 		std::shared_ptr<GlobalContext> globalContext = make_shared<GlobalContext>();
+		NameAndTypeResolver resolver(globalContext->declarations());
+		resolver.registerDeclarations(*sourceUnit);
 
 		for (ASTPointer<ASTNode> const& node: sourceUnit->nodes())
 			if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
@@ -72,10 +72,20 @@ parseAnalyseAndReturnError(string const& _source)
 				globalContext->setCurrentContract(*contract);
 				resolver.updateDeclaration(*globalContext->currentThis());
 				TypeChecker typeChecker;
-				if (!typeChecker.checkTypeRequirements(*contract))
+				bool success = typeChecker.checkTypeRequirements(*contract);
+				BOOST_CHECK(success || !typeChecker.errors().empty());
+				for (auto const& firstError: typeChecker.errors())
 				{
-					err = typeChecker.errors().front();
-					break;
+					if (_reportWarnings || !dynamic_pointer_cast<Warning const>(firstError))
+					{
+						err = firstError;
+						break;
+					}
+					else if (_reportWarnings)
+					{
+						err = firstError;
+						break;
+					}
 				}
 			}
 	}
@@ -101,9 +111,9 @@ ASTPointer<SourceUnit> parseAndAnalyse(string const& _source)
 	return sourceAndError.first;
 }
 
-shared_ptr<Exception const> parseAndAnalyseReturnError(std::string const& _source)
+shared_ptr<Exception const> parseAndAnalyseReturnError(std::string const& _source, bool _warning = false)
 {
-	auto sourceAndError = parseAnalyseAndReturnError(_source);
+	auto sourceAndError = parseAnalyseAndReturnError(_source, _warning);
 	BOOST_REQUIRE(!!sourceAndError.second);
 	return sourceAndError.second;
 }
@@ -119,8 +129,10 @@ static ContractDefinition const* retrieveContract(ASTPointer<SourceUnit> _source
 	return nullptr;
 }
 
-static FunctionTypePointer const& retrieveFunctionBySignature(ContractDefinition const* _contract,
-															  std::string const& _signature)
+static FunctionTypePointer const& retrieveFunctionBySignature(
+	ContractDefinition const* _contract,
+	std::string const& _signature
+)
 {
 	FixedHash<4> hash(dev::sha3(_signature));
 	return _contract->interfaceFunctions()[hash];
@@ -155,8 +167,8 @@ BOOST_AUTO_TEST_CASE(double_stateVariable_declaration)
 BOOST_AUTO_TEST_CASE(double_function_declaration)
 {
 	char const* text = "contract test {\n"
-					   "  function fun() { var x; }\n"
-					   "  function fun() { var x; }\n"
+					   "  function fun() { uint x; }\n"
+					   "  function fun() { uint x; }\n"
 					   "}\n";
 	POLYNOMIAL_CHECK_ERROR_TYPE(parseAndAnalyseReturnError(text), DeclarationError);
 }
@@ -921,24 +933,24 @@ BOOST_AUTO_TEST_CASE(state_variable_accessors)
 	BOOST_REQUIRE((contract = retrieveContract(source, 0)) != nullptr);
 	FunctionTypePointer function = retrieveFunctionBySignature(contract, "foo()");
 	BOOST_REQUIRE(function && function->hasDeclaration());
-	auto returnParams = function->returnParameterTypeNames();
+	auto returnParams = function->returnParameterTypeNames(false);
 	BOOST_CHECK_EQUAL(returnParams.at(0), "uint256");
 	BOOST_CHECK(function->isConstant());
 
 	function = retrieveFunctionBySignature(contract, "map(uint256)");
 	BOOST_REQUIRE(function && function->hasDeclaration());
-	auto params = function->parameterTypeNames();
+	auto params = function->parameterTypeNames(false);
 	BOOST_CHECK_EQUAL(params.at(0), "uint256");
-	returnParams = function->returnParameterTypeNames();
+	returnParams = function->returnParameterTypeNames(false);
 	BOOST_CHECK_EQUAL(returnParams.at(0), "bytes4");
 	BOOST_CHECK(function->isConstant());
 
 	function = retrieveFunctionBySignature(contract, "multiple_map(uint256,uint256)");
 	BOOST_REQUIRE(function && function->hasDeclaration());
-	params = function->parameterTypeNames();
+	params = function->parameterTypeNames(false);
 	BOOST_CHECK_EQUAL(params.at(0), "uint256");
 	BOOST_CHECK_EQUAL(params.at(1), "uint256");
-	returnParams = function->returnParameterTypeNames();
+	returnParams = function->returnParameterTypeNames(false);
 	BOOST_CHECK_EQUAL(returnParams.at(0), "bytes4");
 	BOOST_CHECK(function->isConstant());
 }
@@ -1091,6 +1103,24 @@ BOOST_AUTO_TEST_CASE(event_too_many_indexed)
 	char const* text = R"(
 		contract c {
 			event e(uint indexed a, bytes3 indexed b, bool indexed c, uint indexed d);
+		})";
+	POLYNOMIAL_CHECK_ERROR_TYPE(parseAndAnalyseReturnError(text), TypeError);
+}
+
+BOOST_AUTO_TEST_CASE(anonymous_event_four_indexed)
+{
+	char const* text = R"(
+		contract c {
+			event e(uint indexed a, bytes3 indexed b, bool indexed c, uint indexed d) anonymous;
+		})";
+	SOF_TEST_CHECK_NO_THROW(parseAndAnalyse(text), "Parsing and Name Repolving Failed");
+}
+
+BOOST_AUTO_TEST_CASE(anonymous_event_too_many_indexed)
+{
+	char const* text = R"(
+		contract c {
+			event e(uint indexed a, bytes3 indexed b, bool indexed c, uint indexed d, uint indexed e) anonymous;
 		})";
 	POLYNOMIAL_CHECK_ERROR_TYPE(parseAndAnalyseReturnError(text), TypeError);
 }
@@ -2314,6 +2344,55 @@ BOOST_AUTO_TEST_CASE(literal_string_to_storage_pointer)
 		contract C {
 			function f() { string x = "abc"; }
 		}
+	)";
+	POLYNOMIAL_CHECK_ERROR_TYPE(parseAndAnalyseReturnError(text), TypeError);
+}
+
+BOOST_AUTO_TEST_CASE(non_initialized_references)
+{
+	char const* text = R"(
+		contract c
+		{
+			struct s{
+				uint a;
+			}
+			function f()
+			{
+				s x;
+				x.a = 2;
+			}
+		}
+	)";
+	POLYNOMIAL_CHECK_ERROR_TYPE(parseAndAnalyseReturnError(text, true), Warning);
+}
+
+BOOST_AUTO_TEST_CASE(sha3_with_large_integer_constant)
+{
+	char const* text = R"(
+		contract c
+		{
+			function f() { sha3(2**500); }
+		}
+	)";
+	POLYNOMIAL_CHECK_ERROR_TYPE(parseAndAnalyseReturnError(text), TypeError);
+}
+
+BOOST_AUTO_TEST_CASE(cyclic_binary_dependency)
+{
+	char const* text = R"(
+		contract A { function f() { new B(); } }
+		contract B { function f() { new C(); } }
+		contract C { function f() { new A(); } }
+	)";
+	POLYNOMIAL_CHECK_ERROR_TYPE(parseAndAnalyseReturnError(text), TypeError);
+}
+
+BOOST_AUTO_TEST_CASE(cyclic_binary_dependency_via_inheritance)
+{
+	char const* text = R"(
+		contract A is B { }
+		contract B { function f() { new C(); } }
+		contract C { function f() { new A(); } }
 	)";
 	POLYNOMIAL_CHECK_ERROR_TYPE(parseAndAnalyseReturnError(text), TypeError);
 }

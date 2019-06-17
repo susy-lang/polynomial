@@ -20,10 +20,12 @@
  * Utilities for the polynomial compiler.
  */
 
+#include <libpolynomial/CompilerContext.h>
 #include <utility>
 #include <numeric>
 #include <libpolynomial/AST.h>
 #include <libpolynomial/Compiler.h>
+#include <libpolynomial/Version.h>
 
 using namespace std;
 
@@ -175,6 +177,13 @@ void CompilerContext::resetVisitedNodes(ASTNode const* _node)
 	newStack.push(_node);
 	std::swap(m_visitedNodes, newStack);
 	updateSourceLocation();
+}
+
+void CompilerContext::injectVersionStampIntoSub(size_t _subIndex)
+{
+	sof::Assembly& sub = m_asm.sub(_subIndex);
+	sub.injectStart(sof::Instruction::POP);
+	sub.injectStart(fromBigEndian<u256>(binaryVersion()));
 }
 
 sof::AssemblyItem CompilerContext::virtualFunctionEntryLabel(

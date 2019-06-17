@@ -435,9 +435,9 @@ StorageArrayLength::StorageArrayLength(CompilerContext& _compilerContext, const 
 
 void StorageArrayLength::retrieveValue(SourceLocation const&, bool _remove) const
 {
-	if (!_remove)
-		m_context << sof::Instruction::DUP1;
-	m_context << sof::Instruction::SLOAD;
+	ArrayUtils(m_context).retrieveLength(m_arrayType);
+	if (_remove)
+		m_context << sof::Instruction::SWAP1 << sof::Instruction::POP;
 }
 
 void StorageArrayLength::storeValue(Type const&, SourceLocation const&, bool _move) const

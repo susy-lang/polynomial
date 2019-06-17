@@ -153,14 +153,15 @@ void CompilerUtils::encodeToMemory(
 	TypePointers const& _givenTypes,
 	TypePointers const& _targetTypes,
 	bool _padToWordBoundaries,
-	bool _copyDynamicDataInPlace
+	bool _copyDynamicDataInPlace,
+	bool _encodeAsLibraryTypes
 )
 {
 	// stack: <v1> <v2> ... <vn> <mem>
 	TypePointers targetTypes = _targetTypes.empty() ? _givenTypes : _targetTypes;
 	polAssert(targetTypes.size() == _givenTypes.size(), "");
 	for (TypePointer& t: targetTypes)
-		t = t->mobileType()->externalType();
+		t = t->mobileType()->interfaceType(_encodeAsLibraryTypes)->encodingType();
 
 	// Stack during operation:
 	// <v1> <v2> ... <vn> <mem_start> <dyn_head_1> ... <dyn_head_r> <end_of_mem>
@@ -188,7 +189,14 @@ void CompilerUtils::encodeToMemory(
 			copyToStackTop(argSize - stackPos + dynPointers + 2, _givenTypes[i]->sizeOnStack());
 			polAssert(!!targetType, "Externalable type expected.");
 			TypePointer type = targetType;
-			if (
+			if (_givenTypes[i]->dataStoredIn(DataLocation::Storage) && targetType->isValueType())
+			{
+				// special case: convert storage reference type to value type - this is only
+				// possible for library calls where we just forward the storage reference
+				polAssert(_encodeAsLibraryTypes, "");
+				polAssert(_givenTypes[i]->sizeOnStack() == 1, "");
+			}
+			else if (
 				_givenTypes[i]->dataStoredIn(DataLocation::Storage) ||
 				_givenTypes[i]->dataStoredIn(DataLocation::CallData) ||
 				_givenTypes[i]->category() == Type::Category::StringLiteral
@@ -237,15 +245,7 @@ void CompilerUtils::encodeToMemory(
 				// stack: ... <end_of_mem> <value...>
 				// copy length to memory
 				m_context << sof::dupInstruction(1 + arrayType.sizeOnStack());
-				if (arrayType.location() == DataLocation::CallData)
-					m_context << sof::Instruction::DUP2; // length is on stack
-				else if (arrayType.location() == DataLocation::Storage)
-					m_context << sof::Instruction::DUP2 << sof::Instruction::SLOAD;
-				else
-				{
-					polAssert(arrayType.location() == DataLocation::Memory, "");
-					m_context << sof::Instruction::DUP2 << sof::Instruction::MLOAD;
-				}
+				ArrayUtils(m_context).retrieveLength(arrayType, 1);
 				// stack: ... <end_of_mem> <value...> <end_of_mem'> <length>
 				storeInMemoryDynamic(IntegerType(256), true);
 				// stack: ... <end_of_mem> <value...> <end_of_mem''>

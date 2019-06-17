@@ -68,6 +68,12 @@ void Compiler::compileContract(
 	packIntoContractCreator(_contract, m_runtimeContext);
 	if (m_optimize)
 		m_context.optimise(m_optimizeRuns);
+
+	if (_contract.isLibrary())
+	{
+		polAssert(m_runtimeSub != size_t(-1), "");
+		m_context.injectVersionStampIntoSub(m_runtimeSub);
+	}
 }
 
 void Compiler::compileClone(
@@ -210,13 +216,10 @@ void Compiler::appendConstructor(FunctionDefinition const& _constructor)
 		m_context << sof::Instruction::DUP1;
 		m_context.appendProgramSize();
 		m_context << sof::Instruction::DUP4 << sof::Instruction::CODECOPY;
-		m_context << sof::Instruction::ADD;
+		m_context << sof::Instruction::DUP2 << sof::Instruction::ADD;
 		CompilerUtils(m_context).storeFreeMemoryPointer();
-		appendCalldataUnpacker(
-			FunctionType(_constructor).parameterTypes(),
-			true,
-			CompilerUtils::freeMemoryPointer + 0x20
-		);
+		// stack: <memptr>
+		appendCalldataUnpacker(FunctionType(_constructor).parameterTypes(), true);
 	}
 	_constructor.accept(*this);
 }
@@ -255,8 +258,11 @@ void Compiler::appendFunctionSelector(ContractDefinition const& _contract)
 		sof::AssemblyItem returnTag = m_context.pushNewTag();
 		fallback->accept(*this);
 		m_context << returnTag;
-		appendReturnValuePacker(FunctionType(*fallback).returnParameterTypes());
+		appendReturnValuePacker(FunctionType(*fallback).returnParameterTypes(), _contract.isLibrary());
 	}
+	else if (_contract.isLibrary())
+		// Reject invalid library calls and sophy sent to a library.
+		m_context.appendJumpTo(m_context.errorTag());
 	else
 		m_context << sof::Instruction::STOP; // function not found
 
@@ -267,36 +273,29 @@ void Compiler::appendFunctionSelector(ContractDefinition const& _contract)
 		CompilerContext::LocationSetter locationSetter(m_context, functionType->declaration());
 		m_context << callDataUnpackerEntryPoints.at(it.first);
 		sof::AssemblyItem returnTag = m_context.pushNewTag();
+		m_context << CompilerUtils::dataStartOffset;
 		appendCalldataUnpacker(functionType->parameterTypes());
 		m_context.appendJumpTo(m_context.functionEntryLabel(functionType->declaration()));
 		m_context << returnTag;
-		appendReturnValuePacker(functionType->returnParameterTypes());
+		appendReturnValuePacker(functionType->returnParameterTypes(), _contract.isLibrary());
 	}
 }
 
-void Compiler::appendCalldataUnpacker(
-	TypePointers const& _typeParameters,
-	bool _fromMemory,
-	u256 _startOffset
-)
+void Compiler::appendCalldataUnpacker(TypePointers const& _typeParameters, bool _fromMemory)
 {
-	// We do not check the calldata size, everything is zero-paddedd
+	// We do not check the calldata size, everything is zero-padded
 
 	//@todo this does not yet support nested dynamic arrays
 
-	if (_startOffset == u256(-1))
-		_startOffset = u256(CompilerUtils::dataStartOffset);
-
-	m_context << _startOffset;
-	for (TypePointer const& type: _typeParameters)
+	// Retain the offset pointer as base_offset, the point from which the data offsets are computed.
+	m_context << sof::Instruction::DUP1;
+	for (TypePointer const& parameterType: _typeParameters)
 	{
-		// stack: v1 v2 ... v(k-1) mem_offset
-		switch (type->category())
-		{
-		case Type::Category::Array:
+		// stack: v1 v2 ... v(k-1) base_offset current_offset
+		TypePointer type = parameterType->decodingType();
+		if (type->category() == Type::Category::Array)
 		{
 			auto const& arrayType = dynamic_cast<ArrayType const&>(*type);
-			polAssert(arrayType.location() != DataLocation::Storage, "");
 			polAssert(!arrayType.baseType()->isDynamicallySized(), "Nested arrays not yet implemented.");
 			if (_fromMemory)
 			{
@@ -309,9 +308,9 @@ void Compiler::appendCalldataUnpacker(
 				polAssert(arrayType.location() == DataLocation::Memory, "");
 				// compute data pointer
 				m_context << sof::Instruction::DUP1 << sof::Instruction::MLOAD;
-				//@todo once we support nested arrays, this offset needs to be dynamic.
-				m_context << _startOffset << sof::Instruction::ADD;
-				m_context << sof::Instruction::SWAP1 << u256(0x20) << sof::Instruction::ADD;
+				m_context << sof::Instruction::DUP3 << sof::Instruction::ADD;
+				m_context << sof::Instruction::SWAP2 << sof::Instruction::SWAP1;
+				m_context << u256(0x20) << sof::Instruction::ADD;
 			}
 			else
 			{
@@ -321,14 +320,14 @@ void Compiler::appendCalldataUnpacker(
 				{
 					// put on stack: data_pointer length
 					CompilerUtils(m_context).loadFromMemoryDynamic(IntegerType(256), !_fromMemory);
-					// stack: data_offset next_pointer
-					//@todo once we support nested arrays, this offset needs to be dynamic.
-					m_context << sof::Instruction::SWAP1 << _startOffset << sof::Instruction::ADD;
-					// stack: next_pointer data_pointer
+					// stack: base_offset data_offset next_pointer
+					m_context << sof::Instruction::SWAP1 << sof::Instruction::DUP3 << sof::Instruction::ADD;
+					// stack: base_offset next_pointer data_pointer
 					// retrieve length
 					CompilerUtils(m_context).loadFromMemoryDynamic(IntegerType(256), !_fromMemory, true);
-					// stack: next_pointer length data_pointer
+					// stack: base_offset next_pointer length data_pointer
 					m_context << sof::Instruction::SWAP2;
+					// stack: base_offset data_pointer length next_pointer
 				}
 				else
 				{
@@ -338,7 +337,7 @@ void Compiler::appendCalldataUnpacker(
 				}
 				if (arrayType.location() == DataLocation::Memory)
 				{
-					// stack: calldata_ref [length] next_calldata
+					// stack: base_offset calldata_ref [length] next_calldata
 					// copy to memory
 					// move calldata type up again
 					CompilerUtils(m_context).moveIntoStack(calldataType->sizeOnStack());
@@ -346,18 +345,24 @@ void Compiler::appendCalldataUnpacker(
 					// fetch next pointer again
 					CompilerUtils(m_context).moveToStackTop(arrayType.sizeOnStack());
 				}
+				// move base_offset up
+				CompilerUtils(m_context).moveToStackTop(1 + arrayType.sizeOnStack());
+				m_context << sof::Instruction::SWAP1;
 			}
-			break;
 		}
-		default:
+		else
+		{
 			polAssert(!type->isDynamicallySized(), "Unknown dynamically sized type: " + type->toString());
 			CompilerUtils(m_context).loadFromMemoryDynamic(*type, !_fromMemory, true);
+			CompilerUtils(m_context).moveToStackTop(1 + type->sizeOnStack());
+			m_context << sof::Instruction::SWAP1;
 		}
+		// stack: v1 v2 ... v(k-1) v(k) base_offset mem_offset
 	}
-	m_context << sof::Instruction::POP;
+	m_context << sof::Instruction::POP << sof::Instruction::POP;
 }
 
-void Compiler::appendReturnValuePacker(TypePointers const& _typeParameters)
+void Compiler::appendReturnValuePacker(TypePointers const& _typeParameters, bool _isLibrary)
 {
 	CompilerUtils utils(m_context);
 	if (_typeParameters.empty())
@@ -367,7 +372,7 @@ void Compiler::appendReturnValuePacker(TypePointers const& _typeParameters)
 		utils.fetchFreeMemoryPointer();
 		//@todo optimization: if we return a single memory array, there should be enough space before
 		// its data to add the needed parts and we avoid a memory copy.
-		utils.encodeToMemory(_typeParameters, _typeParameters);
+		utils.encodeToMemory(_typeParameters, _typeParameters, true, false, _isLibrary);
 		utils.toSizeAfterFreeMemoryPointer();
 		m_context << sof::Instruction::RETURN;
 	}

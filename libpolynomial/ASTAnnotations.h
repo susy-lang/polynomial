@@ -25,6 +25,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <set>
 #include <libpolynomial/ASTForward.h>
 
 namespace dev
@@ -40,13 +41,22 @@ struct ASTAnnotation
 	virtual ~ASTAnnotation() {}
 };
 
-struct ContractDefinitionAnnotation: ASTAnnotation
+struct TypeDeclarationAnnotation: ASTAnnotation
+{
+	/// The name of this type, prefixed by proper namespaces if globally accessible.
+	std::string canonicalName;
+};
+
+struct ContractDefinitionAnnotation: TypeDeclarationAnnotation
 {
 	/// whether all functions are implemented.
 	bool isFullyImplemented = true;
 	/// List of all (direct and indirect) base contracts in order from derived to
 	/// base, including the contract itself.
 	std::vector<ContractDefinition const*> linearizedBaseContracts;
+	/// List of contracts this contract creates, i.e. which need to be compiled first.
+	/// Also includes all contracts from @a linearizedBaseContracts.
+	std::set<ContractDefinition const*> contractDependencies;
 };
 
 struct VariableDeclarationAnnotation: ASTAnnotation
