@@ -504,6 +504,7 @@ void TypeChecker::visitManually(
 		return;
 	}
 	if (parameters->size() != arguments.size())
+	{
 		typeError(
 			_modifier.location(),
 			"Wrong argument count for modifier invocation: " +
@@ -512,6 +513,8 @@ void TypeChecker::visitManually(
 			toString(parameters->size()) +
 			"."
 		);
+		return;
+	}
 	for (size_t i = 0; i < _modifier.arguments().size(); ++i)
 		if (!type(*arguments[i])->isImplicitlyConvertibleTo(*type(*(*parameters)[i])))
 			typeError(
@@ -1253,6 +1256,8 @@ bool TypeChecker::visit(MemberAccess const& _memberAccess)
 			arrayType.isDynamicallySized()
 		);
 	}
+	else if (exprType->category() == Type::Category::FixedBytes)
+		annotation.isLValue = false;
 
 	return false;
 }
@@ -1315,6 +1320,22 @@ bool TypeChecker::visit(IndexAccess const& _access)
 			else
 				typeError(index->location(), "Integer constant expected.");
 		}
+		break;
+	}
+	case Type::Category::FixedBytes:
+	{
+		FixedBytesType const& bytesType = dynamic_cast<FixedBytesType const&>(*baseType);
+		if (!index)
+			typeError(_access.location(), "Index expression cannot be omitted.");
+		else
+		{
+			expectType(*index, IntegerType(256));
+			if (auto integerType = dynamic_cast<IntegerConstantType const*>(type(*index).get()))
+				if (bytesType.numBytes() <= integerType->literalValue(nullptr))
+					typeError(_access.location(), "Out of bounds array access.");
+		}
+		resultType = make_shared<FixedBytesType>(1);
+		isLValue = false; // @todo this heavily depends on how it is embedded
 		break;
 	}
 	default:
