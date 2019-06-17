@@ -28,7 +28,7 @@ Booleans
 
 `bool`: The possible values are constants `true` and `false`.
 
-Operators:  
+Operators:
 
 *  `!` (logical negation)
 *  `&&` (logical conjunction, "and")
@@ -43,25 +43,27 @@ The operators `||` and `&&` apply the common short-circuiting rules. This means 
 Integers
 --------
 
-`int•` / `uint•`: Signed and unsigned integers of various sizes. Keywords `uint8` to `uint256` in steps of `8` (unsigned of 8 up to 256 bits) and `int8` to `int256`. `uint` and `int` are aliases for `uint256` and `int256`, respectively.
+`int` / `uint`: Signed and unsigned integers of various sizes. Keywords `uint8` to `uint256` in steps of `8` (unsigned of 8 up to 256 bits) and `int8` to `int256`. `uint` and `int` are aliases for `uint256` and `int256`, respectively.
 
-Operators:  
+Operators:
 
-* Comparisons: `<=`, `<`, `==`, `!=`, `>=`, `>` (evaluate to `bool`)  
-* Bit operators: `&`, `|`, `^` (bitwise exclusive or), `~` (bitwise negation)  
+* Comparisons: `<=`, `<`, `==`, `!=`, `>=`, `>` (evaluate to `bool`)
+* Bit operators: `&`, `|`, `^` (bitwise exclusive or), `~` (bitwise negation)
 * Arithmetic operators: `+`, `-`, unary `-`, unary `+`, `*`, `/`, `%` (remainder), `**` (exponentiation)
 
 Division always truncates (it just maps to the DIV opcode of the SVM), but it does not truncate if both
-operators are :ref:`literals<integer_literals>` (or literal expressions).
+operators are :ref:`literals<rational_literals>` (or literal expressions).
 
 .. index:: address, balance, send, call, callcode, delegatecall
+
+.. _address:
 
 Address
 -------
 
-`address`: Holds a 20 byte value (size of an Sophon address). Address types also have members(see [Functions on addresses](#functions-on-addresses)) and serve as base for all contracts.
+`address`: Holds a 20 byte value (size of an Sophon address). Address types also have members and serve as base for all contracts.
 
-Operators:  
+Operators:
 
 * `<=`, `<`, `==`, `!=`, `>=` and `>`
 
@@ -109,12 +111,12 @@ All three functions `call`, `delegatecall` and `callcode` are very low-level fun
 Fixed-size byte arrays
 ----------------------
 
-`bytes1`, `bytes2`, `bytes3`, ..., `bytes32`. `byte` is an alias for `bytes1`.  
+`bytes1`, `bytes2`, `bytes3`, ..., `bytes32`. `byte` is an alias for `bytes1`.
 
-Operators:  
+Operators:
 
-* Comparisons: `<=`, `<`, `==`, `!=`, `>=`, `>` (evaluate to `bool`)  
-* Bit operators: `&`, `|`, `^` (bitwise exclusive or), `~` (bitwise negation)  
+* Comparisons: `<=`, `<`, `==`, `!=`, `>=`, `>` (evaluate to `bool`)
+* Bit operators: `&`, `|`, `^` (bitwise exclusive or), `~` (bitwise negation)
 * Index access: If `x` is of type `bytesI`, then `x[k]` for `0 <= k < I` returns the `k` th byte (read-only).
 
 Members:
@@ -125,7 +127,7 @@ Dynamically-sized byte array
 ----------------------------
 
 `bytes`:
-    Dynamically-sized byte array, see :ref:`arrays`. Not a value-type!  
+    Dynamically-sized byte array, see :ref:`arrays`. Not a value-type!
 `string`:
     Dynamically-sized UTF8-encoded string, see :ref:`arrays`. Not a value-type!
 
@@ -133,27 +135,68 @@ As a rule of thumb, use `bytes` for arbitrary-length raw byte data and `string`
 for arbitrary-length string (utf-8) data. If you can limit the length to a certain
 number of bytes, always use one of `bytes1` to `bytes32` because they are much cheaper.
 
-.. index:: literal, literal;integer
+.. index:: ! ufixed, ! fixed, ! fixed point number
 
-.. _integer_literals:
+Fixed Point Numbers
+-------------------
 
-Integer Literals
------------------
+**COMING SOON...**
 
-Integer Literals are arbitrary precision integers until they are used together with a non-literal. In `var x = 1 - 2;`, for example, the value of `1 - 2` is `-1`, which is assigned to `x` and thus `x` receives the type `int8` -- the smallest type that contains `-1`, although the natural types of `1` and `2` are actually `uint8`.    
+.. index:: literal, literal;rational
 
-It is even possible to temporarily exceed the maximum of 256 bits as long as only integer literals are used for the computation: `var x = (0xffffffffffffffffffff * 0xffffffffffffffffffff) * 0;` Here, `x` will have the value `0` and thus the type `uint8`.
+.. _rational_literals:
+
+Rational and Integer Literals
+-----------------------------
+
+All number literals retain arbitrary precision until they are converted to a non-literal type (i.e. by
+using them together with a non-literal type). This means that computations do not overflow but also
+divisions do not truncate.
+
+For example, `(2**800 + 1) - 2**800` results in the constant `1` (of type `uint8`)
+although intermediate results would not even fit the machine word size. Furthermore, `.5 * 8` results
+in the integer `4` (although non-integers were used in between).
+
+If the result is not an integer,
+an appropriate `ufixed` or `fixed` type is used whose number of fractional bits is as large as
+required (approximating the rational number in the worst case).
+
+In `var x = 1/4;`, `x` will receive the type `ufixed0x8` while in `var x = 1/3` it will receive
+the type `ufixed0x256` because `1/3` is not finitely representable in binary and will thus be
+approximated.
+
+Any operator that can be applied to integers can also be applied to literal expressions as
+long as the operators are integers. If any of the two is fractional, bit operations are disallowed
+and exponentiation is disallowed if the exponent is fractional (because that might result in
+a non-rational number).
+
+.. note::
+    Most finite decimal fractions like `5.3743` are not finitely representable in binary. The correct type
+    for `5.3743` is `ufixed8x248` because that allows to best approximate the number. If you want to
+    use the number together with types like `ufixed` (i.e. `ufixed128x128`), you have to explicitly
+    specify the desired precision: `x + ufixed(5.3743)`.
 
 .. warning::
-    Divison on integer literals used to truncate in earlier versions, but it will actually convert into a rational number in the future, i.e. `1/2` is not equal to `0`, but to `0.5`.
+    Division on integer literals used to truncate in earlier versions, but it will now convert into a rational number, i.e. `5 / 2` is not equal to `2`, but to `2.5`.
 
+.. note::
+    Literal expressions are converted to a permanent type as soon as they are used with other
+    expressions. Even though we know that the value of the
+    expression assigned to `b` in the following example evaluates to an integer, it still
+    uses fixed point types (and not rational number literals) in between and so the code
+    does not compile
+
+::
+
+    uint128 a = 1;
+    uint128 b = 2.5 + a + 0.5;
 
 .. index:: literal, literal;string, string
 
 String Literals
 ---------------
 
-String Literals are written with double quotes (`"abc"`). As with integer literals, their type can vary, but they are implicitly convertible to `bytes•` if they fit, to `bytes` and to `string`.
+String Literals are written with double quotes (`"abc"`). As with integer literals, their type can vary, but they are implicitly convertible to `bytes` if they fit, to `bytes` and to `string`.
 
 .. index:: enum
 
@@ -171,21 +214,21 @@ to and from all integer types but implicit conversion is not allowed.
         enum ActionChoices { GoLeft, GoRight, GoStraight, SitStill }
         ActionChoices choice;
         ActionChoices constant defaultChoice = ActionChoices.GoStraight;
-        function setGoStraight()
-        {
+
+        function setGoStraight() {
             choice = ActionChoices.GoStraight;
         }
+
         // Since enum types are not part of the ABI, the signature of "getChoice"
         // will automatically be changed to "getChoice() returns (uint8)"
         // for all matters external to Polynomial. The integer type used is just
         // large enough to hold all enum values, i.e. if you have more values,
         // `uint16` will be used and so on.
-        function getChoice() returns (ActionChoices)
-        {
+        function getChoice() returns (ActionChoices) {
             return choice;
         }
-        function getDefaultChoice() returns (uint)
-        {
+
+        function getDefaultChoice() returns (uint) {
             return uint(defaultChoice);
         }
     }
@@ -226,26 +269,28 @@ memory-stored reference type does not create a copy.
 
 ::
 
-    contract c {
-      uint[] x; // the data location of x is storage
-      // the data location of memoryArray is memory
-      function f(uint[] memoryArray) {
-        x = memoryArray; // works, copies the whole array to storage
-        var y = x; // works, assigns a pointer, data location of y is storage
-        y[7]; // fine, returns the 8th element
-        y.length = 2; // fine, modifies x through y
-        delete x; // fine, clears the array, also modifies y
-        // The following does not work; it would need to create a new temporary /
-        // unnamed array in storage, but storage is "statically" allocated:
-        // y = memoryArray;
-        // This does not work either, since it would "reset" the pointer, but there
-        // is no sensible location it could point to.
-        // delete y;
-        g(x); // calls g, handing over a reference to x
-        h(x); // calls h and creates an independent, temporary copy in memory
-      }
-      function g(uint[] storage storageArray) internal {}
-      function h(uint[] memoryArray) {}
+    contract C {
+        uint[] x; // the data location of x is storage
+
+        // the data location of memoryArray is memory
+        function f(uint[] memoryArray) {
+            x = memoryArray; // works, copies the whole array to storage
+            var y = x; // works, assigns a pointer, data location of y is storage
+            y[7]; // fine, returns the 8th element
+            y.length = 2; // fine, modifies x through y
+            delete x; // fine, clears the array, also modifies y
+            // The following does not work; it would need to create a new temporary /
+            // unnamed array in storage, but storage is "statically" allocated:
+            // y = memoryArray;
+            // This does not work either, since it would "reset" the pointer, but there
+            // is no sensible location it could point to.
+            // delete y;
+            g(x); // calls g, handing over a reference to x
+            h(x); // calls h and creates an independent, temporary copy in memory
+        }
+
+        function g(uint[] storage storageArray) internal {}
+        function h(uint[] memoryArray) {}
     }
 
 Summary
@@ -303,12 +348,12 @@ the `.length` member.
 ::
 
     contract C {
-      function f(uint len) {
-        uint[] memory a = new uint[](7);
-        bytes memory b = new bytes(len);
-        // Here we have a.length == 7 and b.length == len
-        a[6] = 8;
-      }
+        function f(uint len) {
+            uint[] memory a = new uint[](7);
+            bytes memory b = new bytes(len);
+            // Here we have a.length == 7 and b.length == len
+            a[6] = 8;
+        }
     }
 
 
@@ -339,51 +384,59 @@ Members
 ::
 
     contract ArrayContract {
-      uint[2**20] m_aLotOfIntegers;
-      // Note that the following is not a pair of arrays but an array of pairs.
-      bool[2][] m_pairsOfFlags;
-      // newPairs is stored in memory - the default for function arguments
-      function setAllFlagPairs(bool[2][] newPairs) {
-        // assignment to a storage array replaces the complete array
-        m_pairsOfFlags = newPairs;
-      }
-      function setFlagPair(uint index, bool flagA, bool flagB) {
-        // access to a non-existing index will throw an exception
-        m_pairsOfFlags[index][0] = flagA;
-        m_pairsOfFlags[index][1] = flagB;
-      }
-      function changeFlagArraySize(uint newSize) {
-        // if the new size is smaller, removed array elements will be cleared
-        m_pairsOfFlags.length = newSize;
-      }
-      function clear() {
-        // these clear the arrays completely
-        delete m_pairsOfFlags;
-        delete m_aLotOfIntegers;
-        // identical effect here
-        m_pairsOfFlags.length = 0;
-      }
-      bytes m_byteData;
-      function byteArrays(bytes data) {
-        // byte arrays ("bytes") are different as they are stored without padding,
-        // but can be treated identical to "uint8[]"
-        m_byteData = data;
-        m_byteData.length += 7;
-        m_byteData[3] = 8;
-        delete m_byteData[2];
-      }
-      function addFlag(bool[2] flag) returns (uint) {
-        return m_pairsOfFlags.push(flag);
-      }
-      function createMemoryArray(uint size) returns (bytes) {
-        // Dynamic memory arrays are created using `new`:
-        uint[2][] memory arrayOfPairs = new uint[2][](size);
-        // Create a dynamic byte array:
-        bytes memory b = new bytes(200);
-        for (uint i = 0; i < b.length; i++)
-          b[i] = byte(i);
-        return b;
-      }
+        uint[2**20] m_aLotOfIntegers;
+        // Note that the following is not a pair of arrays but an array of pairs.
+        bool[2][] m_pairsOfFlags;
+        // newPairs is stored in memory - the default for function arguments
+
+        function setAllFlagPairs(bool[2][] newPairs) {
+            // assignment to a storage array replaces the complete array
+            m_pairsOfFlags = newPairs;
+        }
+
+        function setFlagPair(uint index, bool flagA, bool flagB) {
+            // access to a non-existing index will throw an exception
+            m_pairsOfFlags[index][0] = flagA;
+            m_pairsOfFlags[index][1] = flagB;
+        }
+
+        function changeFlagArraySize(uint newSize) {
+            // if the new size is smaller, removed array elements will be cleared
+            m_pairsOfFlags.length = newSize;
+        }
+
+        function clear() {
+            // these clear the arrays completely
+            delete m_pairsOfFlags;
+            delete m_aLotOfIntegers;
+            // identical effect here
+            m_pairsOfFlags.length = 0;
+        }
+
+        bytes m_byteData;
+
+        function byteArrays(bytes data) {
+            // byte arrays ("bytes") are different as they are stored without padding,
+            // but can be treated identical to "uint8[]"
+            m_byteData = data;
+            m_byteData.length += 7;
+            m_byteData[3] = 8;
+            delete m_byteData[2];
+        }
+
+        function addFlag(bool[2] flag) returns (uint) {
+            return m_pairsOfFlags.push(flag);
+        }
+
+        function createMemoryArray(uint size) returns (bytes) {
+            // Dynamic memory arrays are created using `new`:
+            uint[2][] memory arrayOfPairs = new uint[2][](size);
+            // Create a dynamic byte array:
+            bytes memory b = new bytes(200);
+            for (uint i = 0; i < b.length; i++)
+                b[i] = byte(i);
+            return b;
+        }
     }
 
 
@@ -400,41 +453,46 @@ shown in the following example:
 ::
 
     contract CrowdFunding {
-      // Defines a new type with two fields.
-      struct Funder {
-        address addr;
-        uint amount;
-      }
-      struct Campaign {
-        address beneficiary;
-        uint fundingGoal;
-        uint numFunders;
-        uint amount;
-        mapping (uint => Funder) funders;
-      }
-      uint numCampaigns;
-      mapping (uint => Campaign) campaigns;
-      function newCampaign(address beneficiary, uint goal) returns (uint campaignID) {
-        campaignID = numCampaigns++; // campaignID is return variable
-        // Creates new struct and saves in storage. We leave out the mapping type.
-        campaigns[campaignID] = Campaign(beneficiary, goal, 0, 0);
-      }
-      function contribute(uint campaignID) {
-        Campaign c = campaigns[campaignID];
+        // Defines a new type with two fields.
+        struct Funder {
+            address addr;
+            uint amount;
+        }
+
+        struct Campaign {
+            address beneficiary;
+            uint fundingGoal;
+            uint numFunders;
+            uint amount;
+            mapping (uint => Funder) funders;
+        }
+
+        uint numCampaigns;
+        mapping (uint => Campaign) campaigns;
+
+        function newCampaign(address beneficiary, uint goal) returns (uint campaignID) {
+            campaignID = numCampaigns++; // campaignID is return variable
+            // Creates new struct and saves in storage. We leave out the mapping type.
+            campaigns[campaignID] = Campaign(beneficiary, goal, 0, 0);
+        }
+
+        function contribute(uint campaignID) {
+            Campaign c = campaigns[campaignID];
             // Creates a new temporary memory struct, initialised with the given values
             // and copies it over to storage.
             // Note that you can also use Funder(msg.sender, msg.value) to initialise.
-        c.funders[c.numFunders++] = Funder({addr: msg.sender, amount: msg.value});
-        c.amount += msg.value;
-      }
-      function checkGoalReached(uint campaignID) returns (bool reached) {
-        Campaign c = campaigns[campaignID];
-        if (c.amount < c.fundingGoal)
-          return false;
-        c.beneficiary.send(c.amount);
-        c.amount = 0;
-        return true;
-      }
+            c.funders[c.numFunders++] = Funder({addr: msg.sender, amount: msg.value});
+            c.amount += msg.value;
+        }
+
+        function checkGoalReached(uint campaignID) returns (bool reached) {
+            Campaign c = campaigns[campaignID];
+            if (c.amount < c.fundingGoal)
+                return false;
+            c.beneficiary.send(c.amount);
+            c.amount = 0;
+            return true;
+        }
     }
 
 The contract does not provide the full functionality of a crowdfunding
@@ -495,18 +553,19 @@ It is important to note that `delete a` really behaves like an assignment to `a`
 ::
 
     contract DeleteExample {
-      uint data;
-      uint[] dataArray;
-      function f() {
-        uint x = data;
-        delete x; // sets x to 0, does not affect data
-        delete data; // sets data to 0, does not affect x which still holds a copy
-        uint[] y = dataArray;
-        delete dataArray; // this sets dataArray.length to zero, but as uint[] is a complex object, also
-        // y is affected which is an alias to the storage object
-        // On the other hand: "delete y" is not valid, as assignments to local variables
-        // referencing storage objects can only be made from existing storage objects.
-      }
+        uint data;
+        uint[] dataArray;
+
+        function f() {
+            uint x = data;
+            delete x; // sets x to 0, does not affect data
+            delete data; // sets data to 0, does not affect x which still holds a copy
+            uint[] y = dataArray;
+            delete dataArray; // this sets dataArray.length to zero, but as uint[] is a complex object, also
+            // y is affected which is an alias to the storage object
+            // On the other hand: "delete y" is not valid, as assignments to local variables
+            // referencing storage objects can only be made from existing storage objects.
+        }
     }
 
 .. index:: ! type;conversion, ! cast

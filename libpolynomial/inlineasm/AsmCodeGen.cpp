@@ -36,7 +36,8 @@ using namespace dev::polynomial::assembly;
 
 struct GeneratorState
 {
-	explicit GeneratorState(ErrorList& _errors): errors(_errors) {}
+	GeneratorState(ErrorList& _errors, sof::Assembly& _assembly):
+		errors(_errors), assembly(_assembly) {}
 
 	void addError(Error::Type _type, std::string const& _description, SourceLocation const& _location = SourceLocation())
 	{
@@ -66,10 +67,10 @@ struct GeneratorState
 		return label != labels.end() ? &label->second : nullptr;
 	}
 
-	sof::Assembly assembly;
 	map<string, sof::AssemblyItem> labels;
 	vector<pair<string, int>> variables; ///< name plus stack height
 	ErrorList& errors;
+	sof::Assembly& assembly;
 };
 
 /**
@@ -86,8 +87,12 @@ public:
 	void operator()(Label const& _item)
 	{
 		if (m_state.labels.count(_item.name))
-			//@TODO location and secondary location
-			m_state.addError(Error::Type::DeclarationError, "Label " + _item.name + " declared twice.");
+			//@TODO secondary location
+			m_state.addError(
+				Error::Type::DeclarationError,
+				"Label " + _item.name + " declared twice.",
+				_item.location
+			);
 		m_state.labels.insert(make_pair(_item.name, m_state.assembly.newTag()));
 	}
 	void operator()(assembly::Block const& _block)
@@ -117,34 +122,43 @@ public:
 			m_identifierAccess = [](assembly::Identifier const&, sof::Assembly&, CodeGenerator::IdentifierContext) { return false; };
 	}
 
-	void operator()(dev::polynomial::assembly::Instruction const& _instruction)
+	void operator()(assembly::Instruction const& _instruction)
 	{
+		m_state.assembly.setSourceLocation(_instruction.location);
 		m_state.assembly.append(_instruction.instruction);
 	}
 	void operator()(assembly::Literal const& _literal)
 	{
+		m_state.assembly.setSourceLocation(_literal.location);
 		if (_literal.isNumber)
 			m_state.assembly.append(u256(_literal.value));
 		else if (_literal.value.size() > 32)
+		{
 			m_state.addError(
 				Error::Type::TypeError,
 				"String literal too long (" + boost::lexical_cast<string>(_literal.value.size()) + " > 32)"
 			);
+			m_state.assembly.append(u256(0));
+		}
 		else
 			m_state.assembly.append(_literal.value);
 	}
 	void operator()(assembly::Identifier const& _identifier)
 	{
+		m_state.assembly.setSourceLocation(_identifier.location);
 		// First search local variables, then labels, then externals.
 		if (int const* stackHeight = m_state.findVariable(_identifier.name))
 		{
 			int heightDiff = m_state.assembly.deposit() - *stackHeight;
 			if (heightDiff <= 0 || heightDiff > 16)
-				//@TODO location
+			{
 				m_state.addError(
 					Error::Type::TypeError,
-					"Variable inaccessible, too deep inside stack (" + boost::lexical_cast<string>(heightDiff) + ")"
+					"Variable inaccessible, too deep inside stack (" + boost::lexical_cast<string>(heightDiff) + ")",
+					_identifier.location
 				);
+				m_state.assembly.append(u256(0));
+			}
 			else
 				m_state.assembly.append(polynomial::dupInstruction(heightDiff));
 			return;
@@ -152,10 +166,14 @@ public:
 		else if (sof::AssemblyItem const* label = m_state.findLabel(_identifier.name))
 			m_state.assembly.append(label->pushTag());
 		else if (!m_identifierAccess(_identifier, m_state.assembly, CodeGenerator::IdentifierContext::RValue))
+		{
 			m_state.addError(
 				Error::Type::DeclarationError,
-				"Identifier \"" + string(_identifier.name) + "\" not found or not unique"
+				"Identifier not found or not unique",
+				_identifier.location
 			);
+			m_state.assembly.append(u256(0));
+		}
 	}
 	void operator()(FunctionalInstruction const& _instr)
 	{
@@ -163,30 +181,33 @@ public:
 		{
 			int height = m_state.assembly.deposit();
 			boost::apply_visitor(*this, *it);
-			expectDeposit(1, height);
+			expectDeposit(1, height, locationOf(*it));
 		}
 		(*this)(_instr.instruction);
 	}
 	void operator()(Label const& _label)
 	{
+		m_state.assembly.setSourceLocation(_label.location);
 		m_state.assembly.append(m_state.labels.at(_label.name));
 	}
 	void operator()(assembly::Assignment const& _assignment)
 	{
-		generateAssignment(_assignment.variableName);
+		m_state.assembly.setSourceLocation(_assignment.location);
+		generateAssignment(_assignment.variableName, _assignment.location);
 	}
 	void operator()(FunctionalAssignment const& _assignment)
 	{
 		int height = m_state.assembly.deposit();
 		boost::apply_visitor(*this, *_assignment.value);
-		expectDeposit(1, height);
-		generateAssignment(_assignment.variableName);
+		expectDeposit(1, height, locationOf(*_assignment.value));
+		m_state.assembly.setSourceLocation(_assignment.location);
+		generateAssignment(_assignment.variableName, _assignment.location);
 	}
 	void operator()(assembly::VariableDeclaration const& _varDecl)
 	{
 		int height = m_state.assembly.deposit();
 		boost::apply_visitor(*this, *_varDecl.value);
-		expectDeposit(1, height);
+		expectDeposit(1, height, locationOf(*_varDecl.value));
 		m_state.variables.push_back(make_pair(_varDecl.name, height));
 	}
 	void operator()(assembly::Block const& _block)
@@ -194,7 +215,8 @@ public:
 		size_t numVariables = m_state.variables.size();
 		std::for_each(_block.statements.begin(), _block.statements.end(), boost::apply_visitor(*this));
 		// pop variables
-		//@TODO check height before and after
+		// we deliberately do not check stack height
+		m_state.assembly.setSourceLocation(_block.location);
 		while (m_state.variables.size() > numVariables)
 		{
 			m_state.assembly.append(polynomial::Instruction::POP);
@@ -203,22 +225,20 @@ public:
 	}
 
 private:
-	void generateAssignment(assembly::Identifier const& _variableName)
+	void generateAssignment(assembly::Identifier const& _variableName, SourceLocation const& _location)
 	{
 		if (int const* stackHeight = m_state.findVariable(_variableName.name))
 		{
 			int heightDiff = m_state.assembly.deposit() - *stackHeight - 1;
 			if (heightDiff <= 0 || heightDiff > 16)
-				//@TODO location
 				m_state.addError(
 					Error::Type::TypeError,
-					"Variable inaccessible, too deep inside stack (" + boost::lexical_cast<string>(heightDiff) + ")"
+					"Variable inaccessible, too deep inside stack (" + boost::lexical_cast<string>(heightDiff) + ")",
+					_location
 				);
 			else
-			{
 				m_state.assembly.append(polynomial::swapInstruction(heightDiff));
-				m_state.assembly.append(polynomial::Instruction::POP);
-			}
+			m_state.assembly.append(polynomial::Instruction::POP);
 			return;
 		}
 		else if (!m_identifierAccess(_variableName, m_state.assembly, CodeGenerator::IdentifierContext::LValue))
@@ -228,16 +248,16 @@ private:
 			);
 	}
 
-	void expectDeposit(int _deposit, int _oldHeight)
+	void expectDeposit(int _deposit, int _oldHeight, SourceLocation const& _location)
 	{
 		if (m_state.assembly.deposit() != _oldHeight + 1)
-			//@TODO location
 			m_state.addError(Error::Type::TypeError,
 				"Expected instruction(s) to deposit " +
 				boost::lexical_cast<string>(_deposit) +
 				" item(s) to the stack, but did deposit " +
 				boost::lexical_cast<string>(m_state.assembly.deposit() - _oldHeight) +
-				" item(s)."
+				" item(s).",
+				_location
 			);
 	}
 
@@ -248,7 +268,8 @@ private:
 bool assembly::CodeGenerator::typeCheck(assembly::CodeGenerator::IdentifierAccess const& _identifierAccess)
 {
 	size_t initialErrorLen = m_errors.size();
-	GeneratorState state(m_errors);
+	sof::Assembly assembly;
+	GeneratorState state(m_errors, assembly);
 	(LabelOrganizer(state))(m_parsedData);
 	(CodeTransform(state, _identifierAccess))(m_parsedData);
 	return m_errors.size() == initialErrorLen;
@@ -256,9 +277,17 @@ bool assembly::CodeGenerator::typeCheck(assembly::CodeGenerator::IdentifierAcces
 
 sof::Assembly assembly::CodeGenerator::assemble(assembly::CodeGenerator::IdentifierAccess const& _identifierAccess)
 {
-	GeneratorState state(m_errors);
+	sof::Assembly assembly;
+	GeneratorState state(m_errors, assembly);
 	(LabelOrganizer(state))(m_parsedData);
 	(CodeTransform(state, _identifierAccess))(m_parsedData);
-	return state.assembly;
+	return assembly;
+}
+
+void assembly::CodeGenerator::assemble(sof::Assembly& _assembly, assembly::CodeGenerator::IdentifierAccess const& _identifierAccess)
+{
+	GeneratorState state(m_errors, _assembly);
+	(LabelOrganizer(state))(m_parsedData);
+	(CodeTransform(state, _identifierAccess))(m_parsedData);
 }
 

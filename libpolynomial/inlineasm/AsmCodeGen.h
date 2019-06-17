@@ -48,13 +48,15 @@ public:
 	/// If in rvalue context, the function is assumed to append instructions to
 	/// push the value of the identifier onto the stack. On error, the function should return false.
 	using IdentifierAccess = std::function<bool(assembly::Identifier const&, sof::Assembly&, IdentifierContext)>;
-	CodeGenerator( Block const& _parsedData, ErrorList& _errors):
+	CodeGenerator(Block const& _parsedData, ErrorList& _errors):
 		m_parsedData(_parsedData), m_errors(_errors) {}
 	/// Performs type checks and @returns false on error.
 	/// Actually runs the full code generation but discards the result.
 	bool typeCheck(IdentifierAccess const& _identifierAccess = IdentifierAccess());
 	/// Performs code generation and @returns the result.
 	sof::Assembly assemble(IdentifierAccess const& _identifierAccess = IdentifierAccess());
+	/// Performs code generation and appends generated to to _assembly.
+	void assemble(sof::Assembly& _assembly, IdentifierAccess const& _identifierAccess = IdentifierAccess());
 
 private:
 	Block const& m_parsedData;

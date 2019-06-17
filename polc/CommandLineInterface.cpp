@@ -22,6 +22,13 @@
  */
 #include "CommandLineInterface.h"
 
+#ifdef _WIN32 // windows
+	#include <io.h>
+	#define isatty _isatty
+	#define fileno _fileno
+#else // unix
+	#include <unistd.h>
+#endif
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -478,7 +485,7 @@ Allowed options)",
 		return false;
 	}
 
-	if (m_args.count("help"))
+	if (m_args.count("help") || (isatty(fileno(stdin)) && _argc == 1))
 	{
 		cout << desc;
 		return false;
@@ -861,7 +868,7 @@ void CommandLineInterface::outputAssembly()
 		cout << endl << "======= " << src.first << " =======" << endl;
 		sof::Assembly assembly = m_assemblyStacks[src.first].assemble();
 		cout << assembly.assemble().toHex() << endl;
-		cout << assembly.out();
+		assembly.stream(cout, "", m_sourceCodes);
 	}
 }
 

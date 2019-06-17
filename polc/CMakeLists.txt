@@ -6,7 +6,7 @@ include_directories(BEFORE ..)
 set(EXECUTABLE polc)
 
 file(GLOB HEADERS "*.h")
-add_executable(${EXECUTABLE} ${SRC_LIST} ${HEADERS})
+sof_simple_add_executable(${EXECUTABLE} ${SRC_LIST} ${HEADERS})
 
 sof_use(${EXECUTABLE} REQUIRED Polynomial::polynomial)
 target_link_libraries(${EXECUTABLE} ${Boost_PROGRAM_OPTIONS_LIBRARIES})

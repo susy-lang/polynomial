@@ -20,9 +20,11 @@ Storage
 
     contract SimpleStorage {
         uint storedData;
+
         function set(uint x) {
             storedData = x;
         }
+
         function get() constant returns (uint retVal) {
             return storedData;
         }
@@ -61,14 +63,6 @@ Furthermore, anyone can send coins to each other without any need for
 registering with username and password - all you need is an Sophon keypair.
 
 
-.. note::
-    This is not a nice example for browser-polynomial.
-    If you use `browser-polynomial <https://chrissof.github.io/browser-polynomial>`_
-    to try this example, you cannot change the address where you call
-    functions from. So you will always be the "minter", you can mint coins and send
-    them somewhere, but you cannot impersonate someone else. This might change in
-    the future.
-
 .. Gist: ad490694f3e5b3de47ab
 
 ::
@@ -88,10 +82,12 @@ registering with username and password - all you need is an Sophon keypair.
         function Coin() {
             minter = msg.sender;
         }
+
         function mint(address receiver, uint amount) {
             if (msg.sender != minter) return;
             balances[receiver] += amount;
         }
+
         function send(address receiver, uint amount) {
             if (balances[msg.sender] < amount) return;
             balances[msg.sender] -= amount;

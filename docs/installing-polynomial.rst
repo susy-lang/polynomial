@@ -6,18 +6,18 @@ Browser-Polynomial
 ================
 
 If you just want to try Polynomial for small contracts, you
-can try `browser-polynomial <https://chrissof.github.io/browser-polynomial>`_
+can try `browser-polynomial <https://sophon.github.io/browser-polynomial>`_
 which does not need any installation. If you want to use it
 without connection to the Internet, you can also just save the page
-locally or clone http://github.com/chrissof/browser-polynomial.
+locally or clone http://octonion.institute/susy-lang/browser-polynomial.
 
-NPM / node.js
+npm / Node.js
 =============
 
 This is probably the most portable and most convenient way to install Polynomial locally.
 
 A platform-independent JavaScript library is provided by compiling the C++ source
-into JavaScript using Emscripten for browser-polynomial and there is also an NPM
+into JavaScript using Emscripten for browser-polynomial and there is also an npm
 package available.
 
 To install it, simply use
@@ -26,8 +26,8 @@ To install it, simply use
 
     npm install polc
 
-Details about the usage of the nodejs package can be found in the
-`repository <https://github.com/chrissof/browser-polynomial#nodejs-usage>`_.
+Details about the usage of the Node.js package can be found in the
+`polc-js repository <https://octonion.institute/susy-js/polc-js>`_.
 
 Binary Packages
 ===============
@@ -59,13 +59,13 @@ Set up Homebrew:
 
     brew update
     brew upgrade
-    
+
     brew install boost --c++11             # this takes a while
-    brew install cmake cryptopp miniupnpc leveldb gmp libmicrohttpd libjson-rpc-cpp 
+    brew install cmake cryptopp miniupnpc leveldb gmp libmicrohttpd libjson-rpc-cpp
     # For Mix IDE and Alsofzero only
     brew install xz d-bus
     brew install homebrew/versions/v8-315
-    brew install llvm --HEAD --with-clang 
+    brew install llvm --HEAD --with-clang
     brew install qt5 --with-d-bus          # add --verbose if long waits with a stale screen drive you crazy as well
 
 Ubuntu
@@ -112,7 +112,7 @@ For Ubuntu 15.10 (Wily Werewolf) or newer, use the following command instead:
 .. code-block:: bash
 
     sudo apt-get -y install build-essential git cmake libboost-all-dev libgmp-dev libleveldb-dev libminiupnpc-dev libreadline-dev libncurses5-dev libcurl4-openssl-dev libcryptopp-dev libjsonrpccpp-dev libmicrohttpd-dev libjsoncpp-dev libedit-dev libz-dev
-    
+
 The reason for the change is that `libjsonrpccpp-dev` is available in the universe repository for newer versions of Ubuntu.
 
 Building
@@ -128,7 +128,7 @@ they relate only to Alsofzero and Mix
     ./webthree-helpers/scripts/sofupdate.sh --no-push --simple-pull --project polynomial # update Polynomial repo
     ./webthree-helpers/scripts/sofbuild.sh --no-git --project polynomial --all --cores 4 -DSVMJIT=0 # build Polynomial and others
                                                                                 #enabling DSVMJIT on OS X will not build
-                                                                                #feel free to enable it on Linux 
+                                                                                #feel free to enable it on Linux
 
 If you opted to install Alsofzero and Mix:
 

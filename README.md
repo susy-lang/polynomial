@@ -4,9 +4,7 @@
 
 To get started you can find a basic introduction to the language in the [Polynomial Documentation](https://polynomial.readthedocs.org).
 
-You can start using [Polynomial in your browser](https://chrissof.github.io/browser-polynomial/) with no need to download or compile anything. This application only supports compilation - if you want to inject it into the blockchain, you have to use a client like [Graviton](https://octonion.institute/susy-go/susy-graviton/wiki) or [AlsofZero](https://octonion.institute/susy-cpp/alsofzero).
-
-Also check out more documentations for [Polynomial ABI](https://octonion.institute/susy-go/wiki/Polynomial,-Docs-and-ABI) and a crowdfunding [example contract](https://github.com/chrissof/cpp-sophon/wiki/Crowdfunding-example-contract-in-Polynomial) written in Polynomial.
+You can start using [Polynomial in your browser](https://sophon.github.io/browser-polynomial/) with no need to download or compile anything.
 
 [Changelog](https://octonion.institute/susy-go/wiki/Polynomial-Changelog)
 

@@ -2,7 +2,7 @@
 Frequently Asked Questions
 ###########################
 
-This list was originally compiled by [fivedogit](mailto:fivedogit@gmail.com).
+This list was originally compiled by `fivedogit <mailto:fivedogit@gmail.com>`_.
 
 
 ***************
@@ -24,13 +24,13 @@ Polynomial contracts can be compiled a few different ways (see below) and the
 resulting output can be cut/pasted into a graviton console to deploy them to the
 Sophon blockchain.
 
-There are some `contract examples <https://github.com/fivedogit/polynomial-baby-steps/tree/master/contracts/>`_ by fivedogit and 
+There are some `contract examples <https://github.com/fivedogit/polynomial-baby-steps/tree/master/contracts/>`_ by fivedogit and
 there should be a `test contract <https://octonion.institute/susy-lang/polynomial/blob/develop/test/libpolynomial/PolynomialEndToEndTest.cpp>`_ for every single feature of Polynomial.
 
 How do I compile contracts?
 =============================
 
-Probably the fastest way is the `online compiler <https://chrissof.github.io/browser-polynomial/>`_.
+Probably the fastest way is the `online compiler <https://sophon.github.io/browser-polynomial/>`_.
 
 You can also use the `polc` binary which comes with cpp-sophon to compile
 contracts or an emerging option is to use Mix, the IDE.
@@ -76,7 +76,7 @@ Does selfdestruct() free up space in the blockchain?
 
 It removes the contract bytecode and storage from the current block
 into the future, but since the blockchain stores every single block (i.e.
-all history), this will not actually free up space on full/achive nodes.
+all history), this will not actually free up space on full/archive nodes.
 
 Create a contract that can be killed and return funds
 =====================================================
@@ -85,7 +85,7 @@ First, a word of warning: Killing contracts sounds like a good idea, because "cl
 is always good, but as seen above, it does not really clean up. Furthermore,
 if Sophy is sent to removed contracts, the Sophy will be forever lost.
 
-If you want to deactivate your contracts, rather **disable** them by changing some
+If you want to deactivate your contracts, it is preferable to **disable** them by changing some
 internal state which causes all functions to throw. This will make it impossible
 to use the contract and sophy sent to the contract will be returned automatically.
 
@@ -96,7 +96,7 @@ creator. Save it. Then `selfdestruct(creator);` to kill and return funds.
 
 Note that if you `import "mortal"` at the top of your contracts and declare
 `contract SomeContract is mortal { ...` and compile with a compiler that already
-has it (which includes `browser-polynomial <https://chrissof.github.io/browser-polynomial/>`_), then
+has it (which includes `browser-polynomial <https://sophon.github.io/browser-polynomial/>`_), then
 `kill()` is taken care of for you. Once a contract is "mortal", then you can
 `contractname.kill.sendTransaction({from:sof.coinbase})`, just the same as my
 examples.
@@ -139,10 +139,10 @@ with `c.someMethod.sendTransaction({from:sof.accounts[x], gas: 1000000});`
 That is, because they can change state, they have to have a gas
 payment sent along to get the work done.
 
-Get a contract to return its funds to you (not using selfdestruct(...)). 
+Get a contract to return its funds to you (not using selfdestruct(...)).
 ========================================================================
 
-This example demonstrates how to send funds from a contract to an address. 
+This example demonstrates how to send funds from a contract to an address.
 
 See `endowment_retriever <https://github.com/fivedogit/polynomial-baby-steps/blob/master/contracts/30_endowment_retriever.pol>`_.
 
@@ -175,16 +175,18 @@ datastructure on top of it, for example the `iterable mapping <https://octonion.
 Can I put arrays inside of a mapping? How do I make a mapping of a mapping?
 ===========================================================================
 
-Mappings are already syntactically similar to arrays as they are, therefore it doesn't make much sense to store an array in them. Rather what you should do is create a mapping of a mapping. 
+Mappings are already syntactically similar to arrays as they are, therefore it doesn't make much sense to store an array in them. Rather what you should do is create a mapping of a mapping.
 
 An example of this would be::
 
-    contract c {
+    contract C {
         struct myStruct {
             uint someNumber;
             string someString;
         }
+
         mapping(uint => mapping(string => myStruct)) myDynamicMapping;
+
         function storeInMapping() {
             myDynamicMapping[1]["Foo"] = myStruct(2, "Bar");
         }
@@ -216,7 +218,7 @@ Example::
 
     contract C {
         function f() returns (uint8[5]) {
-            string[4] memory AdaArr = ["This", "is", "an", "array"];
+            string[4] memory adaArr = ["This", "is", "an", "array"];
             return ([1, 2, 3, 4, 5]);
         }
     }
@@ -276,7 +278,7 @@ Is a constructor required?
 
 No. If there is no constructor, a generic one without arguments and no actions will be used.
 
-Are timestamps (now, block.timestamp) reliable? 
+Are timestamps (now, block.timestamp) reliable?
 ===============================================
 
 This depends on what you mean by "reliable".
@@ -325,7 +327,7 @@ should implement the fallback function as
 `function() { throw; }`
 
 this will cause all transactions to this contract that do not call an
-existing function to be reverted, so that all Sophy is sent back. 
+existing function to be reverted, so that all Sophy is sent back.
 
 Another use of the fallback function is to e.g. register that your
 contract received sophy by using an event.
@@ -345,17 +347,23 @@ by `msg.data`.
 Can state variables be initialized in-line?
 ===========================================
 
-Yes, this is possible for all types (even for structs). However, for arrays it 
+Yes, this is possible for all types (even for structs). However, for arrays it
 should be noted that you must declare them as static memory arrays.
 
 Examples::
 
     contract C {
-        struct S { uint a; uint b; }
+        struct S {
+            uint a;
+            uint b;
+        }
+
         S public x = S(1, 2);
         string name = "Ada";
-        string[4] memory AdaArr = ["This", "is", "an", "array"];  
+        string[4] memory adaArr = ["This", "is", "an", "array"];
     }
+
+
     contract D {
         C c = new C();
     }
@@ -405,9 +413,11 @@ you should always convert it to a `bytes` first::
 
     contract C {
         string s;
+
         function append(byte c) {
             bytes(s).push(c);
         }
+
         function set(uint i, byte c) {
             bytes(s)[i] = c;
         }
@@ -448,15 +458,21 @@ If you do not want to throw, you can return a pair::
 
     contract C {
         uint[] counters;
+
         function getCounter(uint index)
             returns (uint counter, bool error) {
                 if (index >= counters.length) return (0, true);
                 else return (counters[index], false);
-            }
+        }
+
         function checkCounter(uint index) {
             var (counter, error) = getCounter(index);
-            if (error) { ... }
-            else { ... }
+            if (error) {
+                ...
+            }
+            else {
+                ...
+            }
         }
     }
 
@@ -515,12 +531,15 @@ Example::
     contract C {
         uint[] data1;
         uint[] data2;
+
         function appendOne() {
             append(data1);
         }
+
         function appendTwo() {
             append(data2);
         }
+
         function append(uint[] storage d) {
             d.push(1);
         }
@@ -542,6 +561,7 @@ be created in memory, although it will be created in storage::
     contract C {
         uint someVariable;
         uint[] data;
+
         function f() {
             uint[] x;
             x.push(2);
@@ -565,6 +585,7 @@ The correct way to do this is the following::
     contract C {
         uint someVariable;
         uint[] data;
+
         function f() {
             uint[] x = data;
             x.push(2);
@@ -671,10 +692,11 @@ What happens to a struct's mapping when copying over a struct?
 
 This is a very interesting question. Suppose that we have a contract field set up like such::
 
-    struct user{
+    struct user {
         mapping(string => address) usedContracts;
     }
-    function somefunction{
+
+    function somefunction {
        user user1;
        user1.usedContracts["Hello"] = "World";
        user user2 = user1;
@@ -691,9 +713,13 @@ In the case of a `contract A` calling a new instance of `contract B`, parenthese
 `new B` because `B.value` would refer to a member of `B` called `value`.
 You will need to make sure that you have both contracts aware of each other's presence.
 In this example::
+
     contract B {}
+
+
     contract A {
         address child;
+
         function test() {
             child = (new B).value(10)(); //construct a new B with 10 wei
         }
@@ -702,7 +728,7 @@ In this example::
 Can a contract function accept a two-dimensional array?
 =======================================================
 
-This is not yet implemented for external calls and dynamic arrays - 
+This is not yet implemented for external calls and dynamic arrays -
 you can only use one level of dynamic arrays.
 
 What is the relationship between bytes32 and string? Why is it that ‘bytes32 somevar = "stringliteral";’ works and what does the saved 32-byte hex value mean?
@@ -734,17 +760,21 @@ Sure. Take care that if you cross the memory / storage boundary,
 independent copies will be created::
 
     contract C {
-      uint[20] x;
-      function f() {
-        g(x);
-        h(x);
-      }
-      function g(uint[20] y) {
-        y[2] = 3;
-      }
-      function h(uint[20] storage y) {
-        y[3] = 4;
-      }
+        uint[20] x;
+
+        function f() {
+            g(x);
+            h(x);
+        }
+
+        function g(uint[20] y) {
+            y[2] = 3;
+        }
+
+        function h(uint[20] storage y) {
+            y[3] = 4;
+        }
+    }
 
 The call to `g(x)` will not have an effect on `x` because it needs
 to create an independent copy of the storage value in memory
@@ -765,10 +795,10 @@ contract level) with `arrayname.length = <some new length>;`. If you get the
 
 ::
 
-    int8[] memory memArr;       // Case 1
-    memArr.length++;            // illegal
-    int8[5] storageArr;         // Case 2
-    somearray.length++;         // legal
+    int8[] memory memArr;        // Case 1
+    memArr.length++;             // illegal
+    int8[5] storageArr;          // Case 2
+    somearray.length++;          // legal
     int8[5] storage storageArr2; // Explicit case 2
     somearray2.length++;         // legal
 
@@ -821,7 +851,8 @@ What does the following strange check do in the Custom Token contract?
 
 ::
 
-    if (balanceOf[_to] + _value < balanceOf[_to]) throw;
+    if (balanceOf[_to] + _value < balanceOf[_to])
+        throw;
 
 Integers in Polynomial (and most other machine-related programming languages) are restricted to a certain range.
 For `uint256`, this is `0` up to `2**256 - 1`. If the result of some operation on those numbers

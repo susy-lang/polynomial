@@ -42,7 +42,7 @@ endforeach(file)
 
 file(GLOB HEADERS "*.h")
 set(EXECUTABLE poltest)
-add_executable(${EXECUTABLE} ${SRC_LIST} ${HEADERS})
+sof_simple_add_executable(${EXECUTABLE} ${SRC_LIST} ${HEADERS})
 
 sof_use(${EXECUTABLE} REQUIRED Polynomial::polynomial Sof::sophon Sof::sofcore)
 

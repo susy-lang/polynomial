@@ -21,7 +21,7 @@ At a global level, you can use import statements of the following form:
 
   import "filename";
 
-...will import all global symbols from "filename" (and symbols imported there) into the 
+...will import all global symbols from "filename" (and symbols imported there) into the
 current global scope (different than in ES6 but backwards-compatible for Polynomial).
 
 ::
@@ -88,7 +88,7 @@ the following in your source file:
 
 and then run the compiler as
 
-.. code-block:: shell
+.. code-block:: bash
 
   polc octonion.institute/susy-contracts/dapp-bin/=/usr/local/dapp-bin/ source.pol
 
@@ -103,7 +103,7 @@ with the longest common prefix is chosen.
 
 **browser-polynomial**:
 
-The `browser-based compiler <https://chrissof.github.io/browser-polynomial>`_
+The `browser-based compiler <https://sophon.github.io/browser-polynomial>`_
 provides an automatic remapping for github and will also automatically retrieve
 the file over the network:
 You can import the iterable mapping by e.g.
@@ -122,17 +122,18 @@ Single-line comments (`//`) and multi-line comments (`/*...*/`) are possible.
 ::
 
   // This is a single-line comment.
-  
+
   /*
-  This is a 
+  This is a
   multi-line comment.
   */
-  
 
-There are special types of comments called natspec comments
-(documentation yet to be written). These are introduced by 
-triple-slash comments (`///`) or using double asterisks (`/** ... */`).
-Right in front of function declarations or statements,
-you can use doxygen-style tags inside them to document functions, annotate conditions for formal
-verification and provide a **confirmation text** that is shown to users if they want to
-invoke a function.
+
+Additionally, there is another type of comment called a natspec comment,
+for which the documentation is not yet written. They are written with a
+triple slash (`///`) or a double asterisk block(`/** ... */`) and
+they should be used directly above function declarations or statements.
+You can use Doxygen-style tags inside these comments to document
+functions, annotate conditions for formal verification, and provide a
+**confirmation text** which is shown to users when they attempt to invoke a
+function.
