@@ -26,6 +26,7 @@ if (EXISTS ${SOF_SOURCE_DIR}/prerelease.txt)
 	string(STRIP "${POL_VERSION_PRERELEASE}" POL_VERSION_PRERELEASE)
 else()
 	string(TIMESTAMP POL_VERSION_PRERELEASE "develop.%Y.%m.%d" UTC)
+	string(REPLACE .0 . POL_VERSION_PRERELEASE "${POL_VERSION_PRERELEASE}")
 endif()
 
 if (EXISTS ${SOF_SOURCE_DIR}/commit_hash.txt)
@@ -33,7 +34,7 @@ if (EXISTS ${SOF_SOURCE_DIR}/commit_hash.txt)
 	string(STRIP ${POL_COMMIT_HASH} POL_COMMIT_HASH)
 else()
 	execute_process(
-		COMMAND git --git-dir=${SOF_SOURCE_DIR}/.git --work-tree=${SOF_SOURCE_DIR} rev-parse HEAD
+		COMMAND git --git-dir=${SOF_SOURCE_DIR}/.git --work-tree=${SOF_SOURCE_DIR} rev-parse --short=8 HEAD
 		OUTPUT_VARIABLE POL_COMMIT_HASH OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET
 	)
 	execute_process(
@@ -47,13 +48,16 @@ if (POL_COMMIT_HASH)
 	string(SUBSTRING ${POL_COMMIT_HASH} 0 8 POL_COMMIT_HASH)
 endif()
 
-if (POL_COMMIT_HASH AND POL_LOCAL_CHANGES)
-	set(POL_COMMIT_HASH "${POL_COMMIT_HASH}.mod")
-endif()
-
 if (NOT POL_COMMIT_HASH)
 	message(FATAL_ERROR "Unable to determine commit hash. Either compile from within git repository or "
 		"supply a file called commit_hash.txt")
+endif()
+if (NOT POL_COMMIT_HASH MATCHES [a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9])
+    message(FATAL_ERROR "Malformed commit hash \"${POL_COMMIT_HASH}\". It has to consist of exactly 8 hex digits.")
+endif()
+
+if (POL_COMMIT_HASH AND POL_LOCAL_CHANGES)
+	set(POL_COMMIT_HASH "${POL_COMMIT_HASH}.mod")
 endif()
 
 set(POL_VERSION_BUILDINFO "commit.${POL_COMMIT_HASH}.${SOF_BUILD_PLATFORM}")
