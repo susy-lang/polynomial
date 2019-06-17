@@ -179,6 +179,14 @@ BOOST_AUTO_TEST_CASE(basic_compilation)
 			"fileA": {
 				"content": "contract A { }"
 			}
+		},
+		"settings": {
+			"outputSelection": {
+				"fileA": {
+					"A": [ "abi", "devdoc", "userdoc", "svm.bytecode", "svm.assembly", "svm.gasEstimates", "metadata" ],
+					"": [ "legacyAST" ]
+				}
+			}
 		}
 	}
 	)";

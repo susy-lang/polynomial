@@ -104,6 +104,7 @@ public:
 	void operator()(polynomial::assembly::StackAssignment const& _assignment);
 	void operator()(polynomial::assembly::Assignment const& _assignment);
 	void operator()(polynomial::assembly::VariableDeclaration const& _varDecl);
+	void operator()(polynomial::assembly::If const& _if);
 	void operator()(polynomial::assembly::Switch const& _switch);
 	void operator()(polynomial::assembly::FunctionDefinition const&);
 	void operator()(polynomial::assembly::ForLoop const&);

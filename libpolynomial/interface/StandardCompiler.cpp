@@ -131,6 +131,61 @@ StringMap createSourceList(Json::Value const& _input)
 	return sources;
 }
 
+bool isArtifactRequested(Json::Value const& _outputSelection, string const& _artifact)
+{
+	for (auto const& artifact: _outputSelection)
+		/// @TODO support sub-matching, e.g "svm" matches "svm.assembly"
+		if (artifact == "*" || artifact == _artifact)
+			return true;
+	return false;
+}
+
+///
+/// @a _outputSelection is a JSON object containining a two-level hashmap, where the first level is the filename,
+/// the second level is the contract name and the value is an array of artifact names to be requested for that contract.
+/// @a _file is the current file
+/// @a _contract is the current contract
+/// @a _artifact is the current artifact name
+///
+/// @returns true if the @a _outputSelection has a match for the requested target in the specific file / contract.
+///
+/// In @a _outputSelection the use of '*' as a wildcard is permitted.
+///
+/// @TODO optimise this. Perhaps flatten the structure upfront.
+///
+bool isArtifactRequested(Json::Value const& _outputSelection, string const& _file, string const& _contract, string const& _artifact)
+{
+	if (!_outputSelection.isObject())
+		return false;
+
+	for (auto const& file: { _file, string("*") })
+		if (_outputSelection.isMember(file) && _outputSelection[file].isObject())
+		{
+			/// For SourceUnit-level targets (such as AST) only allow empty name, otherwise
+			/// for Contract-level targets try both contract name and wildcard
+			vector<string> contracts{ _contract };
+			if (!_contract.empty())
+				contracts.push_back("*");
+			for (auto const& contract: contracts)
+				if (
+					_outputSelection[file].isMember(contract) &&
+					_outputSelection[file][contract].isArray() &&
+					isArtifactRequested(_outputSelection[file][contract], _artifact)
+				)
+					return true;
+		}
+
+	return false;
+}
+
+bool isArtifactRequested(Json::Value const& _outputSelection, string const& _file, string const& _contract, vector<string> const& _artifacts)
+{
+	for (auto const& artifact: _artifacts)
+		if (isArtifactRequested(_outputSelection, _file, _contract, artifact))
+			return true;
+	return false;
+}
+
 Json::Value formatLinkReferences(std::map<size_t, std::string> const& linkReferences)
 {
 	Json::Value ret(Json::objectValue);
@@ -396,8 +451,10 @@ Json::Value StandardCompiler::compileInternal(Json::Value const& _input)
 	{
 		Json::Value sourceResult = Json::objectValue;
 		sourceResult["id"] = sourceIndex++;
-		sourceResult["ast"] = ASTJsonConverter(false, m_compilerStack.sourceIndices()).toJson(m_compilerStack.ast(sourceName));
-		sourceResult["legacyAST"] = ASTJsonConverter(true, m_compilerStack.sourceIndices()).toJson(m_compilerStack.ast(sourceName));
+		if (isArtifactRequested(outputSelection, sourceName, "", "ast"))
+			sourceResult["ast"] = ASTJsonConverter(false, m_compilerStack.sourceIndices()).toJson(m_compilerStack.ast(sourceName));
+		if (isArtifactRequested(outputSelection, sourceName, "", "legacyAST"))
+			sourceResult["legacyAST"] = ASTJsonConverter(true, m_compilerStack.sourceIndices()).toJson(m_compilerStack.ast(sourceName));
 		output["sources"][sourceName] = sourceResult;
 	}
 
@@ -411,28 +468,48 @@ Json::Value StandardCompiler::compileInternal(Json::Value const& _input)
 
 		// ABI, documentation and metadata
 		Json::Value contractData(Json::objectValue);
-		contractData["abi"] = m_compilerStack.contractABI(contractName);
-		contractData["metadata"] = m_compilerStack.metadata(contractName);
-		contractData["userdoc"] = m_compilerStack.natspecUser(contractName);
-		contractData["devdoc"] = m_compilerStack.natspecDev(contractName);
+		if (isArtifactRequested(outputSelection, file, name, "abi"))
+			contractData["abi"] = m_compilerStack.contractABI(contractName);
+		if (isArtifactRequested(outputSelection, file, name, "metadata"))
+			contractData["metadata"] = m_compilerStack.metadata(contractName);
+		if (isArtifactRequested(outputSelection, file, name, "userdoc"))
+			contractData["userdoc"] = m_compilerStack.natspecUser(contractName);
+		if (isArtifactRequested(outputSelection, file, name, "devdoc"))
+			contractData["devdoc"] = m_compilerStack.natspecDev(contractName);
 
 		// SVM
 		Json::Value svmData(Json::objectValue);
 		// @TODO: add ir
-		svmData["assembly"] = m_compilerStack.assemblyString(contractName, createSourceList(_input));
-		svmData["legacyAssembly"] = m_compilerStack.assemblyJSON(contractName, createSourceList(_input));
-		svmData["methodIdentifiers"] = m_compilerStack.methodIdentifiers(contractName);
-		svmData["gasEstimates"] = m_compilerStack.gasEstimates(contractName);
+		if (isArtifactRequested(outputSelection, file, name, "svm.assembly"))
+			svmData["assembly"] = m_compilerStack.assemblyString(contractName, createSourceList(_input));
+		if (isArtifactRequested(outputSelection, file, name, "svm.legacyAssembly"))
+			svmData["legacyAssembly"] = m_compilerStack.assemblyJSON(contractName, createSourceList(_input));
+		if (isArtifactRequested(outputSelection, file, name, "svm.methodIdentifiers"))
+			svmData["methodIdentifiers"] = m_compilerStack.methodIdentifiers(contractName);
+		if (isArtifactRequested(outputSelection, file, name, "svm.gasEstimates"))
+			svmData["gasEstimates"] = m_compilerStack.gasEstimates(contractName);
 
-		svmData["bytecode"] = collectSVMObject(
-			m_compilerStack.object(contractName),
-			m_compilerStack.sourceMapping(contractName)
-		);
+		if (isArtifactRequested(
+			outputSelection,
+			file,
+			name,
+			{ "svm.bytecode", "svm.bytecode.object", "svm.bytecode.opcodes", "svm.bytecode.sourceMap", "svm.bytecode.linkReferences" }
+		))
+			svmData["bytecode"] = collectSVMObject(
+				m_compilerStack.object(contractName),
+				m_compilerStack.sourceMapping(contractName)
+			);
 
-		svmData["deployedBytecode"] = collectSVMObject(
-			m_compilerStack.runtimeObject(contractName),
-			m_compilerStack.runtimeSourceMapping(contractName)
-		);
+		if (isArtifactRequested(
+			outputSelection,
+			file,
+			name,
+			{ "svm.deployedBytecode", "svm.deployedBytecode.object", "svm.deployedBytecode.opcodes", "svm.deployedBytecode.sourceMap", "svm.deployedBytecode.linkReferences" }
+		))
+			svmData["deployedBytecode"] = collectSVMObject(
+				m_compilerStack.runtimeObject(contractName),
+				m_compilerStack.runtimeSourceMapping(contractName)
+			);
 
 		contractData["svm"] = svmData;
 

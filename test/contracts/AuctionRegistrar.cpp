@@ -24,6 +24,7 @@
 #include <tuple>
 #include <boost/test/unit_test.hpp>
 #include <test/libpolynomial/PolynomialExecutionFramework.h>
+#include <test/contracts/ContractInterface.h>
 
 using namespace std;
 using namespace dev::test;
@@ -230,7 +231,6 @@ protected:
 		BOOST_REQUIRE(!m_output.empty());
 	}
 
-	using ContractInterface = PolynomialExecutionFramework::ContractInterface;
 	class RegistrarInterface: public ContractInterface
 	{
 	public:

@@ -32,6 +32,8 @@ REPO_ROOT=$(cd $(dirname "$0")/.. && pwd)
 echo $REPO_ROOT
 POLC="$REPO_ROOT/build/polc/polc"
 
+FULLARGS="--optimize --combined-json abi,asm,ast,bin,bin-runtime,clone-bin,compact-format,devdoc,hashes,interface,metadata,opcodes,srcmap,srcmap-runtime,userdoc"
+
 echo "Checking that the bug list is up to date..."
 "$REPO_ROOT"/scripts/update_bugs_by_version.py
 
@@ -39,26 +41,37 @@ echo "Checking that StandardToken.pol, owned.pol and mortal.pol produce bytecode
 output=$("$REPO_ROOT"/build/polc/polc --bin "$REPO_ROOT"/std/*.pol 2>/dev/null | grep "ffff" | wc -l)
 test "${output//[[:blank:]]/}" = "3"
 
+function printTask() { echo "$(tput bold)$(tput setaf 2)$1$(tput sgr0)"; }
+
+function printError() { echo "$(tput setaf 1)$1$(tput sgr0)"; }
+
 function compileFull()
 {
-    files="$*"
+    local files="$*"
+    local output failed
+
     set +e
-    "$POLC" --optimize \
-    --combined-json abi,asm,ast,bin,bin-runtime,clone-bin,compact-format,devdoc,hashes,interface,metadata,opcodes,srcmap,srcmap-runtime,userdoc \
-    $files >/dev/null 2>&1
+    output=$( ("$POLC" $FULLARGS $files) 2>&1 )
     failed=$?
     set -e
+
     if [ $failed -ne 0 ]
     then
-        echo "Compilation failed on:"
-        cat $files
+        printError "Compilation failed on:"
+        echo "$output"
+        printError "While calling:"
+        echo "\"$POLC\" $FULLARGS $files"
+        printError "Inside directory:"
+        pwd
         false
     fi
 }
 
 function compileWithoutWarning()
 {
-    files="$*"
+    local files="$*"
+    local output failed
+
     set +e
     output=$("$POLC" $files 2>&1)
     failed=$?
@@ -66,10 +79,11 @@ function compileWithoutWarning()
     output=$(echo "$output" | grep -v 'pre-release')
     echo "$output"
     set -e
+
     test -z "$output" -a "$failed" -eq 0
 }
 
-echo "Compiling various other contracts and libraries..."
+printTask "Compiling various other contracts and libraries..."
 (
 cd "$REPO_ROOT"/test/compilationTests/
 for dir in *
@@ -84,7 +98,7 @@ do
 done
 )
 
-echo "Compiling all files in std and examples..."
+printTask "Compiling all files in std and examples..."
 
 for f in "$REPO_ROOT"/std/*.pol
 do
@@ -92,7 +106,7 @@ do
     compileWithoutWarning "$f"
 done
 
-echo "Compiling all examples from the documentation..."
+printTask "Compiling all examples from the documentation..."
 TMPDIR=$(mktemp -d)
 (
     set -e
@@ -109,14 +123,14 @@ TMPDIR=$(mktemp -d)
 rm -rf "$TMPDIR"
 echo "Done."
 
-echo "Testing library checksum..."
+printTask "Testing library checksum..."
 echo '' | "$POLC" --link --libraries a:0x90f20564390eAe531E810af625A22f51385Cd222
 ! echo '' | "$POLC" --link --libraries a:0x80f20564390eAe531E810af625A22f51385Cd222 2>/dev/null
 
-echo "Testing long library names..."
+printTask "Testing long library names..."
 echo '' | "$POLC" --link --libraries aveeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeerylonglibraryname:0x90f20564390eAe531E810af625A22f51385Cd222
 
-echo "Testing overwriting files"
+printTask "Testing overwriting files"
 TMPDIR=$(mktemp -d)
 (
     set -e
@@ -129,7 +143,7 @@ TMPDIR=$(mktemp -d)
 )
 rm -rf "$TMPDIR"
 
-echo "Testing poljson via the fuzzer..."
+printTask "Testing poljson via the fuzzer..."
 TMPDIR=$(mktemp -d)
 (
     set -e
@@ -143,14 +157,14 @@ TMPDIR=$(mktemp -d)
         set +e
         "$REPO_ROOT"/build/test/polfuzzer --quiet < "$f"
         if [ $? -ne 0 ]; then
-            echo "Fuzzer failed on:"
+            printError "Fuzzer failed on:"
             cat "$f"
             exit 1
         fi
 
         "$REPO_ROOT"/build/test/polfuzzer --without-optimizer --quiet < "$f"
         if [ $? -ne 0 ]; then
-            echo "Fuzzer (without optimizer) failed on:"
+            printError "Fuzzer (without optimizer) failed on:"
             cat "$f"
             exit 1
         fi

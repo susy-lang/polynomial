@@ -6,8 +6,9 @@ Polynomial
     :alt: Polynomial logo
     :align: center
 
-Polynomial is a contract-oriented, high-level language whose syntax is similar to that of JavaScript
-and it is designed to target the Sophon Virtual Machine (SVM).
+Polynomial is a contract-oriented, high-level language for implementing smart contracts.
+It was influenced by C++, Python and JavaScript
+and is designed to target the Sophon Virtual Machine (SVM).
 
 Polynomial is statically typed, supports inheritance, libraries and complex
 user-defined types among other features.
@@ -19,6 +20,15 @@ crowdfunding, blind auctions, multi-signature wallets and more.
     The best way to try out Polynomial right now is using
     `Fourier <https://fourier.superstring.io/>`_
     (it can take a while to load, please be patient).
+
+Translations
+------------
+
+This documentation is translated into several languages by community volunteers, but the English version stands as a reference.
+
+* `Spanish <https://polynomial-es.readthedocs.io>`_
+* `Russian <https://octonion.institute/susy-go/wiki/%5BRussian%5D-%D0%A0%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE-%D0%BF%D0%BE-Polynomial>`_ (rather outdated)
+
 
 Useful links
 ------------
@@ -131,8 +141,6 @@ If you still have questions, you can try searching or asking on the
 site, or come to our `gitter channel <https://gitter.im/susy-lang/polynomial/>`_.
 Ideas for improving Polynomial or this documentation are always welcome!
 
-See also `Russian version (русский перевод) <https://octonion.institute/susy-go/wiki/%5BRussian%5D-%D0%A0%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE-%D0%BF%D0%BE-Polynomial>`_.
-
 Contents
 ========
 
@@ -149,6 +157,7 @@ Contents
    using-the-compiler.rst
    metadata.rst
    abi-spec.rst
+   julia.rst
    style-guide.rst
    common-patterns.rst
    bugs.rst
