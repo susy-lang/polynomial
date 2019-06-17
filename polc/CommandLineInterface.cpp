@@ -34,7 +34,6 @@
 #include <libdevcore/CommonData.h>
 #include <libdevcore/CommonIO.h>
 #include <libsvmcore/Instruction.h>
-#include <libsvmcore/Params.h>
 #include <libpolynomial/interface/Version.h>
 #include <libpolynomial/parsing/Scanner.h>
 #include <libpolynomial/parsing/Parser.h>
@@ -239,6 +238,7 @@ void CommandLineInterface::handleMeta(DocumentationType _type, string const& _co
 
 void CommandLineInterface::handleGasEstimation(string const& _contract)
 {
+	sof::SVMSchedule schedule;	// TODO: make it relevant to the SealEngine/EnvInfo.
 	using Gas = GasEstimator::GasConsumption;
 	if (!m_compiler->assemblyItems(_contract) && !m_compiler->runtimeAssemblyItems(_contract))
 		return;
@@ -248,8 +248,8 @@ void CommandLineInterface::handleGasEstimation(string const& _contract)
 		Gas gas = GasEstimator::functionalEstimation(*items);
 		u256 bytecodeSize(m_compiler->runtimeObject(_contract).bytecode.size());
 		cout << "construction:" << endl;
-		cout << "   " << gas << " + " << (bytecodeSize * sof::c_createDataGas) << " = ";
-		gas += bytecodeSize * sof::c_createDataGas;
+		cout << "   " << gas << " + " << (bytecodeSize * schedule.createDataGas) << " = ";
+		gas += bytecodeSize * schedule.createDataGas;
 		cout << gas << endl;
 	}
 	if (sof::AssemblyItems const* items = m_compiler->runtimeAssemblyItems(_contract))

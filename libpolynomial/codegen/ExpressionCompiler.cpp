@@ -23,16 +23,17 @@
 #include <utility>
 #include <numeric>
 #include <boost/range/adaptor/reversed.hpp>
-#include <libsvmcore/Params.h>
 #include <libdevcore/Common.h>
 #include <libdevcore/SHA3.h>
+#include <libsofcore/ChainOperationParams.h>
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/codegen/ExpressionCompiler.h>
 #include <libpolynomial/codegen/CompilerContext.h>
 #include <libpolynomial/codegen/CompilerUtils.h>
 #include <libpolynomial/codegen/LValue.h>
-
 using namespace std;
+
+// TODO: FIXME: HOMESTEAD: XXX: @chrissof Params deprecated - use SVMSchedule instead.
 
 namespace dev
 {
@@ -421,6 +422,9 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 	else
 	{
 		FunctionType const& function = *functionType;
+		if (function.bound())
+			// Only callcode functions can be bound, this might be lifted later.
+			polAssert(function.location() == Location::CallCode, "");
 		switch (function.location())
 		{
 		case Location::Internal:
@@ -534,7 +538,7 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 				{}
 			);
 			break;
-		case Location::Suicide:
+		case Location::Selfdestruct:
 			arguments.front()->accept(*this);
 			utils().convertType(*arguments.front()->annotation().type, *function.parameterTypes().front(), true);
 			m_context << sof::Instruction::SUICIDE;
@@ -637,6 +641,20 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 			m_context << sof::Instruction::BLOCKHASH;
 			break;
 		}
+		case Location::AddMod:
+		case Location::MulMod:
+		{
+			for (unsigned i = 0; i < 3; i ++)
+			{
+				arguments[2 - i]->accept(*this);
+				utils().convertType(*arguments[2 - i]->annotation().type, IntegerType(256));
+			}
+			if (function.location() == Location::AddMod)
+				m_context << sof::Instruction::ADDMOD;
+			else
+				m_context << sof::Instruction::MULMOD;
+			break;
+		}
 		case Location::ECRecover:
 		case Location::SHA256:
 		case Location::RIPEMD160:
@@ -657,7 +675,7 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 			_functionCall.expression().accept(*this);
 			polAssert(function.parameterTypes().size() == 1, "");
 			polAssert(!!function.parameterTypes()[0], "");
-			TypePointer const& paramType = function.parameterTypes()[0];
+			TypePointer paramType = function.parameterTypes()[0];
 			shared_ptr<ArrayType> arrayType =
 				function.location() == Location::ArrayPush ?
 				make_shared<ArrayType>(DataLocation::Storage, paramType) :
@@ -688,6 +706,53 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 				StorageByteArrayElement(m_context).storeValue(*type, _functionCall.location(), true);
 			break;
 		}
+		case Location::ObjectCreation:
+		{
+			// Will allocate at the end of memory (MSIZE) and not write at all unless the base
+			// type is dynamically sized.
+			ArrayType const& arrayType = dynamic_cast<ArrayType const&>(*_functionCall.annotation().type);
+			_functionCall.expression().accept(*this);
+			polAssert(arguments.size() == 1, "");
+
+			// Fetch requested length.
+			arguments[0]->accept(*this);
+			utils().convertType(*arguments[0]->annotation().type, IntegerType(256));
+
+			// Stack: requested_length
+			// Allocate at max(MSIZE, freeMemoryPointer)
+			utils().fetchFreeMemoryPointer();
+			m_context << sof::Instruction::DUP1 << sof::Instruction::MSIZE;
+			m_context << sof::Instruction::LT;
+			auto initialise = m_context.appendConditionalJump();
+			// Free memory pointer does not point to empty memory, use MSIZE.
+			m_context << sof::Instruction::POP;
+			m_context << sof::Instruction::MSIZE;
+			m_context << initialise;
+
+			// Stack: requested_length memptr
+			m_context << sof::Instruction::SWAP1;
+			// Stack: memptr requested_length
+			// store length
+			m_context << sof::Instruction::DUP1 << sof::Instruction::DUP3 << sof::Instruction::MSTORE;
+			// Stack: memptr requested_length
+			// update free memory pointer
+			m_context << sof::Instruction::DUP1 << arrayType.baseType()->memoryHeadSize();
+			m_context << sof::Instruction::MUL << u256(32) << sof::Instruction::ADD;
+			m_context << sof::Instruction::DUP3 << sof::Instruction::ADD;
+			utils().storeFreeMemoryPointer();
+			// Stack: memptr requested_length
+
+			// We only have to initialise if the base type is a not a value type.
+			if (dynamic_cast<ReferenceType const*>(arrayType.baseType().get()))
+			{
+				m_context << sof::Instruction::DUP2 << u256(32) << sof::Instruction::ADD;
+				utils().zeroInitialiseMemoryArray(arrayType);
+				m_context << sof::Instruction::POP;
+			}
+			else
+				m_context << sof::Instruction::POP;
+			break;
+		}
 		default:
 			BOOST_THROW_EXCEPTION(InternalCompilerError() << errinfo_comment("Invalid function type."));
 		}
@@ -704,7 +769,26 @@ bool ExpressionCompiler::visit(NewExpression const&)
 void ExpressionCompiler::endVisit(MemberAccess const& _memberAccess)
 {
 	CompilerContext::LocationSetter locationSetter(m_context, _memberAccess);
+
+	// Check whether the member is a bound function.
 	ASTString const& member = _memberAccess.memberName();
+	if (auto funType = dynamic_cast<FunctionType const*>(_memberAccess.annotation().type.get()))
+		if (funType->bound())
+		{
+			utils().convertType(
+				*_memberAccess.expression().annotation().type,
+				*funType->selfType(),
+				true
+			);
+			auto contract = dynamic_cast<ContractDefinition const*>(funType->declaration().scope());
+			polAssert(contract && contract->isLibrary(), "");
+			//@TODO library name might not be unique
+			m_context.appendLibraryAddress(contract->name());
+			m_context << funType->externalIdentifier();
+			utils().moveIntoStack(funType->selfType()->sizeOnStack(), 2);
+			return;
+		}
+
 	switch (_memberAccess.expression().annotation().type->category())
 	{
 	case Type::Category::Contract:
@@ -826,10 +910,6 @@ void ExpressionCompiler::endVisit(MemberAccess const& _memberAccess)
 	case Type::Category::TypeType:
 	{
 		TypeType const& type = dynamic_cast<TypeType const&>(*_memberAccess.expression().annotation().type);
-		polAssert(
-			!type.members().membersByName(_memberAccess.memberName()).empty(),
-			"Invalid member access to " + type.toString(false)
-		);
 
 		if (dynamic_cast<ContractType const*>(type.actualType().get()))
 		{
@@ -981,11 +1061,11 @@ void ExpressionCompiler::endVisit(Identifier const& _identifier)
 	Declaration const* declaration = _identifier.annotation().referencedDeclaration;
 	if (MagicVariableDeclaration const* magicVar = dynamic_cast<MagicVariableDeclaration const*>(declaration))
 	{
-		switch (magicVar->type(_identifier.annotation().contractScope)->category())
+		switch (magicVar->type()->category())
 		{
 		case Type::Category::Contract:
 			// "this" or "super"
-			if (!dynamic_cast<ContractType const&>(*magicVar->type(_identifier.annotation().contractScope)).isSuper())
+			if (!dynamic_cast<ContractType const&>(*magicVar->type()).isSuper())
 				m_context << sof::Instruction::ADDRESS;
 			break;
 		case Type::Category::Integer:
@@ -1190,14 +1270,19 @@ void ExpressionCompiler::appendExternalFunctionCall(
 	// <stack top>
 	// value [if _functionType.valueSet()]
 	// gas [if _functionType.gasSet()]
+	// self object [if bound - moved to top right away]
 	// function identifier [unless bare]
 	// contract address
 
+	unsigned selfSize = _functionType.bound() ? _functionType.selfType()->sizeOnStack() : 0;
 	unsigned gasValueSize = (_functionType.gasSet() ? 1 : 0) + (_functionType.valueSet() ? 1 : 0);
-
-	unsigned contractStackPos = m_context.currentToBaseStackOffset(1 + gasValueSize + (_functionType.isBareCall() ? 0 : 1));
+	unsigned contractStackPos = m_context.currentToBaseStackOffset(1 + gasValueSize + selfSize + (_functionType.isBareCall() ? 0 : 1));
 	unsigned gasStackPos = m_context.currentToBaseStackOffset(gasValueSize);
 	unsigned valueStackPos = m_context.currentToBaseStackOffset(1);
+
+	// move self object to top
+	if (_functionType.bound())
+		utils().moveToStackTop(gasValueSize, _functionType.selfType()->sizeOnStack());
 
 	using FunctionKind = FunctionType::Location;
 	FunctionKind funKind = _functionType.location();
@@ -1210,12 +1295,13 @@ void ExpressionCompiler::appendExternalFunctionCall(
 	else
 		for (auto const& retType: _functionType.returnParameterTypes())
 		{
-			polAssert(retType->calldataEncodedSize() > 0, "Unable to return dynamic type from external call.");
+			polAssert(!retType->isDynamicallySized(), "Unable to return dynamic type from external call.");
 			retSize += retType->calldataEncodedSize();
 		}
 
 	// Evaluate arguments.
 	TypePointers argumentTypes;
+	TypePointers parameterTypes = _functionType.parameterTypes();
 	bool manualFunctionId =
 		(funKind == FunctionKind::Bare || funKind == FunctionKind::BareCallCode) &&
 		!_arguments.empty() &&
@@ -1236,6 +1322,11 @@ void ExpressionCompiler::appendExternalFunctionCall(
 		gasStackPos++;
 		valueStackPos++;
 	}
+	if (_functionType.bound())
+	{
+		argumentTypes.push_back(_functionType.selfType());
+		parameterTypes.insert(parameterTypes.begin(), _functionType.selfType());
+	}
 	for (size_t i = manualFunctionId ? 1 : 0; i < _arguments.size(); ++i)
 	{
 		_arguments[i]->accept(*this);
@@ -1254,7 +1345,7 @@ void ExpressionCompiler::appendExternalFunctionCall(
 	// pointer on the stack).
 	utils().encodeToMemory(
 		argumentTypes,
-		_functionType.parameterTypes(),
+		parameterTypes,
 		_functionType.padArguments(),
 		_functionType.takesArbitraryParameters(),
 		isCallCode
@@ -1287,13 +1378,14 @@ void ExpressionCompiler::appendExternalFunctionCall(
 		m_context << sof::dupInstruction(m_context.baseToCurrentStackOffset(gasStackPos));
 	else
 	{
+		sof::SVMSchedule schedule;// TODO: Make relevant to current suppose context.
 		// send all gas except the amount needed to execute "SUB" and "CALL"
 		// @todo this retains too much gas for now, needs to be fine-tuned.
-		u256 gasNeededByCaller = sof::c_callGas + 10;
+		u256 gasNeededByCaller = schedule.callGas + 10;
 		if (_functionType.valueSet())
-			gasNeededByCaller += sof::c_callValueTransferGas;
+			gasNeededByCaller += schedule.callValueTransferGas;
 		if (!isCallCode)
-			gasNeededByCaller += sof::c_callNewAccountGas; // we never know
+			gasNeededByCaller += schedule.callNewAccountGas; // we never know
 		m_context <<
 			gasNeededByCaller <<
 			sof::Instruction::GAS <<

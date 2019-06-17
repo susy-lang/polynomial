@@ -24,12 +24,11 @@
 #include <algorithm>
 #include <boost/range/adaptor/reversed.hpp>
 #include <libsvmcore/Instruction.h>
+#include <libsofcore/ChainOperationParams.h>
 #include <libsvmasm/Assembly.h>
-#include <libsvmcore/Params.h>
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/codegen/ExpressionCompiler.h>
 #include <libpolynomial/codegen/CompilerUtils.h>
-
 using namespace std;
 using namespace dev;
 using namespace dev::polynomial;
@@ -306,11 +305,19 @@ void Compiler::appendCalldataUnpacker(TypePointers const& _typeParameters, bool 
 				// @todo If base type is an array or struct, it is still calldata-style encoded, so
 				// we would have to convert it like below.
 				polAssert(arrayType.location() == DataLocation::Memory, "");
-				// compute data pointer
-				m_context << sof::Instruction::DUP1 << sof::Instruction::MLOAD;
-				m_context << sof::Instruction::DUP3 << sof::Instruction::ADD;
-				m_context << sof::Instruction::SWAP2 << sof::Instruction::SWAP1;
-				m_context << u256(0x20) << sof::Instruction::ADD;
+				if (arrayType.isDynamicallySized())
+				{
+					// compute data pointer
+					m_context << sof::Instruction::DUP1 << sof::Instruction::MLOAD;
+					m_context << sof::Instruction::DUP3 << sof::Instruction::ADD;
+					m_context << sof::Instruction::SWAP2 << sof::Instruction::SWAP1;
+					m_context << u256(0x20) << sof::Instruction::ADD;
+				}
+				else
+				{
+					m_context << sof::Instruction::DUP1;
+					m_context << u256(arrayType.calldataEncodedSize(true)) << sof::Instruction::ADD;
+				}
 			}
 			else
 			{
@@ -386,7 +393,7 @@ void Compiler::registerStateVariables(ContractDefinition const& _contract)
 
 void Compiler::initializeStateVariables(ContractDefinition const& _contract)
 {
-	for (ASTPointer<VariableDeclaration> const& variable: _contract.stateVariables())
+	for (VariableDeclaration const* variable: _contract.stateVariables())
 		if (variable->value() && !variable->isConstant())
 			ExpressionCompiler(m_context, m_optimize).appendStateVariableInitialization(*variable);
 }
@@ -760,6 +767,7 @@ void Compiler::compileExpression(Expression const& _expression, TypePointer cons
 
 sof::Assembly Compiler::cloneRuntime()
 {
+	sof::SVMSchedule schedule;
 	sof::Assembly a;
 	a << sof::Instruction::CALLDATASIZE;
 	a << u256(0) << sof::Instruction::DUP1 << sof::Instruction::CALLDATACOPY;
@@ -771,7 +779,7 @@ sof::Assembly Compiler::cloneRuntime()
 	// this is the address which has to be substituted by the linker.
 	//@todo implement as special "marker" AssemblyItem.
 	a << u256("0xcafecafecafecafecafecafecafecafecafecafe");
-	a << u256(sof::c_callGas + sof::c_callValueTransferGas + 10) << sof::Instruction::GAS << sof::Instruction::SUB;
+	a << u256(schedule.callGas + schedule.callValueTransferGas + 10) << sof::Instruction::GAS << sof::Instruction::SUB;
 	a << sof::Instruction::CALLCODE;
 	//Propagate error condition (if CALLCODE pushes 0 on stack).
 	a << sof::Instruction::ISZERO;

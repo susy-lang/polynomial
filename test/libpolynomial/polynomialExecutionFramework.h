@@ -26,8 +26,10 @@
 #include <tuple>
 #include "../TestHelper.h"
 #include <libsofcore/ABI.h>
+#include <libsofcore/SealEngine.h>
 #include <libsophon/State.h>
 #include <libsophon/Executive.h>
+#include <libsophon/ChainParams.h>
 #include <libpolynomial/interface/CompilerStack.h>
 #include <libpolynomial/interface/Exceptions.h>
 
@@ -42,7 +44,9 @@ namespace test
 class ExecutionFramework
 {
 public:
-	ExecutionFramework()
+	ExecutionFramework():
+		m_sealEngine(sof::ChainParams().createSealEngine()),
+		m_state(0)
 	{
 		if (g_logVerbosity != -1)
 			g_logVerbosity = 0;
@@ -250,7 +254,7 @@ protected:
 	void sendMessage(bytes const& _data, bool _isCreation, u256 const& _value = 0)
 	{
 		m_state.addBalance(m_sender, _value); // just in case
-		sof::Executive executive(m_state, m_envInfo, 0);
+		sof::Executive executive(m_state, m_envInfo, m_sealEngine.get());
 		sof::ExecutionResult res;
 		executive.setResultRecipient(res);
 		sof::Transaction t =
@@ -285,6 +289,7 @@ protected:
 		m_logs = executive.logs();
 	}
 
+	std::unique_ptr<sof::SealEngineFace> m_sealEngine;
 	size_t m_optimizeRuns = 200;
 	bool m_optimize = false;
 	bool m_addStandardSources = false;

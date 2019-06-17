@@ -23,7 +23,6 @@
 #include <libpolynomial/codegen/CompilerUtils.h>
 #include <libpolynomial/ast/AST.h>
 #include <libsvmcore/Instruction.h>
-#include <libsvmcore/Params.h>
 #include <libpolynomial/codegen/ArrayUtils.h>
 #include <libpolynomial/codegen/LValue.h>
 
@@ -267,6 +266,19 @@ void CompilerUtils::encodeToMemory(
 	popStackSlots(argSize + dynPointers + 1);
 }
 
+void CompilerUtils::zeroInitialiseMemoryArray(ArrayType const& _type)
+{
+	auto repeat = m_context.newTag();
+	m_context << repeat;
+	pushZeroValue(*_type.baseType());
+	storeInMemoryDynamic(*_type.baseType());
+	m_context << sof::Instruction::SWAP1 << u256(1) << sof::Instruction::SWAP1;
+	m_context << sof::Instruction::SUB << sof::Instruction::SWAP1;
+	m_context << sof::Instruction::DUP2;
+	m_context.appendConditionalJumpTo(repeat);
+	m_context << sof::Instruction::SWAP1 << sof::Instruction::POP;
+}
+
 void CompilerUtils::memoryCopy()
 {
 	// Stack here: size target source
@@ -276,8 +288,10 @@ void CompilerUtils::memoryCopy()
 	m_context << u256(0) << u256(identityContractAddress);
 	// compute gas costs
 	m_context << u256(32) << sof::Instruction::DUP5 << u256(31) << sof::Instruction::ADD;
-	m_context << sof::Instruction::DIV << u256(sof::c_identityWordGas) << sof::Instruction::MUL;
-	m_context << u256(sof::c_identityGas) << sof::Instruction::ADD;
+	static unsigned c_identityGas = 3;
+	static unsigned c_identityWordGas = 15;
+	m_context << sof::Instruction::DIV << u256(c_identityWordGas) << sof::Instruction::MUL;
+	m_context << u256(c_identityGas) << sof::Instruction::ADD;
 	m_context << sof::Instruction::CALL;
 	m_context << sof::Instruction::POP; // ignore return value
 }
@@ -528,7 +542,7 @@ void CompilerUtils::convertType(Type const& _typeOnStack, Type const& _targetTyp
 				allocateMemory();
 				m_context << sof::Instruction::SWAP1 << sof::Instruction::DUP2;
 				// stack: <memory ptr> <source ref> <memory ptr>
-				for (auto const& member: typeOnStack.members())
+				for (auto const& member: typeOnStack.members(nullptr))
 				{
 					if (!member.type->canLiveOutsideStorage())
 						continue;
@@ -612,7 +626,7 @@ void CompilerUtils::convertType(Type const& _typeOnStack, Type const& _targetTyp
 	}
 }
 
-void CompilerUtils::pushZeroValue(const Type& _type)
+void CompilerUtils::pushZeroValue(Type const& _type)
 {
 	auto const* referenceType = dynamic_cast<ReferenceType const*>(&_type);
 	if (!referenceType || referenceType->location() == DataLocation::Storage)
@@ -628,7 +642,7 @@ void CompilerUtils::pushZeroValue(const Type& _type)
 	m_context << sof::Instruction::DUP1;
 
 	if (auto structType = dynamic_cast<StructType const*>(&_type))
-		for (auto const& member: structType->members())
+		for (auto const& member: structType->members(nullptr))
 		{
 			pushZeroValue(*member.type);
 			storeInMemoryDynamic(*member.type);
@@ -645,15 +659,8 @@ void CompilerUtils::pushZeroValue(const Type& _type)
 		{
 			m_context << arrayType->length() << sof::Instruction::SWAP1;
 			// stack: items_to_do memory_pos
-			auto repeat = m_context.newTag();
-			m_context << repeat;
-			pushZeroValue(*arrayType->baseType());
-			storeInMemoryDynamic(*arrayType->baseType());
-			m_context << sof::Instruction::SWAP1 << u256(1) << sof::Instruction::SWAP1;
-			m_context << sof::Instruction::SUB << sof::Instruction::SWAP1;
-			m_context << sof::Instruction::DUP2;
-			m_context.appendConditionalJumpTo(repeat);
-			m_context << sof::Instruction::SWAP1 << sof::Instruction::POP;
+			zeroInitialiseMemoryArray(*arrayType);
+			// stack: updated_memory_pos
 		}
 	}
 	else
@@ -688,18 +695,31 @@ void CompilerUtils::copyToStackTop(unsigned _stackDepth, unsigned _itemSize)
 
 void CompilerUtils::moveToStackTop(unsigned _stackDepth, unsigned _itemSize)
 {
-	polAssert(_stackDepth <= 15, "Stack too deep, try removing local variables.");
-	for (unsigned j = 0; j < _itemSize; ++j)
-		for (unsigned i = 0; i < _stackDepth + _itemSize - 1; ++i)
-			m_context << sof::swapInstruction(1 + i);
+	moveIntoStack(_itemSize, _stackDepth);
 }
 
 void CompilerUtils::moveIntoStack(unsigned _stackDepth, unsigned _itemSize)
 {
-	polAssert(_stackDepth <= 16, "Stack too deep, try removing local variables.");
-	for (unsigned j = 0; j < _itemSize; ++j)
-		for (unsigned i = _stackDepth; i > 0; --i)
-			m_context << sof::swapInstruction(i + _itemSize - 1);
+	if (_stackDepth <= _itemSize)
+		for (unsigned i = 0; i < _stackDepth; ++i)
+			rotateStackDown(_stackDepth + _itemSize);
+	else
+		for (unsigned i = 0; i < _itemSize; ++i)
+			rotateStackUp(_stackDepth + _itemSize);
+}
+
+void CompilerUtils::rotateStackUp(unsigned _items)
+{
+	polAssert(_items - 1 <= 16, "Stack too deep, try removing local variables.");
+	for (unsigned i = 1; i < _items; ++i)
+		m_context << sof::swapInstruction(_items - i);
+}
+
+void CompilerUtils::rotateStackDown(unsigned _items)
+{
+	polAssert(_items - 1 <= 16, "Stack too deep, try removing local variables.");
+	for (unsigned i = 1; i < _items; ++i)
+		m_context << sof::swapInstruction(i);
 }
 
 void CompilerUtils::popStackElement(Type const& _type)
