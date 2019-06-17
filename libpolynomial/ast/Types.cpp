@@ -81,8 +81,8 @@ MemberList& MemberList::operator=(MemberList&& _other)
 {
 	assert(&_other != this);
 
-	m_memberTypes = std::move(_other.m_memberTypes);
-	m_storageOffsets = std::move(_other.m_storageOffsets);
+	m_memberTypes = move(_other.m_memberTypes);
+	m_storageOffsets = move(_other.m_storageOffsets);
 	return *this;
 }
 
@@ -91,7 +91,7 @@ void MemberList::combine(MemberList const & _other)
 	m_memberTypes += _other.m_memberTypes;
 }
 
-std::pair<u256, unsigned> const* MemberList::memberStorageOffset(string const& _name) const
+pair<u256, unsigned> const* MemberList::memberStorageOffset(string const& _name) const
 {
 	if (!m_storageOffsets)
 	{
@@ -115,51 +115,52 @@ u256 const& MemberList::storageSize() const
 	return m_storageOffsets->storageSize();
 }
 
-TypePointer Type::fromElementaryTypeName(Token::Value _typeToken)
+TypePointer Type::fromElementaryTypeName(ElementaryTypeNameToken const& _type)
 {
-	char const* tokenCstr = Token::toString(_typeToken);
-	polAssert(Token::isElementaryTypeName(_typeToken),
-		"Expected an elementary type name but got " + ((tokenCstr) ? std::string(Token::toString(_typeToken)) : ""));
+	polAssert(Token::isElementaryTypeName(_type.token()),
+		"Expected an elementary type name but got " + _type.toString()
+	);
 
-	if (Token::Int <= _typeToken && _typeToken <= Token::Bytes32)
+	Token::Value token = _type.token();
+	unsigned int m = _type.firstNumber();
+
+	switch (token)
 	{
-		int offset = _typeToken - Token::Int;
-		int bytes = offset % 33;
-		if (bytes == 0 && _typeToken != Token::Bytes1)
-			bytes = 32;
-		int modifier = offset / 33;
-		switch(modifier)
-		{
-		case 0:
-			return make_shared<IntegerType>(bytes * 8, IntegerType::Modifier::Signed);
-		case 1:
-			return make_shared<IntegerType>(bytes * 8, IntegerType::Modifier::Unsigned);
-		case 2:
-			return make_shared<FixedBytesType>(bytes + 1);
-		default:
-			polAssert(false, "Unexpected modifier value. Should never happen");
-			return TypePointer();
-		}
-	}
-	else if (_typeToken == Token::Byte)
+	case Token::IntM:
+		return make_shared<IntegerType>(m, IntegerType::Modifier::Signed);
+	case Token::UIntM:
+		return make_shared<IntegerType>(m, IntegerType::Modifier::Unsigned);
+	case Token::BytesM:
+		return make_shared<FixedBytesType>(m);
+	case Token::Int:
+		return make_shared<IntegerType>(256, IntegerType::Modifier::Signed);
+	case Token::UInt:
+		return make_shared<IntegerType>(256, IntegerType::Modifier::Unsigned);
+	case Token::Byte:
 		return make_shared<FixedBytesType>(1);
-	else if (_typeToken == Token::Address)
+	case Token::Address:
 		return make_shared<IntegerType>(0, IntegerType::Modifier::Address);
-	else if (_typeToken == Token::Bool)
+	case Token::Bool:
 		return make_shared<BoolType>();
-	else if (_typeToken == Token::Bytes)
+	case Token::Bytes:
 		return make_shared<ArrayType>(DataLocation::Storage);
-	else if (_typeToken == Token::String)
+	case Token::String:
 		return make_shared<ArrayType>(DataLocation::Storage, true);
-	else
+	//no types found
+	default:
 		BOOST_THROW_EXCEPTION(InternalCompilerError() << errinfo_comment(
-			"Unable to convert elementary typename " + std::string(Token::toString(_typeToken)) + " to type."
+			"Unable to convert elementary typename " + _type.toString() + " to type."
 		));
+	}
 }
 
 TypePointer Type::fromElementaryTypeName(string const& _name)
 {
-	return fromElementaryTypeName(Token::fromIdentifierOrKeyword(_name));
+	unsigned short firstNum;
+	unsigned short secondNum;
+	Token::Value token;
+	tie(token, firstNum, secondNum) = Token::fromIdentifierOrKeyword(_name);
+ 	return fromElementaryTypeName(ElementaryTypeNameToken(token, firstNum, secondNum));
 }
 
 TypePointer Type::forLiteral(Literal const& _literal)
@@ -242,8 +243,10 @@ IntegerType::IntegerType(int _bits, IntegerType::Modifier _modifier):
 {
 	if (isAddress())
 		m_bits = 160;
-	polAssert(m_bits > 0 && m_bits <= 256 && m_bits % 8 == 0,
-			  "Invalid bit number for integer type: " + dev::toString(_bits));
+	polAssert(
+		m_bits > 0 && m_bits <= 256 && m_bits % 8 == 0,
+		"Invalid bit number for integer type: " + dev::toString(_bits)
+	);
 }
 
 bool IntegerType::isImplicitlyConvertibleTo(Type const& _convertTo) const
@@ -330,6 +333,7 @@ MemberList::MemberMap IntegerType::nativeMembers(ContractDefinition const*) cons
 			{"balance", make_shared<IntegerType >(256)},
 			{"call", make_shared<FunctionType>(strings(), strings{"bool"}, FunctionType::Location::Bare, true)},
 			{"callcode", make_shared<FunctionType>(strings(), strings{"bool"}, FunctionType::Location::BareCallCode, true)},
+			{"delegatecall", make_shared<FunctionType>(strings(), strings{"bool"}, FunctionType::Location::BareDelegateCall, true)},
 			{"send", make_shared<FunctionType>(strings{"uint"}, strings{"bool"}, FunctionType::Location::Send)}
 		};
 	else
@@ -496,7 +500,7 @@ TypePointer IntegerConstantType::binaryOperatorResult(Token::Value _operator, Ty
 		case Token::Exp:
 			if (other.m_value < 0)
 				return TypePointer();
-			else if (other.m_value > std::numeric_limits<unsigned int>::max())
+			else if (other.m_value > numeric_limits<unsigned int>::max())
 				return TypePointer();
 			else
 				value = boost::multiprecision::pow(m_value, other.m_value.convert_to<unsigned int>());
@@ -969,9 +973,9 @@ TypePointer ArrayType::interfaceType(bool _inLibrary) const
 		return TypePointer();
 
 	if (isDynamicallySized())
-		return std::make_shared<ArrayType>(DataLocation::Memory, baseExt);
+		return make_shared<ArrayType>(DataLocation::Memory, baseExt);
 	else
-		return std::make_shared<ArrayType>(DataLocation::Memory, baseExt, m_length);
+		return make_shared<ArrayType>(DataLocation::Memory, baseExt, m_length);
 }
 
 u256 ArrayType::memorySize() const
@@ -1484,7 +1488,7 @@ FunctionType::FunctionType(const EventDefinition& _event):
 	swap(paramNames, m_parameterNames);
 }
 
-std::vector<string> FunctionType::parameterNames() const
+vector<string> FunctionType::parameterNames() const
 {
 	if (!bound())
 		return m_parameterNames;
@@ -1558,9 +1562,9 @@ unsigned FunctionType::sizeOnStack() const
 	}
 
 	unsigned size = 0;
-	if (location == Location::External || location == Location::CallCode)
+	if (location == Location::External || location == Location::CallCode || location == Location::DelegateCall)
 		size = 2;
-	else if (location == Location::Bare || location == Location::BareCallCode)
+	else if (location == Location::Bare || location == Location::BareCallCode || location == Location::BareDelegateCall)
 		size = 1;
 	else if (location == Location::Internal)
 		size = 1;
@@ -1616,9 +1620,11 @@ MemberList::MemberMap FunctionType::nativeMembers(ContractDefinition const*) con
 	case Location::RIPEMD160:
 	case Location::Bare:
 	case Location::BareCallCode:
+	case Location::BareDelegateCall:
 	{
-		MemberList::MemberMap members{
-			{
+		MemberList::MemberMap members;
+		if (m_location != Location::BareDelegateCall && m_location != Location::DelegateCall)
+			members.push_back(MemberList::Member(
 				"value",
 				make_shared<FunctionType>(
 					parseElementaryTypeVector({"uint"}),
@@ -1631,25 +1637,22 @@ MemberList::MemberMap FunctionType::nativeMembers(ContractDefinition const*) con
 					m_gasSet,
 					m_valueSet
 				)
-			}
-		};
+			));
 		if (m_location != Location::Creation)
-			members.push_back(
-				MemberList::Member(
-					"gas",
-					make_shared<FunctionType>(
-						parseElementaryTypeVector({"uint"}),
-						TypePointers{copyAndSetGasOrValue(true, false)},
-						strings(),
-						strings(),
-						Location::SetGas,
-						false,
-						nullptr,
-						m_gasSet,
-						m_valueSet
-					)
+			members.push_back(MemberList::Member(
+				"gas",
+				make_shared<FunctionType>(
+					parseElementaryTypeVector({"uint"}),
+					TypePointers{copyAndSetGasOrValue(true, false)},
+					strings(),
+					strings(),
+					Location::SetGas,
+					false,
+					nullptr,
+					m_gasSet,
+					m_valueSet
 				)
-			);
+			));
 		return members;
 	}
 	default:
@@ -1668,7 +1671,7 @@ bool FunctionType::canTakeArguments(TypePointers const& _argumentTypes, TypePoin
 	else if (_argumentTypes.size() != paramTypes.size())
 		return false;
 	else
-		return std::equal(
+		return equal(
 			_argumentTypes.cbegin(),
 			_argumentTypes.cend(),
 			paramTypes.cbegin(),
@@ -1697,6 +1700,7 @@ bool FunctionType::isBareCall() const
 	{
 	case Location::Bare:
 	case Location::BareCallCode:
+	case Location::BareDelegateCall:
 	case Location::ECRecover:
 	case Location::SHA256:
 	case Location::RIPEMD160:
@@ -1782,7 +1786,7 @@ FunctionTypePointer FunctionType::asMemberFunction(bool _inLibrary, bool _bound)
 		returnParameterTypes,
 		m_parameterNames,
 		returnParameterNames,
-		_inLibrary ? Location::CallCode : m_location,
+		_inLibrary ? Location::DelegateCall : m_location,
 		m_arbitraryParameters,
 		m_declaration,
 		m_gasSet,
@@ -1881,7 +1885,7 @@ MemberList::MemberMap TypeType::nativeMembers(ContractDefinition const* _current
 			for (auto const& it: contract.interfaceFunctions())
 				members.push_back(MemberList::Member(
 					it.second->declaration().name(),
-					it.second->asMemberFunction(true), // use callcode
+					it.second->asMemberFunction(true),
 					&it.second->declaration()
 				));
 		if (isBase)

@@ -1,5 +1,7 @@
 .. index:: type
 
+.. _types:
+
 *****
 Types
 *****
@@ -49,7 +51,10 @@ Operators:
 * Bit operators: `&`, `|`, `^` (bitwise exclusive or), `~` (bitwise negation)  
 * Arithmetic operators: `+`, `-`, unary `-`, unary `+`, `*`, `/`, `%` (remainder), `**` (exponentiation)
 
-.. index:: address, balance, send, call, callcode
+Division always truncates (it just maps to the DIV opcode of the SVM), but it does not truncate if both
+operators are :ref:`literals<integer_literals>` (or literal expressions).
+
+.. index:: address, balance, send, call, callcode, delegatecall
 
 Address
 -------
@@ -77,7 +82,7 @@ and to send Sophy (in units of wei) to an address using the `send` function:
 .. note::
     If `x` is a contract address, its code (more specifically: its fallback function, if present) will be executed together with the `send` call (this is a limitation of the SVM and cannot be prevented). If that execution runs out of gas or fails in any way, the Sophy transfer will be reverted. In this case, `send` returns `false`.
 
-* `call` and `callcode`
+* `call`, `callcode` and `delegatecall`
 
 Furthermore, to interface with contracts that do not adhere to the ABI,
 the function `call` is provided which takes an arbitrary number of arguments of any type. These arguments are padded to 32 bytes and concatenated. One exception is the case where the first argument is encoded to exactly four bytes. In this case, it is not padded to allow the use of function signatures here.
@@ -90,9 +95,9 @@ the function `call` is provided which takes an arbitrary number of arguments of 
 
 `call` returns a boolean indicating whether the invoked function terminated (`true`) or caused an SVM exception (`false`). It is not possible to access the actual data returned (for this we would need to know the encoding and size in advance).
 
-In a similar way, the function `callcode` can be used: The difference is that only the code of the given address is used, all other aspects (storage, balance, ...) are taken from the current contract. The purpose of `callcode` is to use library code which is stored in another contract. The user has to ensure that the layout of storage in both contracts is suitable for callcode to be used.
+In a similar way, the function `delegatecall` can be used: The difference is that only the code of the given address is used, all other aspects (storage, balance, ...) are taken from the current contract. The purpose of `delegatecall` is to use library code which is stored in another contract. The user has to ensure that the layout of storage in both contracts is suitable for delegatecall to be used. Prior to homestead, only a limited variant called `callcode` was available that did not provide access to the original `msg.sender` and `msg.value` values.
 
-Both `call` and `callcode` are very low-level functions and should only be used as a *last resort* as they break the type-safety of Polynomial.
+All three functions `call`, `delegatecall` and `callcode` are very low-level functions and should only be used as a *last resort* as they break the type-safety of Polynomial.
 
 .. note::
     All contracts inherit the members of address, so it is possible to query the balance of the
@@ -130,12 +135,18 @@ number of bytes, always use one of `bytes1` to `bytes32` because they are much c
 
 .. index:: literal, literal;integer
 
+.. _integer_literals:
+
 Integer Literals
 -----------------
 
 Integer Literals are arbitrary precision integers until they are used together with a non-literal. In `var x = 1 - 2;`, for example, the value of `1 - 2` is `-1`, which is assigned to `x` and thus `x` receives the type `int8` -- the smallest type that contains `-1`, although the natural types of `1` and `2` are actually `uint8`.    
 
 It is even possible to temporarily exceed the maximum of 256 bits as long as only integer literals are used for the computation: `var x = (0xffffffffffffffffffff * 0xffffffffffffffffffff) * 0;` Here, `x` will have the value `0` and thus the type `uint8`.
+
+.. warning::
+    Divison on integer literals used to truncate in earlier versions, but it will actually convert into a rational number in the future, i.e. `1/2` is not equal to `0`, but to `0.5`.
+
 
 .. index:: literal, literal;string, string
 
@@ -145,6 +156,8 @@ String Literals
 String Literals are written with double quotes (`"abc"`). As with integer literals, their type can vary, but they are implicitly convertible to `bytes•` if they fit, to `bytes` and to `string`.
 
 .. index:: enum
+
+.. _enums:
 
 Enums
 =====
@@ -354,6 +367,8 @@ Members
 
 
 .. index:: ! struct, ! type;struct
+
+.. _structs:
 
 Structs
 -------

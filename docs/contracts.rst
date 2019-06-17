@@ -4,10 +4,10 @@
 Contracts
 ##########
 
-Contracts in Polynomial what classes are in object oriented languages.
-They persistent data in state variables and functions that can modify these variables.
-Calling a function on a different contract (instance) will perform an SVM
-function call and thus switch the context such that state variables are
+Contracts in Polynomial are what classes are in object oriented languages. They
+contain persistent data in state variables and functions that can modify these
+variables. Calling a function on a different contract (instance) will perform
+an SVM function call and thus switch the context such that state variables are
 inaccessible.
 
 .. index:: ! contract;creation
@@ -184,10 +184,9 @@ return parameter list for functions.
         uint public data;
     }
 
-Other contracts can call `c.data()` to retrieve the value of
-data in state storage, but are not able to call `f`.
-Contracts derived from `c` can call `setData` to alter the
-value of `data` (but only in their own state).
+Other contracts can call `c.data()` to retrieve the value of data in state
+storage, but are not able to call `f`. Contracts derived from `c` can call
+`setData` to alter the value of `data` (but only in their own state).
 
 .. index:: ! accessor;function, ! function;accessor
 
@@ -358,6 +357,8 @@ possible.
     }
 
 .. index:: ! event
+
+.. _events:
 
 ******
 Events
@@ -678,7 +679,7 @@ Such contracts cannot be compiled (even if they contain implemented functions al
 
 If a contract inherits from an abstract contract and does not implement all non-implemented functions by overriding, it will itself be abstract.
 
-.. index:: ! library, callcode
+.. index:: ! library, callcode, delegatecall
 
 .. _libraries:
 
@@ -687,7 +688,8 @@ Libraries
 ************
 
 Libraries are similar to contracts, but their purpose is that they are deployed
-only once at a specific address and their code is reused using the `CALLCODE`
+only once at a specific address and their code is reused using the `DELEGATECALL`
+(`CALLCODE` until homestead)
 feature of the SVM. This means that if library functions are called, their code
 is executed in the context of the calling contract, i.e. `this` points to the
 calling contract and especially the storage from the calling contract can be
@@ -754,12 +756,12 @@ reference parameters, can have multiple storage reference
 parameters and in any position.
 
 The calls to `Set.contains`, `Set.insert` and `Set.remove`
-are all compiled as calls (`CALLCODE`s) to an external
+are all compiled as calls (`DELEGATECALL`s) to an external
 contract/library. If you use libraries, take care that an
-actual external function call is performed, so `msg.sender`
-does not point to the original sender anymore but to the the
-calling contract and also `msg.value` contains the funds
-sent during the call to the library function.
+actual external function call is performed.
+`msg.sender`, `msg.value` and `this` will retain their values
+in this call, though (prior to Homestead, `msg.sender` and
+`msg.value` changed, though).
 
 As the compiler cannot know where the library will be
 deployed at, these addresses have to be filled into the
@@ -778,34 +780,6 @@ Restrictions for libraries in comparison to contracts:
 - cannot inherit nor be inherited
 
 (these might be lifted at a later point)
-
-Common pitfalls for libraries
-=============================
-
-.. index:: msg;sender
-
-The value of `msg.sender`
--------------------------
-
-The value for `msg.sender` will be that of the contract which is calling the library function.
-
-For example, if A calls contract B which internally calls library C, then within the function call of library C, `msg.sender` will be the address of contract B.
-
-The reason for this is that the expression `LibraryName.functionName()`
-performs an external function call using `CALLCODE`, which maps to a real SVM
-call just like `otherContract.functionName()` or `this.functionName()`.  This
-call extends the call depth by one (limited to 1024), stores the caller (the
-current contract) as `msg.sender`, and then executes the library contract's
-code against the current contracts storage.  This execution occurs in a
-completely new memory context meaning that memory types will be copied and
-cannot be passed by reference.
-
-Transferring Sophy
--------------------------
-
-It is *in principle* possible to transfer sophy using
-`LibraryName.functionName.value(x)()`, but as `CALLCODE` is used, the Sophy
-will just end up at the current contract.
 
 .. index:: ! using for, library
 

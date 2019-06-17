@@ -96,21 +96,6 @@ ASTPointer<SourceUnit> Parser::parse(shared_ptr<Scanner> const& _scanner)
 	}
 }
 
-std::shared_ptr<const string> const& Parser::sourceName() const
-{
-	return m_scanner->sourceName();
-}
-
-int Parser::position() const
-{
-	return m_scanner->currentLocation().start;
-}
-
-int Parser::endPosition() const
-{
-	return m_scanner->currentLocation().end;
-}
-
 ASTPointer<ImportDirective> Parser::parseImportDirective()
 {
 	// import "abc" [as x];
@@ -194,7 +179,7 @@ ASTPointer<ContractDefinition> Parser::parseContractDefinition(bool _isLibrary)
 	expectToken(Token::LBrace);
 	while (true)
 	{
-		Token::Value currentTokenValue= m_scanner->currentToken();
+		Token::Value currentTokenValue = m_scanner->currentToken();
 		if (currentTokenValue == Token::RBrace)
 			break;
 		else if (currentTokenValue == Token::Function)
@@ -590,7 +575,11 @@ ASTPointer<TypeName> Parser::parseTypeName(bool _allowVar)
 	Token::Value token = m_scanner->currentToken();
 	if (Token::isElementaryTypeName(token))
 	{
-		type = ASTNodeFactory(*this).createNode<ElementaryTypeName>(token);
+		unsigned firstSize;
+		unsigned secondSize;
+		tie(firstSize, secondSize) = m_scanner->currentTokenInfo();
+		ElementaryTypeNameToken elemTypeName(token, firstSize, secondSize);
+		type = ASTNodeFactory(*this).createNode<ElementaryTypeName>(elemTypeName);
 		m_scanner->next();
 	}
 	else if (token == Token::Var)
@@ -626,10 +615,15 @@ ASTPointer<Mapping> Parser::parseMapping()
 	ASTNodeFactory nodeFactory(*this);
 	expectToken(Token::Mapping);
 	expectToken(Token::LParen);
-	if (!Token::isElementaryTypeName(m_scanner->currentToken()))
-		fatalParserError(string("Expected elementary type name for mapping key type"));
 	ASTPointer<ElementaryTypeName> keyType;
-	keyType = ASTNodeFactory(*this).createNode<ElementaryTypeName>(m_scanner->currentToken());
+	Token::Value token = m_scanner->currentToken();
+	if (!Token::isElementaryTypeName(token))
+		fatalParserError(string("Expected elementary type name for mapping key type"));
+	unsigned firstSize;
+	unsigned secondSize;
+	tie(firstSize, secondSize) = m_scanner->currentTokenInfo();
+	ElementaryTypeNameToken elemTypeName(token, firstSize, secondSize);
+	keyType = ASTNodeFactory(*this).createNode<ElementaryTypeName>(elemTypeName);
 	m_scanner->next();
 	expectToken(Token::Arrow);
 	bool const allowVar = false;
@@ -815,12 +809,10 @@ ASTPointer<Statement> Parser::parseSimpleStatement(ASTPointer<ASTString> const& 
 	default:
 		break;
 	}
-
 	// At this point, we have 'Identifier "["' or 'Identifier "." Identifier' or 'ElementoryTypeName "["'.
 	// We parse '(Identifier ("." Identifier)* |ElementaryTypeName) ( "[" Expression "]" )+'
 	// until we can decide whether to hand this over to ExpressionStatement or create a
 	// VariableDeclarationStatement out of it.
-
 	vector<ASTPointer<PrimaryExpression>> path;
 	bool startedWithElementary = false;
 	if (m_scanner->currentToken() == Token::Identifier)
@@ -828,7 +820,11 @@ ASTPointer<Statement> Parser::parseSimpleStatement(ASTPointer<ASTString> const& 
 	else
 	{
 		startedWithElementary = true;
-		path.push_back(ASTNodeFactory(*this).createNode<ElementaryTypeNameExpression>(m_scanner->currentToken()));
+		unsigned firstNum;
+		unsigned secondNum;
+		tie(firstNum, secondNum) = m_scanner->currentTokenInfo();
+		ElementaryTypeNameToken elemToken(m_scanner->currentToken(), firstNum, secondNum);
+		path.push_back(ASTNodeFactory(*this).createNode<ElementaryTypeNameExpression>(elemToken));
 		m_scanner->next();
 	}
 	while (!startedWithElementary && m_scanner->currentToken() == Token::Period)
@@ -1066,6 +1062,7 @@ ASTPointer<Expression> Parser::parsePrimaryExpression()
 	ASTNodeFactory nodeFactory(*this);
 	Token::Value token = m_scanner->currentToken();
 	ASTPointer<Expression> expression;
+
 	switch (token)
 	{
 	case Token::TrueLiteral:
@@ -1134,8 +1131,12 @@ ASTPointer<Expression> Parser::parsePrimaryExpression()
 	default:
 		if (Token::isElementaryTypeName(token))
 		{
-			// used for casts
-			expression = nodeFactory.createNode<ElementaryTypeNameExpression>(token);
+			//used for casts
+			unsigned firstSize;
+			unsigned secondSize;
+			tie(firstSize, secondSize) = m_scanner->currentTokenInfo();
+			ElementaryTypeNameToken elementaryExpression(m_scanner->currentToken(), firstSize, secondSize);
+			expression = nodeFactory.createNode<ElementaryTypeNameExpression>(elementaryExpression);
 			m_scanner->next();
 		}
 		else
@@ -1226,7 +1227,7 @@ ASTPointer<TypeName> Parser::typeNameIndexAccessStructure(
 	if (auto typeName = dynamic_cast<ElementaryTypeNameExpression const*>(_path.front().get()))
 	{
 		polAssert(_path.size() == 1, "");
-		type = nodeFactory.createNode<ElementaryTypeName>(typeName->typeToken());
+		type = nodeFactory.createNode<ElementaryTypeName>(typeName->typeName());
 	}
 	else
 	{
@@ -1270,71 +1271,11 @@ ASTPointer<Expression> Parser::expressionFromIndexAccessStructure(
 	return expression;
 }
 
-void Parser::expectToken(Token::Value _value)
-{
-	if (m_scanner->currentToken() != _value)
-		fatalParserError(
-			string("Expected token ") +
-			string(Token::name(_value)) +
-			string(" got '") +
-			string(Token::name(m_scanner->currentToken())) +
-			string("'")
-		);
-	m_scanner->next();
-}
-
-Token::Value Parser::expectAssignmentOperator()
-{
-	Token::Value op = m_scanner->currentToken();
-	if (!Token::isAssignmentOp(op))
-		fatalParserError(
-			string("Expected assignment operator,  got '") +
-			string(Token::name(m_scanner->currentToken())) +
-			string("'")
-		);
-	m_scanner->next();
-	return op;
-}
-
-ASTPointer<ASTString> Parser::expectIdentifierToken()
-{
-	if (m_scanner->currentToken() != Token::Identifier)
-		fatalParserError(
-			string("Expected identifier, got '") +
-			string(Token::name(m_scanner->currentToken())) +
-			string("'")
-		);
-	return getLiteralAndAdvance();
-}
-
-ASTPointer<ASTString> Parser::getLiteralAndAdvance()
-{
-	ASTPointer<ASTString> identifier = make_shared<ASTString>(m_scanner->currentLiteral());
-	m_scanner->next();
-	return identifier;
-}
-
 ASTPointer<ParameterList> Parser::createEmptyParameterList()
 {
 	ASTNodeFactory nodeFactory(*this);
 	nodeFactory.setLocationEmpty();
 	return nodeFactory.createNode<ParameterList>(vector<ASTPointer<VariableDeclaration>>());
-}
-
-void Parser::parserError(string const& _description)
-{
-	auto err = make_shared<Error>(Error::Type::ParserError);
-	*err <<
-		errinfo_sourceLocation(SourceLocation(position(), position(), sourceName())) <<
-		errinfo_comment(_description);
-
-	m_errors.push_back(err);
-}
-
-void Parser::fatalParserError(string const& _description)
-{
-	parserError(_description);
-	BOOST_THROW_EXCEPTION(FatalError());
 }
 
 }

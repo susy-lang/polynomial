@@ -108,13 +108,13 @@ public:
 	/// Resets scanner to the start of input.
 	void reset();
 
-	/// Returns the next token and advances input
+	/// @returns the next token and advances input
 	Token::Value next();
 
 	///@{
 	///@name Information about the current token
 
-	/// Returns the current token
+	/// @returns the current token
 	Token::Value currentToken()
 	{
 		return m_currentToken.token;
@@ -122,6 +122,7 @@ public:
 
 	SourceLocation currentLocation() const { return m_currentToken.location; }
 	std::string const& currentLiteral() const { return m_currentToken.literal; }
+	std::tuple<unsigned, unsigned> const& currentTokenInfo() const { return m_currentToken.extendedTokenInfo; }
 	///@}
 
 	///@{
@@ -137,7 +138,7 @@ public:
 	///@{
 	///@name Information about the next token
 
-	/// Returns the next token without advancing input.
+	/// @returns the next token without advancing input.
 	Token::Value peekNextToken() const { return m_nextToken.token; }
 	SourceLocation peekLocation() const { return m_nextToken.location; }
 	std::string const& peekLiteral() const { return m_nextToken.literal; }
@@ -160,6 +161,7 @@ private:
 		Token::Value token;
 		SourceLocation location;
 		std::string literal;
+		std::tuple<unsigned, unsigned> extendedTokenInfo;
 	};
 
 	///@{
@@ -190,7 +192,7 @@ private:
 
 	void scanDecimalDigits();
 	Token::Value scanNumber(char _charSeen = 0);
-	Token::Value scanIdentifierOrKeyword();
+	std::tuple<Token::Value, unsigned, unsigned> scanIdentifierOrKeyword();
 
 	Token::Value scanString();
 	Token::Value scanSingleLineDocComment();
