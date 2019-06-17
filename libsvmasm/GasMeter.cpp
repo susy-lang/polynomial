@@ -14,13 +14,13 @@
 	You should have received a copy of the GNU General Public License
 	along with polynomial.  If not, see <http://www.gnu.org/licenses/>.
 */
-/** @file GasMeter.cpp
- * @author Christian <c@sofdev.com>
- * @date 2015
- */
 
-#include "GasMeter.h"
+#include <libsvmasm/GasMeter.h>
+
 #include <libsvmasm/KnownState.h>
+
+#include <libdevcore/FixedHash.h>
+
 using namespace std;
 using namespace dev;
 using namespace dev::sof;

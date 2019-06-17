@@ -28,26 +28,86 @@
 
 set -e
 
-REPO_ROOT="$(dirname "$0")"/..
+REPO_ROOT=$(cd $(dirname "$0")/.. && pwd)
+echo $REPO_ROOT
 POLC="$REPO_ROOT/build/polc/polc"
 
 echo "Checking that the bug list is up to date..."
 "$REPO_ROOT"/scripts/update_bugs_by_version.py
 
-echo "Compiling all files in std and examples..."
+echo "Checking that StandardToken.pol, owned.pol and mortal.pol produce bytecode..."
+output=$("$REPO_ROOT"/build/polc/polc --bin "$REPO_ROOT"/std/*.pol 2>/dev/null | grep "ffff" | wc -l)
+test "${output//[[:blank:]]/}" = "3"
 
-for f in "$REPO_ROOT"/std/*.pol
-do
-    echo "Compiling $f..."
+function compileFull()
+{
+    files="$*"
     set +e
-    output=$("$POLC" "$f" 2>&1)
+    "$POLC" --optimize \
+    --combined-json abi,asm,ast,bin,bin-runtime,clone-bin,compact-format,devdoc,hashes,interface,metadata,opcodes,srcmap,srcmap-runtime,userdoc \
+    $files >/dev/null 2>&1
+    failed=$?
+    set -e
+    if [ $failed -ne 0 ]
+    then
+        echo "Compilation failed on:"
+        cat $files
+        false
+    fi
+}
+
+function compileWithoutWarning()
+{
+    files="$*"
+    set +e
+    output=$("$POLC" $files 2>&1)
     failed=$?
     # Remove the pre-release warning from the compiler output
     output=$(echo "$output" | grep -v 'pre-release')
     echo "$output"
     set -e
     test -z "$output" -a "$failed" -eq 0
+}
+
+echo "Compiling various other contracts and libraries..."
+(
+cd "$REPO_ROOT"/test/compilationTests/
+for dir in *
+do
+    if [ "$dir" != "README.md" ]
+    then
+        echo " - $dir"
+        cd "$dir"
+        compileFull *.pol */*.pol
+        cd ..
+    fi
 done
+)
+
+echo "Compiling all files in std and examples..."
+
+for f in "$REPO_ROOT"/std/*.pol
+do
+    echo "$f"
+    compileWithoutWarning "$f"
+done
+
+echo "Compiling all examples from the documentation..."
+TMPDIR=$(mktemp -d)
+(
+    set -e
+    cd "$REPO_ROOT"
+    REPO_ROOT=$(pwd) # make it absolute
+    cd "$TMPDIR"
+    "$REPO_ROOT"/scripts/isolate_tests.py "$REPO_ROOT"/docs/ docs
+    for f in *.pol
+    do
+        echo "$f"
+        compileFull "$TMPDIR/$f"
+    done
+)
+rm -rf "$TMPDIR"
+echo "Done."
 
 echo "Testing library checksum..."
 echo '' | "$POLC" --link --libraries a:0x90f20564390eAe531E810af625A22f51385Cd222
@@ -77,6 +137,7 @@ TMPDIR=$(mktemp -d)
     REPO_ROOT=$(pwd) # make it absolute
     cd "$TMPDIR"
     "$REPO_ROOT"/scripts/isolate_tests.py "$REPO_ROOT"/test/
+    "$REPO_ROOT"/scripts/isolate_tests.py "$REPO_ROOT"/docs/ docs
     for f in *.pol
     do
         set +e

@@ -41,9 +41,6 @@ Available Polynomial Integrations
 * `Fourier <https://fourier.superstring.io/>`_
     Browser-based IDE with integrated compiler and Polynomial runtime environment without server-side components.
 
-* `Sophon Studio <https://live.sophy.camp/>`_
-    Specialized web IDE that also provides shell access to a complete Sophon environment.
-
 * `IntelliJ IDEA plugin <https://plugins.jetbrains.com/plugin/9475-intellij-polynomial>`_
     Polynomial plugin for IntelliJ IDEA (and all other JetBrains IDEs)
 
@@ -82,6 +79,8 @@ Discontinued:
 * `Mix IDE <https://octonion.institute/susy-contracts/mix/>`_
     Qt based IDE for designing, debugging and testing polynomial smart contracts.
 
+* `Sophon Studio <https://live.sophy.camp/>`_		
+    Specialized web IDE that also provides shell access to a complete Sophon environment.
 
 Polynomial Tools
 --------------

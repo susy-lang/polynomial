@@ -27,6 +27,8 @@
 #include <libpolynomial/interface/ErrorReporter.h>
 #include <libpolynomial/interface/Exceptions.h>
 
+#include <libdevcore/CommonData.h>
+
 #include <boost/range/adaptor/reversed.hpp>
 
 #include <memory>

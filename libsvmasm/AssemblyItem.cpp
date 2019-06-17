@@ -14,13 +14,14 @@
 	You should have received a copy of the GNU General Public License
 	along with polynomial.  If not, see <http://www.gnu.org/licenses/>.
 */
-/** @file Assembly.cpp
- * @author Gav Wood <i@gavwood.com>
- * @date 2014
- */
 
-#include "AssemblyItem.h"
+#include <libsvmasm/AssemblyItem.h>
+
 #include <libsvmasm/SemanticInformation.h>
+
+#include <libdevcore/CommonData.h>
+#include <libdevcore/FixedHash.h>
+
 #include <fstream>
 
 using namespace std;

@@ -82,6 +82,10 @@ If you want to use the cutting edge developer version:
     sudo add-apt-repository ppa:sophon/sophon-dev
     sudo apt-get update
     sudo apt-get install polc
+    
+We are also releasing a `snap package <https://snapcraft.io/>`_, which is installable in all the `supported Linux distros <https://snapcraft.io/docs/core/install>`_. To help testing the unstable polc with the most recent changes from the development branch:
+
+    sudo snap install polc --edge
 
 Arch Linux also has packages, albeit limited to the latest development version:
 

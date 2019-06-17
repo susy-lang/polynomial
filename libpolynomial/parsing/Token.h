@@ -44,7 +44,7 @@
 
 #include <libdevcore/Common.h>
 #include <libpolynomial/interface/Exceptions.h>
-#include <libdevcore/UndefMacros.h>
+#include <libpolynomial/parsing/UndefMacros.h>
 
 namespace dev
 {

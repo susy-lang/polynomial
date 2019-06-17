@@ -267,18 +267,13 @@ void ContractCompiler::appendFunctionSelector(ContractDefinition const& _contrac
 	m_context << notFound;
 	if (fallback)
 	{
-		m_context.setStackOffset(0);
 		if (!fallback->isPayable())
 			appendCallValueCheck();
 
-		// Return tag is used to jump out of the function.
-		sof::AssemblyItem returnTag = m_context.pushNewTag();
-		fallback->accept(*this);
-		m_context << returnTag;
+		polAssert(fallback->isFallback(), "");
 		polAssert(FunctionType(*fallback).parameterTypes().empty(), "");
 		polAssert(FunctionType(*fallback).returnParameterTypes().empty(), "");
-		// Return tag gets consumed.
-		m_context.adjustStackOffset(-1);
+		fallback->accept(*this);
 		m_context << Instruction::STOP;
 	}
 	else
@@ -536,7 +531,8 @@ bool ContractCompiler::visit(FunctionDefinition const& _function)
 
 	m_context.adjustStackOffset(-(int)c_returnValuesSize);
 
-	if (!_function.isConstructor())
+	/// The constructor and the fallback function doesn't to jump out.
+	if (!_function.isConstructor() && !_function.isFallback())
 		m_context.appendJump(sof::AssemblyItem::JumpType::OutOfFunction);
 	return false;
 }
