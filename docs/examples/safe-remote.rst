@@ -6,7 +6,7 @@ Safe Remote Purchase
 
 ::
 
-    pragma polynomial >=0.4.22 <0.6.0;
+    pragma polynomial >=0.4.22 <0.7.0;
 
     contract Purchase {
         uint public value;

@@ -52,7 +52,7 @@ Surround top level declarations in polynomial source with two blank lines.
 
 Yes::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     contract A {
         // ...
@@ -70,7 +70,7 @@ Yes::
 
 No::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     contract A {
         // ...
@@ -89,7 +89,7 @@ Blank lines may be omitted between groups of related one-liners (such as stub fu
 
 Yes::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     contract A {
         function spam() public pure;
@@ -109,7 +109,7 @@ Yes::
 
 No::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     contract A {
         function spam() public pure {
@@ -237,7 +237,7 @@ Import statements should always be placed at the top of the file.
 
 Yes::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     import "./Owned.pol";
 
@@ -251,7 +251,7 @@ Yes::
 
 No::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     contract A {
         // ...
@@ -283,7 +283,7 @@ Within a grouping, place the ``view`` and ``pure`` functions last.
 
 Yes::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     contract A {
         constructor() public {
@@ -315,7 +315,7 @@ Yes::
 
 No::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     contract A {
 
@@ -411,7 +411,7 @@ should:
 
 Yes::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     contract Coin {
         struct Bank {
@@ -422,7 +422,7 @@ Yes::
 
 No::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     contract Coin
     {
@@ -723,7 +723,7 @@ manner as modifiers if the function declaration is long or hard to read.
 
 Yes::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     // Base contracts just to make this compile
     contract B {
@@ -755,7 +755,7 @@ Yes::
 
 No::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     // Base contracts just to make this compile
     contract B {
@@ -971,7 +971,7 @@ As shown in the example below, if the contract name is `Congress` and the librar
 
 Yes::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     // Owned.pol
     contract Owned {
@@ -1000,7 +1000,7 @@ Yes::
 
 No::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     // owned.pol
     contract owned {
@@ -1104,7 +1104,7 @@ multiline comment starting with `/**` and ending with `*/`.
 For example, the contract from `a simple smart contract <simple-smart-contract>`_ with the comments
 added looks like the one below::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     /// @author The Polynomial Team
     /// @title A simple storage example

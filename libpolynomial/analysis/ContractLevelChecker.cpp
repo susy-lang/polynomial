@@ -22,6 +22,7 @@
 #include <libpolynomial/analysis/ContractLevelChecker.h>
 
 #include <libpolynomial/ast/AST.h>
+#include <libpolynomial/analysis/TypeChecker.h>
 #include <liblangutil/ErrorReporter.h>
 #include <boost/range/adaptor/reversed.hpp>
 
@@ -44,6 +45,7 @@ bool ContractLevelChecker::check(ContractDefinition const& _contract)
 	checkExternalTypeClashes(_contract);
 	checkHashCollisions(_contract);
 	checkLibraryRequirements(_contract);
+	checkBaseABICompatibility(_contract);
 
 	return Error::containsOnlyWarnings(m_errorReporter.errors());
 }
@@ -459,4 +461,51 @@ void ContractLevelChecker::checkLibraryRequirements(ContractDefinition const& _c
 	for (auto const& var: _contract.stateVariables())
 		if (!var->isConstant())
 			m_errorReporter.typeError(var->location(), "Library cannot have non-constant state variables");
+}
+
+void ContractLevelChecker::checkBaseABICompatibility(ContractDefinition const& _contract)
+{
+	if (_contract.sourceUnit().annotation().experimentalFeatures.count(ExperimentalFeature::ABIEncoderV2))
+		return;
+
+	if (_contract.isLibrary())
+	{
+		polAssert(
+			_contract.baseContracts().empty() || m_errorReporter.hasErrors(),
+			"Library is not allowed to inherit"
+		);
+		return;
+	}
+
+	SecondarySourceLocation errors;
+
+	// interfaceFunctionList contains all inherited functions as well
+	for (auto const& func: _contract.interfaceFunctionList())
+	{
+		polAssert(func.second->hasDeclaration(), "Function has no declaration?!");
+
+		if (!func.second->declaration().sourceUnit().annotation().experimentalFeatures.count(ExperimentalFeature::ABIEncoderV2))
+			continue;
+
+		auto const& currentLoc = func.second->declaration().location();
+
+		for (TypePointer const& paramType: func.second->parameterTypes() + func.second->parameterTypes())
+			if (!TypeChecker::typeSupportedByOldABIEncoder(*paramType, false))
+			{
+				errors.append("Type only supported by the new experimental ABI encoder", currentLoc);
+				break;
+			}
+	}
+
+	if (!errors.infos.empty())
+		m_errorReporter.fatalTypeError(
+			_contract.location(),
+			errors,
+			std::string("Contract \"") +
+			_contract.name() +
+			"\" does not use the new experimental ABI encoder but wants to inherit from a contract " +
+			"which uses types that require it. " +
+			"Use \"pragma experimental ABIEncoderV2;\" for the inheriting contract as well to enable the feature."
+		);
+
 }

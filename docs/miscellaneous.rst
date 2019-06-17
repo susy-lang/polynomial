@@ -62,7 +62,7 @@ non-elementary type, the positions are found by adding an offset of ``keccak256(
 
 So for the following contract snippet::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     contract C {
       struct s { uint a; uint b; }

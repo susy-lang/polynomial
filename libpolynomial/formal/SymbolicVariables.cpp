@@ -136,3 +136,23 @@ SymbolicMappingVariable::SymbolicMappingVariable(
 {
 	polAssert(isMapping(m_type->category()), "");
 }
+
+SymbolicArrayVariable::SymbolicArrayVariable(
+	TypePointer _type,
+	string const& _uniqueName,
+	smt::SolverInterface& _interface
+):
+	SymbolicVariable(move(_type), _uniqueName, _interface)
+{
+	polAssert(isArray(m_type->category()), "");
+}
+
+SymbolicEnumVariable::SymbolicEnumVariable(
+	TypePointer _type,
+	string const& _uniqueName,
+	smt::SolverInterface& _interface
+):
+	SymbolicVariable(move(_type), _uniqueName, _interface)
+{
+	polAssert(isEnum(m_type->category()), "");
+}

@@ -91,10 +91,15 @@ function test_susyknot
 module.exports['compilers'] = {polc: {version: "$DIR/polc"} };
 EOF
 
-      npx susyknot compile
-      echo "Verify that the correct version ($POLCVERSION) of the compiler was used to compile the contracts..."
-      grep -e "$POLCVERSION" -r build/contracts > /dev/null
-      npm run test
+      for optimize in "{enabled: false }" "{enabled: true }" "{enabled: true, details: { yul: true } }"
+      do
+        rm -rf build || true
+        echo "module.exports['compilers']['polc']['settings'] = {optimizer: $optimize };" >> susyknot*.js
+        npx susyknot compile
+        echo "Verify that the correct version ($POLCVERSION) of the compiler was used to compile the contracts..."
+        grep -e "$POLCVERSION" -r build/contracts > /dev/null
+        npm run test
+      done
     )
     rm -rf "$DIR"
 }

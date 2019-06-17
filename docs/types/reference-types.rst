@@ -49,7 +49,7 @@ Data locations are not only relevant for persistency of data, but also for the s
 
 ::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     contract C {
         uint[] x; // the data location of x is storage
@@ -146,7 +146,7 @@ or create a new memory array and copy every element.
 
 ::
 
-    pragma polynomial >=0.4.16 <0.6.0;
+    pragma polynomial >=0.4.16 <0.7.0;
 
     contract C {
         function f(uint len) public pure {
@@ -175,7 +175,7 @@ In the example below, the type of ``[1, 2, 3]`` is
 
 ::
 
-    pragma polynomial >=0.4.16 <0.6.0;
+    pragma polynomial >=0.4.16 <0.7.0;
 
     contract C {
         function f() public pure {
@@ -190,7 +190,7 @@ Fixed size memory arrays cannot be assigned to dynamically-sized memory arrays, 
 
 ::
 
-    pragma polynomial >=0.4.0 <0.6.0;
+    pragma polynomial >=0.4.0 <0.7.0;
 
     // This will not compile.
     contract C {
@@ -248,7 +248,7 @@ Array Members
 
 ::
 
-    pragma polynomial >=0.4.16 <0.6.0;
+    pragma polynomial >=0.4.16 <0.7.0;
 
     contract ArrayContract {
         uint[2**20] m_aLotOfIntegers;
@@ -347,7 +347,7 @@ shown in the following example:
 
 ::
 
-    pragma polynomial >=0.4.11 <0.6.0;
+    pragma polynomial >=0.4.11 <0.7.0;
 
     contract CrowdFunding {
         // Defines a new type with two fields.
