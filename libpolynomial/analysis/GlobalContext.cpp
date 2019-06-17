@@ -21,10 +21,11 @@
  * Container of the (implicit and explicit) global objects.
  */
 
-#include <memory>
 #include <libpolynomial/analysis/GlobalContext.h>
+
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/ast/Types.h>
+#include <memory>
 
 using namespace std;
 

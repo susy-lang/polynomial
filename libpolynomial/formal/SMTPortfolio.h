@@ -19,13 +19,10 @@
 
 
 #include <libpolynomial/formal/SolverInterface.h>
-
 #include <libpolynomial/interface/ReadFile.h>
-
 #include <libdevcore/FixedHash.h>
 
 #include <boost/noncopyable.hpp>
-
 #include <map>
 #include <vector>
 

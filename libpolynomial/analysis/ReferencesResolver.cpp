@@ -21,12 +21,15 @@
  */
 
 #include <libpolynomial/analysis/ReferencesResolver.h>
-#include <libpolynomial/ast/AST.h>
 #include <libpolynomial/analysis/NameAndTypeResolver.h>
 #include <libpolynomial/analysis/ConstantEvaluator.h>
+#include <libpolynomial/ast/AST.h>
+
 #include <libyul/AsmAnalysis.h>
 #include <libyul/AsmAnalysisInfo.h>
 #include <libyul/AsmData.h>
+#include <libyul/backends/svm/SVMDialect.h>
+
 #include <liblangutil/ErrorReporter.h>
 #include <liblangutil/Exceptions.h>
 
@@ -316,7 +319,14 @@ bool ReferencesResolver::visit(InlineAssembly const& _inlineAssembly)
 	// We use the latest SVM version because we will re-run it anyway.
 	yul::AsmAnalysisInfo analysisInfo;
 	boost::optional<Error::Type> errorTypeForLoose = Error::Type::SyntaxError;
-	yul::AsmAnalyzer(analysisInfo, errorsIgnored, SVMVersion(), errorTypeForLoose, yul::AsmFlavour::Loose, resolver).analyze(_inlineAssembly.operations());
+	yul::AsmAnalyzer(
+		analysisInfo,
+		errorsIgnored,
+		SVMVersion(),
+		errorTypeForLoose,
+		yul::SVMDialect::looseAssemblyForSVM(),
+		resolver
+	).analyze(_inlineAssembly.operations());
 	return false;
 }
 

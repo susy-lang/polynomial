@@ -22,14 +22,13 @@
 
 #pragma once
 
+#include <libpolynomial/ast/ASTForward.h>
 #include <liblangutil/SVMVersion.h>
 
-#include <libpolynomial/ast/ASTForward.h>
-
-#include <vector>
 #include <functional>
-#include <set>
 #include <map>
+#include <set>
+#include <vector>
 
 namespace dev {
 namespace polynomial {

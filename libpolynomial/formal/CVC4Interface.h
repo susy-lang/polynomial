@@ -18,7 +18,6 @@
 #pragma once
 
 #include <libpolynomial/formal/SolverInterface.h>
-
 #include <boost/noncopyable.hpp>
 
 #if defined(__GLIBC__)

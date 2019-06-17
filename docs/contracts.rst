@@ -1408,7 +1408,7 @@ Interfaces are denoted by their own keyword:
 
 ::
 
-    pragma polynomial >=0.4.11 <0.6.0;
+    pragma polynomial >=0.5.0 <0.6.0;
 
     interface Token {
         enum TokenType { Fungible, NonFungible }

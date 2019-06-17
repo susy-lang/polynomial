@@ -21,6 +21,7 @@
  */
 
 #include <libpolynomial/analysis/SemVerHandler.h>
+
 #include <functional>
 
 using namespace std;

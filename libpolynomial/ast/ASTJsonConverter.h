@@ -22,12 +22,13 @@
 
 #pragma once
 
-#include <ostream>
-#include <stack>
+#include <libpolynomial/ast/ASTAnnotations.h>
 #include <libpolynomial/ast/ASTVisitor.h>
 #include <liblangutil/Exceptions.h>
-#include <libpolynomial/ast/ASTAnnotations.h>
+
 #include <json/json.h>
+#include <ostream>
+#include <stack>
 
 namespace langutil
 {

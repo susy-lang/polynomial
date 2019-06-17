@@ -17,18 +17,16 @@
 
 #pragma once
 
-#include <liblangutil/Exceptions.h>
 #include <libpolynomial/interface/ReadFile.h>
-
+#include <liblangutil/Exceptions.h>
 #include <libdevcore/Common.h>
 #include <libdevcore/Exceptions.h>
 
 #include <boost/noncopyable.hpp>
-
+#include <cstdio>
 #include <map>
 #include <string>
 #include <vector>
-#include <cstdio>
 
 namespace dev
 {
@@ -80,6 +78,8 @@ struct FunctionSort: public Sort
 			[&](SortPointer _a, SortPointer _b) { return *_a == *_b; }
 		))
 			return false;
+		polAssert(codomain, "");
+		polAssert(_otherFunction->codomain, "");
 		return *codomain == *_otherFunction->codomain;
 	}
 
@@ -99,6 +99,10 @@ struct ArraySort: public Sort
 			return false;
 		auto _otherArray = dynamic_cast<ArraySort const*>(&_other);
 		polAssert(_otherArray, "");
+		polAssert(_otherArray->domain, "");
+		polAssert(_otherArray->range, "");
+		polAssert(domain, "");
+		polAssert(range, "");
 		return *domain == *_otherArray->domain && *range == *_otherArray->range;
 	}
 
@@ -161,8 +165,9 @@ public:
 	static Expression select(Expression _array, Expression _index)
 	{
 		polAssert(_array.sort->kind == Kind::Array, "");
-		auto const& arraySort = dynamic_cast<ArraySort const*>(_array.sort.get());
+		std::shared_ptr<ArraySort> arraySort = std::dynamic_pointer_cast<ArraySort>(_array.sort);
 		polAssert(arraySort, "");
+		polAssert(_index.sort, "");
 		polAssert(*arraySort->domain == *_index.sort, "");
 		return Expression(
 			"select",
@@ -176,14 +181,16 @@ public:
 	static Expression store(Expression _array, Expression _index, Expression _element)
 	{
 		polAssert(_array.sort->kind == Kind::Array, "");
-		auto const& arraySort = dynamic_cast<ArraySort const*>(_array.sort.get());
+		std::shared_ptr<ArraySort> arraySort = std::dynamic_pointer_cast<ArraySort>(_array.sort);
 		polAssert(arraySort, "");
+		polAssert(_index.sort, "");
+		polAssert(_element.sort, "");
 		polAssert(*arraySort->domain == *_index.sort, "");
 		polAssert(*arraySort->range == *_element.sort, "");
 		return Expression(
 			"store",
 			std::vector<Expression>{std::move(_array), std::move(_index), std::move(_element)},
-			_array.sort
+			arraySort
 		);
 	}
 

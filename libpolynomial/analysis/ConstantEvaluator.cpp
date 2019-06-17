@@ -21,6 +21,7 @@
  */
 
 #include <libpolynomial/analysis/ConstantEvaluator.h>
+
 #include <libpolynomial/ast/AST.h>
 #include <liblangutil/ErrorReporter.h>
 
@@ -41,7 +42,7 @@ void ConstantEvaluator::endVisit(BinaryOperation const& _operation)
 	auto right = type(_operation.rightExpression());
 	if (left && right)
 	{
-		auto commonType = left->binaryOperatorResult(_operation.getOperator(), right);
+		TypePointer commonType = left->binaryOperatorResult(_operation.getOperator(), right);
 		if (!commonType)
 			m_errorReporter.fatalTypeError(
 				_operation.location(),

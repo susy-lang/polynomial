@@ -16,15 +16,14 @@
 */
 
 #include <libpolynomial/analysis/PostTypeChecker.h>
-#include <libpolynomial/ast/AST.h>
-#include <libpolynomial/analysis/SemVerHandler.h>
-#include <liblangutil/ErrorReporter.h>
-#include <libpolynomial/interface/Version.h>
 
+#include <libpolynomial/analysis/SemVerHandler.h>
+#include <libpolynomial/ast/AST.h>
+#include <libpolynomial/interface/Version.h>
+#include <liblangutil/ErrorReporter.h>
 #include <libdevcore/Algorithms.h>
 
 #include <boost/range/adaptor/map.hpp>
-
 #include <memory>
 
 using namespace std;

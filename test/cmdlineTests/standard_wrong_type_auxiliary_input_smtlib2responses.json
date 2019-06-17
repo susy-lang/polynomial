@@ -1,0 +1,20 @@
+{
+	"language": "Polynomial",
+	"sources": {
+		"fileA": {
+			"content": "contract A { }"
+		}
+	},
+	"settings": {
+		"outputSelection": {
+			"fileA": {
+				"A": [ "abi", "devdoc", "userdoc", "svm.bytecode", "svm.assembly", "svm.gasEstimates", "svm.legacyAssembly", "metadata" ],
+				"": [ "legacyAST" ]
+			}
+		}
+	},
+	"auxiliaryInput":
+	{
+		"smtlib2responses": "not an object"
+	}
+}

@@ -61,7 +61,7 @@ New features and bugfixes should be added to the ``Changelog.md`` file: please
 follow the style of previous entries, when applicable.
 
 Finally, please make sure you respect the `coding style
-<https://raw.githubussrcontent.com/susy-lang/polynomial/develop/CODING_STYLE.md>`_
+<https://octonion.institute/susy-lang/polynomial/blob/develop/CODING_STYLE.md>`_
 for this project. Also, even though we do CI testing, please test your code and
 ensure that it builds locally before submitting a pull request.
 
@@ -83,14 +83,14 @@ internally.
 
 .. note ::
 
-    Those working in a Windows environment wanting to run the above basic sets without alsof or libz3 in Git Bash, you would have to do: ``./build/test/RelWithDebInfo/poltest.exe -- --no-ipc --no-smt``.
-    If you're running this in plain Command Prompt, use ``.\build\test\RelWithDebInfo\poltest.exe -- --no-ipc --no-smt``.
+    Those working in a Windows environment wanting to run the above basic sets without alsof or libz3 in Git Bash, you would have to do: ``./build/test/Release/poltest.exe -- --no-ipc --no-smt``.
+    If you're running this in plain Command Prompt, use ``.\build\test\Release\poltest.exe -- --no-ipc --no-smt``.
 
 The option ``--no-smt`` disables the tests that require ``libz3`` and
 ``--no-ipc`` disables those that require ``alsof``.
 
 If you want to run the ipc tests (that test the semantics of the generated code),
-you need to install `alsof <https://octonion.institute/susy-cpp/cpp-sophon/releases/download/polynomialTester/alsof_2018-06-20_artful>`_ and run it in testing mode: ``alsof --test -d /tmp/testsof`` (make sure to rename it).
+you need to install `alsof <https://octonion.institute/susy-cpp/alsof/releases/download/v1.5.0-alpha.7/alsof-1.5.0-alpha.7-linux-x86_64.tar.gz>`_ and run it in testing mode: ``alsof --db memorydb --test -d /tmp/testsof``.
 
 To run the actual tests, use: ``./scripts/poltest.sh --ipcpath /tmp/testsof/graviton.ipc``.
 
@@ -122,9 +122,9 @@ The CI runs additional tests (including ``polc-js`` and testing third party Poly
 
 .. note ::
 
-    You can not use some versions of ``alsof`` for testing. We suggest using
+    Some versions of ``alsof`` can not be used for testing. We suggest using
     the same version that the Polynomial continuous integration tests use.
-    Currently the CI uses ``d661ac4fec0aeffbedcdc195f67f5ded0c798278`` of ``alsof``.
+    Currently the CI uses version ``1.5.0-alpha.7`` of ``alsof``.
 
 Writing and running syntax tests
 --------------------------------

@@ -38,7 +38,7 @@ class SVMAssembly: public AbstractAssembly
 {
 public:
 	explicit SVMAssembly(bool _svm15 = false): m_svm15(_svm15) { }
-	virtual ~SVMAssembly() {}
+	virtual ~SVMAssembly() = default;
 
 	/// Set a new source location valid starting from the next instruction.
 	void setSourceLocation(langutil::SourceLocation const& _location) override;
@@ -77,6 +77,10 @@ public:
 
 	/// Append the assembled size as a constant.
 	void appendAssemblySize() override;
+	std::pair<std::shared_ptr<AbstractAssembly>, SubID> createSubAssembly() override;
+	void appendDataOffset(SubID _sub) override;
+	void appendDataSize(SubID _sub) override;
+	SubID appendData(dev::bytes const& _data) override;
 
 	/// Resolves references inside the bytecode and returns the linker object.
 	dev::sof::LinkerObject finalize();

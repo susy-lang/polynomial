@@ -18,9 +18,7 @@
 #pragma once
 
 #include <libpolynomial/formal/SolverInterface.h>
-
 #include <boost/noncopyable.hpp>
-
 #include <z3++.h>
 
 namespace dev

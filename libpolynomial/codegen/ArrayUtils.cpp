@@ -21,12 +21,14 @@
  */
 
 #include <libpolynomial/codegen/ArrayUtils.h>
-#include <libsvmasm/Instruction.h>
+
+#include <libpolynomial/ast/Types.h>
 #include <libpolynomial/codegen/CompilerContext.h>
 #include <libpolynomial/codegen/CompilerUtils.h>
-#include <libpolynomial/ast/Types.h>
-#include <liblangutil/Exceptions.h>
 #include <libpolynomial/codegen/LValue.h>
+
+#include <libsvmasm/Instruction.h>
+#include <liblangutil/Exceptions.h>
 
 using namespace std;
 using namespace dev;

@@ -194,6 +194,27 @@ void SVMAssembly::appendAssemblySize()
 	m_bytecode += bytes(assemblySizeReferenceSize);
 }
 
+pair<shared_ptr<AbstractAssembly>, AbstractAssembly::SubID> SVMAssembly::createSubAssembly()
+{
+	polAssert(false, "Sub assemblies not implemented.");
+	return {};
+}
+
+void SVMAssembly::appendDataOffset(AbstractAssembly::SubID)
+{
+	polAssert(false, "Data not implemented.");
+}
+
+void SVMAssembly::appendDataSize(AbstractAssembly::SubID)
+{
+	polAssert(false, "Data not implemented.");
+}
+
+AbstractAssembly::SubID SVMAssembly::appendData(bytes const&)
+{
+	polAssert(false, "Data not implemented.");
+}
+
 void SVMAssembly::updateReference(size_t pos, size_t size, u256 value)
 {
 	polAssert(m_bytecode.size() >= size && pos <= m_bytecode.size() - size, "");

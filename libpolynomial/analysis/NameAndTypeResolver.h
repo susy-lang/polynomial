@@ -22,13 +22,15 @@
 
 #pragma once
 
-#include <map>
-#include <list>
-#include <boost/noncopyable.hpp>
 #include <libpolynomial/analysis/DeclarationContainer.h>
 #include <libpolynomial/analysis/ReferencesResolver.h>
-#include <libpolynomial/ast/ASTVisitor.h>
 #include <libpolynomial/ast/ASTAnnotations.h>
+#include <libpolynomial/ast/ASTVisitor.h>
+
+#include <boost/noncopyable.hpp>
+
+#include <list>
+#include <map>
 
 namespace langutil
 {

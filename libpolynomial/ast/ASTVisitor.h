@@ -22,10 +22,10 @@
 
 #pragma once
 
-#include <string>
-#include <functional>
-#include <vector>
 #include <libpolynomial/ast/AST.h>
+#include <functional>
+#include <string>
+#include <vector>
 
 namespace dev
 {

@@ -39,7 +39,7 @@ class SVMVersion:
 	boost::equality_comparable<SVMVersion>
 {
 public:
-	SVMVersion() {}
+	SVMVersion() = default;
 
 	static SVMVersion homestead() { return {Version::Homestead}; }
 	static SVMVersion tangerineWhistle() { return {Version::TangerineWhistle}; }

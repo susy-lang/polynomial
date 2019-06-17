@@ -110,30 +110,42 @@ printTask "Testing unknown options..."
 
 # General helper function for testing POLC behaviour, based on file name, compile opts, exit code, stdout and stderr.
 # An failure is expected.
-test_polc_file_input_failures() {
+test_polc_behaviour() {
     local filename="${1}"
     local polc_args="${2}"
-    local stdout_expected="${3}"
-    local stderr_expected="${4}"
+    local polc_stdin="${3}"
+    local stdout_expected="${4}"
+    local exit_code_expected="${5}"
+    local stderr_expected="${6}"
     local stdout_path=`mktemp`
     local stderr_path=`mktemp`
+    if [[ "$exit_code_expected" = "" ]]; then exit_code_expected="0"; fi
 
     set +e
-    "$POLC" "${filename}" ${polc_args} 1>$stdout_path 2>$stderr_path
+    if [[ "$polc_stdin" = "" ]]; then
+        "$POLC" "${filename}" ${polc_args} 1>$stdout_path 2>$stderr_path
+    else
+        "$POLC" "${filename}" ${polc_args} <$polc_stdin 1>$stdout_path 2>$stderr_path
+    fi
     exitCode=$?
     set -e
 
-    sed -i -e '/^Warning: This is a pre-release compiler version, please do not use it in production./d' "$stderr_path"
-    sed -i -e 's/ Consider adding "pragma .*$//' "$stderr_path"
+    if [[ "$polc_args" == *"--standard-json"* ]]; then
+        sed -i -e 's/{[^{]*Warning: This is a pre-release compiler version[^}]*},\{0,1\}//' "$stdout_path"
+        sed -i -e 's/"errors":\[\],\{0,1\}//' "$stdout_path"
+    else
+        sed -i -e '/^Warning: This is a pre-release compiler version, please do not use it in production./d' "$stderr_path"
+        sed -i -e 's/ Consider adding "pragma .*$//' "$stderr_path"
+    fi
 
-    if [[ $exitCode -eq 0 ]]; then
-        printError "Incorrect exit code. Expected failure (non-zero) but got success (0)."
+    if [[ $exitCode -ne "$exit_code_expected" ]]; then
+        printError "Incorrect exit code. Expected $exit_code_expected but got $exitCode."
         rm -f $stdout_path $stderr_path
         exit 1
     fi
 
     if [[ "$(cat $stdout_path)" != "${stdout_expected}" ]]; then
-        printError "Incorrect output on stderr received. Expected:"
+        printError "Incorrect output on stdout received. Expected:"
         echo -e "${stdout_expected}"
 
         printError "But got:"
@@ -156,22 +168,41 @@ test_polc_file_input_failures() {
 }
 
 printTask "Testing passing files that are not found..."
-test_polc_file_input_failures "file_not_found.pol" "" "" "\"file_not_found.pol\" is not found."
+test_polc_behaviour "file_not_found.pol" "" "" "" 1 "\"file_not_found.pol\" is not found."
 
 printTask "Testing passing files that are not files..."
-test_polc_file_input_failures "." "" "" "\".\" is not a valid file."
+test_polc_behaviour "." "" "" "" 1 "\".\" is not a valid file."
 
 printTask "Testing passing empty remappings..."
-test_polc_file_input_failures "${0}" "=/some/remapping/target" "" "Invalid remapping: \"=/some/remapping/target\"."
-test_polc_file_input_failures "${0}" "ctx:=/some/remapping/target" "" "Invalid remapping: \"ctx:=/some/remapping/target\"."
+test_polc_behaviour "${0}" "=/some/remapping/target" "" "" 1 "Invalid remapping: \"=/some/remapping/target\"."
+test_polc_behaviour "${0}" "ctx:=/some/remapping/target" "" "" 1 "Invalid remapping: \"ctx:=/some/remapping/target\"."
 
-printTask "Testing passing location printing..."
+printTask "Running standard JSON commandline tests..."
 (
-cd "$REPO_ROOT"/test/cmdlineErrorReports/
+cd "$REPO_ROOT"/test/cmdlineTests/
+for file in *.json
+do
+    args="--standard-json"
+    stdin="$REPO_ROOT/test/cmdlineTests/$file"
+    stdout=$(cat $file.stdout 2>/dev/null || true)
+    exitCode=$(cat $file.exit 2>/dev/null || true)
+    err=$(cat $file.err 2>/dev/null || true)
+    printTask " - $file"
+    test_polc_behaviour "" "$args" "$stdin" "$stdout" "$exitCode" "$err"
+done
+)
+
+printTask "Running general commandline tests..."
+(
+cd "$REPO_ROOT"/test/cmdlineTests/
 for file in *.pol
 do
-    ret=`cat $file.ref`
-    test_polc_file_input_failures "$file" "" "" "$ret"
+    args=$(cat $file.args 2>/dev/null || true)
+    stdout=$(cat $file.stdout 2>/dev/null || true)
+    exitCode=$(cat $file.exit 2>/dev/null || true)
+    err=$(cat $file.err 2>/dev/null || true)
+    printTask " - $file"
+    test_polc_behaviour "$file" "$args" "" "$stdout" "$exitCode" "$err"
 done
 )
 

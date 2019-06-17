@@ -19,20 +19,17 @@
 
 #include <libpolynomial/formal/SolverInterface.h>
 
-#include <liblangutil/Exceptions.h>
 #include <libpolynomial/interface/ReadFile.h>
-
+#include <liblangutil/Exceptions.h>
+#include <libdevcore/Common.h>
 #include <libdevcore/FixedHash.h>
 
-#include <libdevcore/Common.h>
-
 #include <boost/noncopyable.hpp>
-
+#include <cstdio>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
-#include <cstdio>
-#include <set>
 
 namespace dev
 {

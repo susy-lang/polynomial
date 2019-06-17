@@ -22,11 +22,10 @@
 
 #include <libpolynomial/analysis/NameAndTypeResolver.h>
 
-#include <libpolynomial/ast/AST.h>
 #include <libpolynomial/analysis/TypeChecker.h>
+#include <libpolynomial/ast/AST.h>
 #include <liblangutil/ErrorReporter.h>
 #include <libdevcore/StringUtils.h>
-
 #include <boost/algorithm/string.hpp>
 
 using namespace std;

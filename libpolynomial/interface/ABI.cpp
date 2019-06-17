@@ -19,6 +19,7 @@
  */
 
 #include <libpolynomial/interface/ABI.h>
+
 #include <libpolynomial/ast/AST.h>
 
 using namespace std;

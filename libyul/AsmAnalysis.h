@@ -23,11 +23,11 @@
 #include <liblangutil/Exceptions.h>
 #include <liblangutil/SVMVersion.h>
 
+#include <libyul/Dialect.h>
 #include <libyul/AsmScope.h>
+#include <libyul/AsmDataForward.h>
 
 #include <libyul/backends/svm/AbstractAssembly.h>
-
-#include <libyul/AsmDataForward.h>
 
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
@@ -59,14 +59,14 @@ public:
 		langutil::ErrorReporter& _errorReporter,
 		dev::polynomial::SVMVersion _svmVersion,
 		boost::optional<langutil::Error::Type> _errorTypeForLoose,
-		AsmFlavour _flavour = AsmFlavour::Loose,
+		std::shared_ptr<Dialect> _dialect,
 		ExternalIdentifierAccess::Resolver const& _resolver = ExternalIdentifierAccess::Resolver()
 	):
 		m_resolver(_resolver),
 		m_info(_analysisInfo),
 		m_errorReporter(_errorReporter),
 		m_svmVersion(_svmVersion),
-		m_flavour(_flavour),
+		m_dialect(std::move(_dialect)),
 		m_errorTypeForLoose(_errorTypeForLoose)
 	{}
 
@@ -115,7 +115,7 @@ private:
 	AsmAnalysisInfo& m_info;
 	langutil::ErrorReporter& m_errorReporter;
 	dev::polynomial::SVMVersion m_svmVersion;
-	AsmFlavour m_flavour = AsmFlavour::Loose;
+	std::shared_ptr<Dialect> m_dialect;
 	boost::optional<langutil::Error::Type> m_errorTypeForLoose;
 };
 

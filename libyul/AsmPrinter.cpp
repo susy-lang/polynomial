@@ -40,14 +40,14 @@ using namespace dev::polynomial;
 
 //@TODO source locations
 
-string AsmPrinter::operator()(yul::Instruction const& _instruction)
+string AsmPrinter::operator()(yul::Instruction const& _instruction) const
 {
 	polAssert(!m_yul, "");
 	polAssert(isValidInstruction(_instruction.instruction), "Invalid instruction");
 	return boost::to_lower_copy(instructionInfo(_instruction.instruction).name);
 }
 
-string AsmPrinter::operator()(Literal const& _literal)
+string AsmPrinter::operator()(Literal const& _literal) const
 {
 	switch (_literal.kind)
 	{
@@ -55,8 +55,8 @@ string AsmPrinter::operator()(Literal const& _literal)
 		polAssert(isValidDecimal(_literal.value.str()) || isValidHex(_literal.value.str()), "Invalid number literal");
 		return _literal.value.str() + appendTypeName(_literal.type);
 	case LiteralKind::Boolean:
-		polAssert(_literal.value.str() == "true" || _literal.value.str() == "false", "Invalid bool literal.");
-		return ((_literal.value.str() == "true") ? "true" : "false") + appendTypeName(_literal.type);
+		polAssert(_literal.value == "true"_yulstring || _literal.value == "false"_yulstring, "Invalid bool literal.");
+		return ((_literal.value == "true"_yulstring) ? "true" : "false") + appendTypeName(_literal.type);
 	case LiteralKind::String:
 		break;
 	}
@@ -90,13 +90,13 @@ string AsmPrinter::operator()(Literal const& _literal)
 	return "\"" + out + "\"" + appendTypeName(_literal.type);
 }
 
-string AsmPrinter::operator()(Identifier const& _identifier)
+string AsmPrinter::operator()(Identifier const& _identifier) const
 {
 	polAssert(!_identifier.name.empty(), "Invalid identifier.");
 	return _identifier.name.str();
 }
 
-string AsmPrinter::operator()(FunctionalInstruction const& _functionalInstruction)
+string AsmPrinter::operator()(FunctionalInstruction const& _functionalInstruction) const
 {
 	polAssert(!m_yul, "");
 	polAssert(isValidInstruction(_functionalInstruction.instruction), "Invalid instruction");
@@ -109,26 +109,26 @@ string AsmPrinter::operator()(FunctionalInstruction const& _functionalInstructio
 		")";
 }
 
-string AsmPrinter::operator()(ExpressionStatement const& _statement)
+string AsmPrinter::operator()(ExpressionStatement const& _statement) const
 {
 	return boost::apply_visitor(*this, _statement.expression);
 }
 
-string AsmPrinter::operator()(Label const& _label)
+string AsmPrinter::operator()(Label const& _label) const
 {
 	polAssert(!m_yul, "");
 	polAssert(!_label.name.empty(), "Invalid label.");
 	return _label.name.str() + ":";
 }
 
-string AsmPrinter::operator()(StackAssignment const& _assignment)
+string AsmPrinter::operator()(StackAssignment const& _assignment) const
 {
 	polAssert(!m_yul, "");
 	polAssert(!_assignment.variableName.name.empty(), "Invalid variable name.");
 	return "=: " + (*this)(_assignment.variableName);
 }
 
-string AsmPrinter::operator()(Assignment const& _assignment)
+string AsmPrinter::operator()(Assignment const& _assignment) const
 {
 	polAssert(_assignment.variableNames.size() >= 1, "");
 	string variables = (*this)(_assignment.variableNames.front());
@@ -137,7 +137,7 @@ string AsmPrinter::operator()(Assignment const& _assignment)
 	return variables + " := " + boost::apply_visitor(*this, *_assignment.value);
 }
 
-string AsmPrinter::operator()(VariableDeclaration const& _variableDeclaration)
+string AsmPrinter::operator()(VariableDeclaration const& _variableDeclaration) const
 {
 	string out = "let ";
 	out += boost::algorithm::join(
@@ -154,7 +154,7 @@ string AsmPrinter::operator()(VariableDeclaration const& _variableDeclaration)
 	return out;
 }
 
-string AsmPrinter::operator()(FunctionDefinition const& _functionDefinition)
+string AsmPrinter::operator()(FunctionDefinition const& _functionDefinition) const
 {
 	polAssert(!_functionDefinition.name.empty(), "Invalid function name.");
 	string out = "function " + _functionDefinition.name.str() + "(";
@@ -179,7 +179,7 @@ string AsmPrinter::operator()(FunctionDefinition const& _functionDefinition)
 	return out + "\n" + (*this)(_functionDefinition.body);
 }
 
-string AsmPrinter::operator()(FunctionCall const& _functionCall)
+string AsmPrinter::operator()(FunctionCall const& _functionCall) const
 {
 	return
 		(*this)(_functionCall.functionName) + "(" +
@@ -189,13 +189,13 @@ string AsmPrinter::operator()(FunctionCall const& _functionCall)
 		")";
 }
 
-string AsmPrinter::operator()(If const& _if)
+string AsmPrinter::operator()(If const& _if) const
 {
 	polAssert(_if.condition, "Invalid if condition.");
 	return "if " + boost::apply_visitor(*this, *_if.condition) + "\n" + (*this)(_if.body);
 }
 
-string AsmPrinter::operator()(Switch const& _switch)
+string AsmPrinter::operator()(Switch const& _switch) const
 {
 	polAssert(_switch.expression, "Invalid expression pointer.");
 	string out = "switch " + boost::apply_visitor(*this, *_switch.expression);
@@ -210,7 +210,7 @@ string AsmPrinter::operator()(Switch const& _switch)
 	return out;
 }
 
-string AsmPrinter::operator()(ForLoop const& _forLoop)
+string AsmPrinter::operator()(ForLoop const& _forLoop) const
 {
 	polAssert(_forLoop.condition, "Invalid for loop condition.");
 	string out = "for ";
@@ -224,7 +224,7 @@ string AsmPrinter::operator()(ForLoop const& _forLoop)
 	return out;
 }
 
-string AsmPrinter::operator()(Block const& _block)
+string AsmPrinter::operator()(Block const& _block) const
 {
 	if (_block.statements.empty())
 		return "{\n}";

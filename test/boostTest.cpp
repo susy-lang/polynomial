@@ -35,15 +35,13 @@
 
 #pragma GCC diagnostic pop
 
+#include <test/InteractiveTests.h>
 #include <test/Options.h>
-#include <test/libpolynomial/ASTJSONTest.h>
-#include <test/libpolynomial/SyntaxTest.h>
-#include <test/libpolynomial/SMTCheckerJSONTest.h>
-#include <test/libyul/YulOptimizerTest.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
+#include <string>
 
 using namespace boost::unit_test;
 using namespace dev::polynomial::test;
@@ -128,40 +126,26 @@ test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] )
 	master_test_suite_t& master = framework::master_test_suite();
 	master.p_name.value = "PolynomialTests";
 	dev::test::Options::get().validate();
-	polAssert(registerTests(
-		master,
-		dev::test::Options::get().testPath / "libpolynomial",
-		"syntaxTests",
-		SyntaxTest::create
-	) > 0, "no syntax tests found");
-	polAssert(registerTests(
-		master,
-		dev::test::Options::get().testPath / "libpolynomial",
-		"ASTJSON",
-		ASTJSONTest::create
-	) > 0, "no JSON AST tests found");
-	polAssert(registerTests(
-		master,
-		dev::test::Options::get().testPath / "libyul",
-		"yulOptimizerTests",
-		yul::test::YulOptimizerTest::create
-	) > 0, "no Yul Optimizer tests found");
-	if (!dev::test::Options::get().disableSMT)
+
+	// Include the interactive tests in the automatic tests as well
+	for (auto const& ts: g_interactiveTestsuites)
 	{
-		polAssert(registerTests(
-			master,
-			dev::test::Options::get().testPath / "libpolynomial",
-			"smtCheckerTests",
-			SyntaxTest::create
-		) > 0, "no SMT checker tests found");
+		auto const& options = dev::test::Options::get();
+
+		if (ts.smt && options.disableSMT)
+			continue;
+
+		if (ts.ipc && options.disableIPC)
+			continue;
 
 		polAssert(registerTests(
 			master,
-			dev::test::Options::get().testPath / "libpolynomial",
-			"smtCheckerTestsJSON",
-			SMTCheckerTest::create
-		) > 0, "no SMT checker JSON tests found");
+			options.testPath / ts.path,
+			ts.subpath,
+			ts.testCaseCreator
+		) > 0, std::string("no ") + ts.title + " tests found");
 	}
+
 	if (dev::test::Options::get().disableIPC)
 	{
 		for (auto suite: {
@@ -176,11 +160,13 @@ test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] )
 			"LLLEndToEndTest",
 #endif
 			"GasMeterTests",
+			"GasCostTests",
 			"PolynomialEndToEndTest",
 			"PolynomialOptimizer"
 		})
 			removeTestSuite(suite);
 	}
+
 	if (dev::test::Options::get().disableSMT)
 		removeTestSuite("SMTChecker");
 

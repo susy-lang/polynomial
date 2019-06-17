@@ -1,0 +1,12 @@
+{
+	"language": "Polynomial",
+	"sources":
+	{
+		"A": "not an object :o",
+		"B": [1, 2, 3],
+		"C":
+		{
+			"content": "pragma polynomial >=0.0; contract C { function f() public pure {} }"
+		}
+	}
+}

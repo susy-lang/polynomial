@@ -21,11 +21,10 @@
  */
 
 #include <libpolynomial/ast/ASTPrinter.h>
+
 #include <libpolynomial/ast/AST.h>
-
-#include <json/json.h>
-
 #include <boost/algorithm/string/join.hpp>
+#include <json/json.h>
 
 using namespace std;
 using namespace langutil;

@@ -22,24 +22,21 @@
 
 #pragma once
 
-#include <libpolynomial/codegen/ABIFunctions.h>
-
-#include <liblangutil/SVMVersion.h>
-
+#include <libpolynomial/ast/ASTAnnotations.h>
 #include <libpolynomial/ast/ASTForward.h>
 #include <libpolynomial/ast/Types.h>
-#include <libpolynomial/ast/ASTAnnotations.h>
+#include <libpolynomial/codegen/ABIFunctions.h>
 
-#include <libsvmasm/Instruction.h>
 #include <libsvmasm/Assembly.h>
-
+#include <libsvmasm/Instruction.h>
+#include <liblangutil/SVMVersion.h>
 #include <libdevcore/Common.h>
 
+#include <functional>
 #include <ostream>
 #include <stack>
 #include <queue>
 #include <utility>
-#include <functional>
 
 namespace dev {
 namespace polynomial {

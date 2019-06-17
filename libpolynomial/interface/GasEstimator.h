@@ -24,12 +24,12 @@
 
 #include <liblangutil/SVMVersion.h>
 
-#include <libsvmasm/GasMeter.h>
 #include <libsvmasm/Assembly.h>
+#include <libsvmasm/GasMeter.h>
 
-#include <vector>
-#include <map>
 #include <array>
+#include <map>
+#include <vector>
 
 namespace dev
 {

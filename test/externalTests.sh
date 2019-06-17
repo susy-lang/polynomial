@@ -79,6 +79,7 @@ function test_susyknot
       fi
       # Change "compileStandard" to "compile"
       sed -i s/polc.compileStandard/polc.compile/ "node_modules/susyknot/build/cli.bundled.js"
+      npx susyknot compile
       npm run test
     )
     rm -rf "$DIR"
@@ -89,3 +90,5 @@ test_susyknot Zeppelin https://github.com/axic/openzeppelin-polynomial.git polyn
 
 # Disabled temporarily as it needs to be updated to latest Susyknot first.
 #test_susyknot Gnosis https://github.com/axic/pm-contracts.git polynomial-050
+
+test_susyknot GnosisSafe https://github.com/gnosis/safe-contracts.git development

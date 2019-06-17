@@ -21,6 +21,7 @@
  */
 
 #include <libpolynomial/analysis/DeclarationContainer.h>
+
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/ast/Types.h>
 #include <libdevcore/StringUtils.h>

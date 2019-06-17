@@ -22,8 +22,8 @@
 
 #pragma once
 
-#include <libpolynomial/codegen/CompilerContext.h>
 #include <libpolynomial/ast/ASTForward.h>
+#include <libpolynomial/codegen/CompilerContext.h>
 
 namespace dev {
 namespace polynomial {

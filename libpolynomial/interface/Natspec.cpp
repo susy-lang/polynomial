@@ -24,8 +24,9 @@
  */
 
 #include <libpolynomial/interface/Natspec.h>
-#include <boost/range/irange.hpp>
+
 #include <libpolynomial/ast/AST.h>
+#include <boost/range/irange.hpp>
 
 using namespace std;
 using namespace dev;

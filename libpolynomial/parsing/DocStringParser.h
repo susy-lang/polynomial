@@ -22,8 +22,8 @@
 
 #pragma once
 
-#include <string>
 #include <libpolynomial/ast/ASTAnnotations.h>
+#include <string>
 
 namespace langutil
 {

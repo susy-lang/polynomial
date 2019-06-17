@@ -21,10 +21,11 @@
  */
 
 #include <libpolynomial/codegen/LValue.h>
-#include <libsvmasm/Instruction.h>
-#include <libpolynomial/ast/Types.h>
+
 #include <libpolynomial/ast/AST.h>
+#include <libpolynomial/ast/Types.h>
 #include <libpolynomial/codegen/CompilerUtils.h>
+#include <libsvmasm/Instruction.h>
 
 using namespace std;
 using namespace dev;

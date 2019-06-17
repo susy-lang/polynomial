@@ -24,10 +24,10 @@
 
 #include <liblangutil/SVMVersion.h>
 
-#include <libpolynomial/ast/Types.h>
 #include <libpolynomial/ast/ASTAnnotations.h>
 #include <libpolynomial/ast/ASTForward.h>
 #include <libpolynomial/ast/ASTVisitor.h>
+#include <libpolynomial/ast/Types.h>
 
 namespace langutil
 {

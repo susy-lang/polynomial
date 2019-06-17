@@ -21,14 +21,17 @@
  * Polynomial AST to SVM bytecode compiler for expressions.
  */
 
-#include <functional>
-#include <memory>
-#include <boost/noncopyable.hpp>
-#include <libdevcore/Common.h>
-#include <liblangutil/SourceLocation.h>
+#pragma once
+
 #include <libpolynomial/ast/ASTVisitor.h>
 #include <libpolynomial/codegen/LValue.h>
 #include <liblangutil/Exceptions.h>
+#include <liblangutil/SourceLocation.h>
+#include <libdevcore/Common.h>
+
+#include <boost/noncopyable.hpp>
+#include <functional>
+#include <memory>
 
 namespace dev {
 namespace sof

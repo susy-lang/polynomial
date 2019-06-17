@@ -22,9 +22,10 @@
  */
 
 #include <libpolynomial/analysis/DocStringAnalyser.h>
+
 #include <libpolynomial/ast/AST.h>
-#include <liblangutil/ErrorReporter.h>
 #include <libpolynomial/parsing/DocStringParser.h>
+#include <liblangutil/ErrorReporter.h>
 
 using namespace std;
 using namespace dev;

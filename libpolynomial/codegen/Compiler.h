@@ -24,11 +24,9 @@
 
 #include <libpolynomial/codegen/CompilerContext.h>
 #include <liblangutil/SVMVersion.h>
-
 #include <libsvmasm/Assembly.h>
-
-#include <ostream>
 #include <functional>
+#include <ostream>
 
 namespace dev {
 namespace polynomial {

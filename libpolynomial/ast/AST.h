@@ -22,24 +22,22 @@
 
 #pragma once
 
-
-#include <libpolynomial/parsing/Token.h>
 #include <libpolynomial/ast/ASTForward.h>
 #include <libpolynomial/ast/Types.h>
 #include <libpolynomial/ast/ASTAnnotations.h>
 #include <libpolynomial/ast/ASTEnums.h>
+#include <libpolynomial/parsing/Token.h>
 
 #include <liblangutil/SourceLocation.h>
 #include <libsvmasm/Instruction.h>
-
 #include <libdevcore/FixedHash.h>
-#include <json/json.h>
 
 #include <boost/noncopyable.hpp>
+#include <json/json.h>
 
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 
 namespace yul
 {

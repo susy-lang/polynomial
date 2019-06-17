@@ -20,6 +20,7 @@
 
 #include <libyul/backends/svm/SVMCodeTransform.h>
 
+#include <libyul/optimiser/NameCollector.h>
 #include <libyul/AsmAnalysisInfo.h>
 #include <libyul/AsmData.h>
 
@@ -31,6 +32,144 @@ using namespace std;
 using namespace dev;
 using namespace yul;
 using namespace dev::polynomial;
+
+void VariableReferenceCounter::operator()(Identifier const& _identifier)
+{
+	increaseRefIfFound(_identifier.name);
+}
+
+void VariableReferenceCounter::operator()(FunctionDefinition const& _function)
+{
+	Scope* originalScope = m_scope;
+
+	polAssert(m_info.virtualBlocks.at(&_function), "");
+	m_scope = m_info.scopes.at(m_info.virtualBlocks.at(&_function).get()).get();
+	polAssert(m_scope, "Variable scope does not exist.");
+
+	for (auto const& v: _function.returnVariables)
+		increaseRefIfFound(v.name);
+
+	VariableReferenceCounter{m_context, m_info}(_function.body);
+
+	m_scope = originalScope;
+}
+
+void VariableReferenceCounter::operator()(ForLoop const& _forLoop)
+{
+	Scope* originalScope = m_scope;
+	// Special scoping rules.
+	m_scope = m_info.scopes.at(&_forLoop.pre).get();
+
+	walkVector(_forLoop.pre.statements);
+	visit(*_forLoop.condition);
+	(*this)(_forLoop.body);
+	(*this)(_forLoop.post);
+
+	m_scope = originalScope;
+}
+
+
+void VariableReferenceCounter::operator()(Block const& _block)
+{
+	Scope* originalScope = m_scope;
+	m_scope = m_info.scopes.at(&_block).get();
+
+	ASTWalker::operator()(_block);
+
+	m_scope = originalScope;
+}
+
+void VariableReferenceCounter::increaseRefIfFound(YulString _variableName)
+{
+	m_scope->lookup(_variableName, Scope::Visitor(
+		[=](Scope::Variable const& _var)
+		{
+			++m_context.variableReferences[&_var];
+		},
+		[=](Scope::Label const&) { },
+		[=](Scope::Function const&) { }
+	));
+}
+
+
+CodeTransform::CodeTransform(
+	AbstractAssembly& _assembly,
+	AsmAnalysisInfo& _analysisInfo,
+	Block const& _block,
+	bool _allowStackOpt,
+	SVMDialect const& _dialect,
+	bool _svm15,
+	ExternalIdentifierAccess const& _identifierAccess,
+	bool _useNamedLabelsForFunctions,
+	int _stackAdjustment,
+	shared_ptr<Context> _context
+):
+	m_assembly(_assembly),
+	m_info(_analysisInfo),
+	m_dialect(_dialect),
+	m_allowStackOpt(_allowStackOpt),
+	m_svm15(_svm15),
+	m_useNamedLabelsForFunctions(_useNamedLabelsForFunctions),
+	m_identifierAccess(_identifierAccess),
+	m_stackAdjustment(_stackAdjustment),
+	m_context(_context)
+{
+	if (!m_context)
+	{
+		// initialize
+		m_context = make_shared<Context>();
+		if (m_allowStackOpt)
+			VariableReferenceCounter{*m_context, m_info}(_block);
+	}
+}
+
+void CodeTransform::decreaseReference(YulString, Scope::Variable const& _var)
+{
+	if (!m_allowStackOpt)
+		return;
+
+	unsigned& ref = m_context->variableReferences.at(&_var);
+	polAssert(ref >= 1, "");
+	--ref;
+	if (ref == 0)
+		m_variablesScheduledForDeletion.insert(&_var);
+}
+
+bool CodeTransform::unreferenced(Scope::Variable const& _var) const
+{
+	return !m_context->variableReferences.count(&_var) || m_context->variableReferences[&_var] == 0;
+}
+
+void CodeTransform::freeUnusedVariables()
+{
+	if (!m_allowStackOpt)
+		return;
+
+	for (auto const& identifier: m_scope->identifiers)
+		if (identifier.second.type() == typeid(Scope::Variable))
+		{
+			Scope::Variable const& var = boost::get<Scope::Variable>(identifier.second);
+			if (m_variablesScheduledForDeletion.count(&var))
+				deleteVariable(var);
+		}
+
+	while (m_unusedStackSlots.count(m_assembly.stackHeight() - 1))
+	{
+		polAssert(m_unusedStackSlots.erase(m_assembly.stackHeight() - 1), "");
+		m_assembly.appendInstruction(polynomial::Instruction::POP);
+		--m_stackAdjustment;
+	}
+}
+
+void CodeTransform::deleteVariable(Scope::Variable const& _var)
+{
+	polAssert(m_allowStackOpt, "");
+	polAssert(m_context->variableStackHeights.count(&_var) > 0, "");
+	m_unusedStackSlots.insert(m_context->variableStackHeights[&_var]);
+	m_context->variableStackHeights.erase(&_var);
+	m_context->variableReferences.erase(&_var);
+	m_variablesScheduledForDeletion.erase(&_var);
+}
 
 void CodeTransform::operator()(VariableDeclaration const& _varDecl)
 {
@@ -49,10 +188,40 @@ void CodeTransform::operator()(VariableDeclaration const& _varDecl)
 		while (variablesLeft--)
 			m_assembly.appendConstant(u256(0));
 	}
-	for (auto const& variable: _varDecl.variables)
+
+	bool atTopOfStack = true;
+	for (int varIndex = numVariables - 1; varIndex >= 0; --varIndex)
 	{
-		auto& var = boost::get<Scope::Variable>(m_scope->identifiers.at(variable.name));
-		m_context->variableStackHeights[&var] = height++;
+		auto& var = boost::get<Scope::Variable>(m_scope->identifiers.at(_varDecl.variables[varIndex].name));
+		m_context->variableStackHeights[&var] = height + varIndex;
+		if (!m_allowStackOpt)
+			continue;
+
+		if (unreferenced(var))
+		{
+			if (atTopOfStack)
+			{
+				m_context->variableStackHeights.erase(&var);
+				m_assembly.setSourceLocation(_varDecl.location);
+				m_assembly.appendInstruction(polynomial::Instruction::POP);
+				--m_stackAdjustment;
+			}
+			else
+				m_variablesScheduledForDeletion.insert(&var);
+		}
+		else if (m_unusedStackSlots.empty())
+			atTopOfStack = false;
+		else
+		{
+			int slot = *m_unusedStackSlots.begin();
+			m_unusedStackSlots.erase(m_unusedStackSlots.begin());
+			m_context->variableStackHeights[&var] = slot;
+			m_assembly.setSourceLocation(_varDecl.location);
+			if (int heightDiff = variableHeightDiff(var, true))
+				m_assembly.appendInstruction(polynomial::swapInstruction(heightDiff - 1));
+			m_assembly.appendInstruction(polynomial::Instruction::POP);
+			--m_stackAdjustment;
+		}
 	}
 	checkStackHeight(&_varDecl);
 }
@@ -70,6 +239,7 @@ void CodeTransform::operator()(Assignment const& _assignment)
 
 void CodeTransform::operator()(StackAssignment const& _assignment)
 {
+	polAssert(!m_allowStackOpt, "");
 	m_assembly.setSourceLocation(_assignment.location);
 	generateAssignment(_assignment.variableName);
 	checkStackHeight(&_assignment);
@@ -84,6 +254,7 @@ void CodeTransform::operator()(ExpressionStatement const& _statement)
 
 void CodeTransform::operator()(Label const& _label)
 {
+	polAssert(!m_allowStackOpt, "");
 	m_assembly.setSourceLocation(_label.location);
 	polAssert(m_scope, "");
 	polAssert(m_scope->identifiers.count(_label.name), "");
@@ -96,35 +267,46 @@ void CodeTransform::operator()(FunctionCall const& _call)
 {
 	polAssert(m_scope, "");
 
-	m_assembly.setSourceLocation(_call.location);
-	SVMAssembly::LabelID returnLabel(-1); // only used for svm 1.0
-	if (!m_svm15)
+	if (BuiltinFunctionForSVM const* builtin = m_dialect.builtin(_call.functionName.name))
 	{
-		returnLabel = m_assembly.newLabelId();
-		m_assembly.appendLabelReference(returnLabel);
-		m_stackAdjustment++;
+		builtin->generateCode(_call, m_assembly, [&]() {
+			for (auto const& arg: _call.arguments | boost::adaptors::reversed)
+				visitExpression(arg);
+			m_assembly.setSourceLocation(_call.location);
+		});
 	}
-
-	Scope::Function* function = nullptr;
-	polAssert(m_scope->lookup(_call.functionName.name, Scope::NonconstVisitor(
-		[=](Scope::Variable&) { polAssert(false, "Expected function name."); },
-		[=](Scope::Label&) { polAssert(false, "Expected function name."); },
-		[&](Scope::Function& _function) { function = &_function; }
-	)), "Function name not found.");
-	polAssert(function, "");
-	polAssert(function->arguments.size() == _call.arguments.size(), "");
-	for (auto const& arg: _call.arguments | boost::adaptors::reversed)
-		visitExpression(arg);
-	m_assembly.setSourceLocation(_call.location);
-	if (m_svm15)
-		m_assembly.appendJumpsub(functionEntryID(_call.functionName.name, *function), function->arguments.size(), function->returns.size());
 	else
 	{
-		m_assembly.appendJumpTo(functionEntryID(_call.functionName.name, *function), function->returns.size() - function->arguments.size() - 1);
-		m_assembly.appendLabel(returnLabel);
-		m_stackAdjustment--;
+		m_assembly.setSourceLocation(_call.location);
+		SVMAssembly::LabelID returnLabel(-1); // only used for svm 1.0
+		if (!m_svm15)
+		{
+			returnLabel = m_assembly.newLabelId();
+			m_assembly.appendLabelReference(returnLabel);
+			m_stackAdjustment++;
+		}
+
+		Scope::Function* function = nullptr;
+		polAssert(m_scope->lookup(_call.functionName.name, Scope::NonconstVisitor(
+			[=](Scope::Variable&) { polAssert(false, "Expected function name."); },
+			[=](Scope::Label&) { polAssert(false, "Expected function name."); },
+			[&](Scope::Function& _function) { function = &_function; }
+		)), "Function name not found.");
+		polAssert(function, "");
+		polAssert(function->arguments.size() == _call.arguments.size(), "");
+		for (auto const& arg: _call.arguments | boost::adaptors::reversed)
+			visitExpression(arg);
+		m_assembly.setSourceLocation(_call.location);
+		if (m_svm15)
+			m_assembly.appendJumpsub(functionEntryID(_call.functionName.name, *function), function->arguments.size(), function->returns.size());
+		else
+		{
+			m_assembly.appendJumpTo(functionEntryID(_call.functionName.name, *function), function->returns.size() - function->arguments.size() - 1);
+			m_assembly.appendLabel(returnLabel);
+			m_stackAdjustment--;
+		}
+		checkStackHeight(&_call);
 	}
-	checkStackHeight(&_call);
 }
 
 void CodeTransform::operator()(FunctionalInstruction const& _instruction)
@@ -169,11 +351,14 @@ void CodeTransform::operator()(Identifier const& _identifier)
 	if (m_scope->lookup(_identifier.name, Scope::NonconstVisitor(
 		[=](Scope::Variable& _var)
 		{
+			// TODO: opportunity for optimization: Do not DUP if this is the last reference
+			// to the top most element of the stack
 			if (int heightDiff = variableHeightDiff(_var, false))
 				m_assembly.appendInstruction(polynomial::dupInstruction(heightDiff));
 			else
 				// Store something to balance the stack
 				m_assembly.appendConstant(u256(0));
+			decreaseReference(_identifier.name, _var);
 		},
 		[=](Scope::Label& _label)
 		{
@@ -202,7 +387,7 @@ void CodeTransform::operator()(Literal const& _literal)
 		m_assembly.appendConstant(u256(_literal.value.str()));
 	else if (_literal.kind == LiteralKind::Boolean)
 	{
-		if (_literal.value.str() == "true")
+		if (_literal.value == "true"_yulstring)
 			m_assembly.appendConstant(u256(1));
 		else
 			m_assembly.appendConstant(u256(0));
@@ -217,6 +402,7 @@ void CodeTransform::operator()(Literal const& _literal)
 
 void CodeTransform::operator()(yul::Instruction const& _instruction)
 {
+	polAssert(!m_allowStackOpt, "");
 	polAssert(!m_svm15 || _instruction.instruction != polynomial::Instruction::JUMP, "Bare JUMP instruction used for SVM1.5");
 	polAssert(!m_svm15 || _instruction.instruction != polynomial::Instruction::JUMPI, "Bare JUMPI instruction used for SVM1.5");
 	m_assembly.setSourceLocation(_instruction.location);
@@ -329,7 +515,9 @@ void CodeTransform::operator()(FunctionDefinition const& _function)
 	CodeTransform(
 		m_assembly,
 		m_info,
-		m_yul,
+		_function.body,
+		m_allowStackOpt,
+		m_dialect,
 		m_svm15,
 		m_identifierAccess,
 		m_useNamedLabelsForFunctions,
@@ -350,6 +538,7 @@ void CodeTransform::operator()(FunctionDefinition const& _function)
 		if (!m_svm15)
 			stackLayout.push_back(_function.returnVariables.size()); // Move return label to the top
 		stackLayout += vector<int>(_function.parameters.size(), -1); // discard all arguments
+
 		for (size_t i = 0; i < _function.returnVariables.size(); ++i)
 			stackLayout.push_back(i); // Move return values down, but keep order.
 
@@ -475,20 +664,37 @@ void CodeTransform::visitExpression(Expression const& _expression)
 void CodeTransform::visitStatements(vector<Statement> const& _statements)
 {
 	for (auto const& statement: _statements)
+	{
+		freeUnusedVariables();
 		boost::apply_visitor(*this, statement);
+	}
+	freeUnusedVariables();
 }
 
 void CodeTransform::finalizeBlock(Block const& _block, int blockStartStackHeight)
 {
 	m_assembly.setSourceLocation(_block.location);
 
+	freeUnusedVariables();
+
 	// pop variables
 	polAssert(m_info.scopes.at(&_block).get() == m_scope, "");
-	for (size_t i = 0; i < m_scope->numberOfVariables(); ++i)
-		m_assembly.appendInstruction(polynomial::Instruction::POP);
+	for (auto const& id: m_scope->identifiers)
+		if (id.second.type() == typeid(Scope::Variable))
+		{
+			Scope::Variable const& var = boost::get<Scope::Variable>(id.second);
+			if (m_allowStackOpt)
+			{
+				polAssert(!m_context->variableStackHeights.count(&var), "");
+				polAssert(!m_context->variableReferences.count(&var), "");
+				m_stackAdjustment++;
+			}
+			else
+				m_assembly.appendInstruction(polynomial::Instruction::POP);
+		}
 
 	int deposit = m_assembly.stackHeight() - blockStartStackHeight;
-	polAssert(deposit == 0, "Invalid stack height at end of block.");
+	polAssert(deposit == 0, "Invalid stack height at end of block: " + to_string(deposit));
 	checkStackHeight(&_block);
 }
 
@@ -502,13 +708,13 @@ void CodeTransform::generateMultiAssignment(vector<Identifier> const& _variableN
 void CodeTransform::generateAssignment(Identifier const& _variableName)
 {
 	polAssert(m_scope, "");
-	auto var = m_scope->lookup(_variableName.name);
-	if (var)
+	if (auto var = m_scope->lookup(_variableName.name))
 	{
 		Scope::Variable const& _var = boost::get<Scope::Variable>(*var);
 		if (int heightDiff = variableHeightDiff(_var, true))
 			m_assembly.appendInstruction(polynomial::swapInstruction(heightDiff - 1));
 		m_assembly.appendInstruction(polynomial::Instruction::POP);
+		decreaseReference(_variableName.name, _var);
 	}
 	else
 	{

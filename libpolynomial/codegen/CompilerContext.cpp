@@ -21,18 +21,22 @@
  */
 
 #include <libpolynomial/codegen/CompilerContext.h>
-#include <libpolynomial/codegen/CompilerUtils.h>
+
 #include <libpolynomial/ast/AST.h>
+#include <libpolynomial/codegen/AsmCodeGen.h>
 #include <libpolynomial/codegen/Compiler.h>
+#include <libpolynomial/codegen/CompilerUtils.h>
 #include <libpolynomial/interface/Version.h>
-#include <liblangutil/SourceReferenceFormatter.h>
+
 #include <libyul/AsmParser.h>
-#include <libyul/AsmCodeGen.h>
 #include <libyul/AsmAnalysis.h>
 #include <libyul/AsmAnalysisInfo.h>
+#include <libyul/backends/svm/SVMDialect.h>
 #include <libyul/YulString.h>
+
 #include <liblangutil/ErrorReporter.h>
 #include <liblangutil/Scanner.h>
+#include <liblangutil/SourceReferenceFormatter.h>
 
 #include <boost/algorithm/string/replace.hpp>
 
@@ -361,7 +365,7 @@ void CompilerContext::appendInlineAssembly(
 	ErrorList errors;
 	ErrorReporter errorReporter(errors);
 	auto scanner = make_shared<langutil::Scanner>(langutil::CharStream(_assembly, "--CODEGEN--"));
-	auto parserResult = yul::Parser(errorReporter, yul::AsmFlavour::Strict).parse(scanner, false);
+	auto parserResult = yul::Parser(errorReporter, yul::SVMDialect::strictAssemblyForSVM()).parse(scanner, false);
 #ifdef POL_OUTPUT_ASM
 	cout << yul::AsmPrinter()(*parserResult) << endl;
 #endif
@@ -373,7 +377,7 @@ void CompilerContext::appendInlineAssembly(
 			errorReporter,
 			m_svmVersion,
 			boost::none,
-			yul::AsmFlavour::Strict,
+			yul::SVMDialect::strictAssemblyForSVM(),
 			identifierAccess.resolve
 		).analyze(*parserResult);
 	if (!parserResult || !errorReporter.errors().empty() || !analyzerResult)
@@ -386,8 +390,7 @@ void CompilerContext::appendInlineAssembly(
 		for (auto const& error: errorReporter.errors())
 			message += SourceReferenceFormatter::formatExceptionInformation(
 				*error,
-				(error->type() == Error::Type::Warning) ? "Warning" : "Error",
-				[&](string const&) -> Scanner const& { return *scanner; }
+				(error->type() == Error::Type::Warning) ? "Warning" : "Error"
 			);
 		message += "-------------------------------------------\n";
 
@@ -395,7 +398,7 @@ void CompilerContext::appendInlineAssembly(
 	}
 
 	polAssert(errorReporter.errors().empty(), "Failed to analyze inline assembly block.");
-	yul::CodeGenerator::assemble(*parserResult, analysisInfo, *m_asm, identifierAccess, _system);
+	CodeGenerator::assemble(*parserResult, analysisInfo, *m_asm, identifierAccess, _system);
 
 	// Reset the source location to the one of the node (instead of the CODEGEN source location)
 	updateSourceLocation();

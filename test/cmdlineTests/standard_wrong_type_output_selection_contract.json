@@ -1,0 +1,16 @@
+{
+	"language": "Polynomial",
+	"sources": {
+		"fileA": {
+			"content": "contract A { }"
+		}
+	},
+	"settings": {
+		"outputSelection": {
+			"fileA": {
+				"A": "it's a contract, but not an array!",
+				"": [ "legacyAST" ]
+			}
+		}
+	}
+}

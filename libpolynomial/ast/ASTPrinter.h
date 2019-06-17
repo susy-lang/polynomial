@@ -22,9 +22,9 @@
 
 #pragma once
 
-#include <ostream>
 #include <libpolynomial/ast/ASTVisitor.h>
 #include <libpolynomial/interface/GasEstimator.h>
+#include <ostream>
 
 namespace dev
 {

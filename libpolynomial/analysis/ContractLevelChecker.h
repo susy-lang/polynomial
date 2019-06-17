@@ -22,7 +22,6 @@
 #pragma once
 
 #include <libpolynomial/ast/ASTForward.h>
-
 #include <map>
 
 namespace langutil

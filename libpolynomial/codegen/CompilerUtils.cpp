@@ -23,12 +23,10 @@
 #include <libpolynomial/codegen/CompilerUtils.h>
 
 #include <libpolynomial/ast/AST.h>
+#include <libpolynomial/codegen/ABIFunctions.h>
 #include <libpolynomial/codegen/ArrayUtils.h>
 #include <libpolynomial/codegen/LValue.h>
-#include <libpolynomial/codegen/ABIFunctions.h>
-
 #include <libsvmasm/Instruction.h>
-
 #include <libdevcore/Whiskers.h>
 
 using namespace std;
@@ -1205,7 +1203,7 @@ void CompilerUtils::storeStringData(bytesConstRef _data)
 {
 	//@todo provide both alternatives to the optimiser
 	// stack: mempos
-	if (_data.size() <= 128)
+	if (_data.size() <= 32)
 	{
 		for (unsigned i = 0; i < _data.size(); i += 32)
 		{

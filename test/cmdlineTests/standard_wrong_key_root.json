@@ -1,0 +1,11 @@
+{
+	"language": "Polynomial",
+	"key1": "test",
+	"sources":
+	{
+		"A":
+		{
+			"content": "pragma polynomial >=0.0; contract C { function f() public pure {} }"
+		}
+	}
+}

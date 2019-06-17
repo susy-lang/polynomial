@@ -22,11 +22,10 @@
 
 #pragma once
 
+#include <libpolynomial/ast/ASTForward.h>
+#include <boost/noncopyable.hpp>
 #include <map>
 #include <set>
-#include <boost/noncopyable.hpp>
-
-#include <libpolynomial/ast/ASTForward.h>
 
 namespace dev
 {
