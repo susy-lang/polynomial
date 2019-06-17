@@ -38,6 +38,10 @@ string const dev::polynomial::VersionString =
 	(string(POL_VERSION_PRERELEASE).empty() ? "" : "-" + string(POL_VERSION_PRERELEASE)) +
 	(string(POL_VERSION_BUILDINFO).empty() ? "" : "+" + string(POL_VERSION_BUILDINFO));
 
+string const dev::polynomial::VersionStringStrict =
+	string(dev::polynomial::VersionNumber) +
+	(string(POL_VERSION_PRERELEASE).empty() ? "" : "-" + string(POL_VERSION_PRERELEASE)) +
+	(string(POL_VERSION_COMMIT).empty() ? "" : "+" + string(POL_VERSION_COMMIT));
 
 bytes dev::polynomial::binaryVersion()
 {

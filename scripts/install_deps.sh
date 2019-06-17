@@ -138,11 +138,13 @@ case $(uname -s) in
 
                 # All our dependencies can be found in the Arch Linux official repositories.
                 # See https://wiki.archlinux.org/index.php/Official_repositories
+                # Also adding sophon-git to allow for testing with the `sof` client
                 sudo pacman -Sy \
                     base-devel \
                     boost \
                     cmake \
                     git \
+                    sophon-git \
                 ;;
 
 #------------------------------------------------------------------------------

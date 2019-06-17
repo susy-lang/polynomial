@@ -22,16 +22,20 @@
 
 #pragma once
 
+#include <libpolynomial/ast/ASTForward.h>
+#include <libpolynomial/ast/Types.h>
+#include <libpolynomial/ast/ASTAnnotations.h>
+
+#include <libsvmasm/Instruction.h>
+#include <libsvmasm/Assembly.h>
+
+#include <libdevcore/Common.h>
+
 #include <ostream>
 #include <stack>
 #include <queue>
 #include <utility>
-#include <libsvmasm/Instruction.h>
-#include <libsvmasm/Assembly.h>
-#include <libpolynomial/ast/ASTForward.h>
-#include <libpolynomial/ast/Types.h>
-#include <libpolynomial/ast/ASTAnnotations.h>
-#include <libdevcore/Common.h>
+#include <functional>
 
 namespace dev {
 namespace polynomial {
@@ -90,6 +94,29 @@ public:
 	/// as "having code".
 	void startFunction(Declaration const& _function);
 
+	/// Appends a call to the named low-level function and inserts the generator into the
+	/// list of low-level-functions to be generated, unless it already exists.
+	/// Note that the generator should not assume that objects are still alive when it is called,
+	/// unless they are guaranteed to be alive for the whole run of the compiler (AST nodes, for example).
+	void callLowLevelFunction(
+		std::string const& _name,
+		unsigned _inArgs,
+		unsigned _outArgs,
+		std::function<void(CompilerContext&)> const& _generator
+	);
+	/// Returns the tag of the named low-level function and inserts the generator into the
+	/// list of low-level-functions to be generated, unless it already exists.
+	/// Note that the generator should not assume that objects are still alive when it is called,
+	/// unless they are guaranteed to be alive for the whole run of the compiler (AST nodes, for example).
+	sof::AssemblyItem lowLevelFunctionTag(
+		std::string const& _name,
+		unsigned _inArgs,
+		unsigned _outArgs,
+		std::function<void(CompilerContext&)> const& _generator
+	);
+	/// Generates the code for missing low-level functions, i.e. calls the generators passed above.
+	void appendMissingLowLevelFunctions();
+
 	ModifierDefinition const& functionModifier(std::string const& _name) const;
 	/// Returns the distance of the given local variable from the bottom of the stack (of the current function).
 	unsigned baseStackOffsetOfVariable(Declaration const& _declaration) const;
@@ -110,6 +137,10 @@ public:
 	sof::AssemblyItem appendJumpToNew() { return m_asm->appendJump().tag(); }
 	/// Appends a JUMP to a tag already on the stack
 	CompilerContext&  appendJump(sof::AssemblyItem::JumpType _jumpType = sof::AssemblyItem::JumpType::Ordinary);
+	/// Appends an INVALID instruction
+	CompilerContext&  appendInvalid();
+	/// Appends a conditional INVALID instruction
+	CompilerContext&  appendConditionalInvalid();
 	/// Returns an "ErrorTag"
 	sof::AssemblyItem errorTag() { return m_asm->errorTag(); }
 	/// Appends a JUMP to a specific tag
@@ -248,6 +279,10 @@ private:
 	CompilerContext *m_runtimeContext;
 	/// The index of the runtime subroutine.
 	size_t m_runtimeSub = -1;
+	/// An index of low-level function labels by name.
+	std::map<std::string, sof::AssemblyItem> m_lowLevelFunctions;
+	/// The queue of low-level functions to generate.
+	std::queue<std::tuple<std::string, unsigned, unsigned, std::function<void(CompilerContext&)>>> m_lowLevelFunctionGenerationQueue;
 };
 
 }

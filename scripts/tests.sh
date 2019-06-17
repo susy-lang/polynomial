@@ -30,20 +30,12 @@ set -e
 
 REPO_ROOT="$(dirname "$0")"/..
 
- # Compile all files in std and examples.
+echo "Running commandline tests..."
+"$REPO_ROOT/test/cmdlineTests.sh"
 
-for f in "$REPO_ROOT"/std/*.pol
-do
-    echo "Compiling $f..."
-    set +e
-    output=$("$REPO_ROOT"/build/polc/polc "$f" 2>&1)
-    failed=$?
-    # Remove the pre-release warning from the compiler output
-    output=$(echo "$output" | grep -v 'pre-release')
-    echo "$output"
-    set -e
-    test -z "$output" -a "$failed" -eq 0
-done
+echo "Checking that StandardToken.pol, owned.pol and mortal.pol produce bytecode..."
+output=$("$REPO_ROOT"/build/polc/polc --bin "$REPO_ROOT"/std/*.pol 2>/dev/null | grep "ffff" | wc -l)
+test "$output" = "3"
 
 # This conditional is only needed because we don't have a working Homebrew
 # install for `sof` at the time of writing, so we unzip the ZIP file locally
