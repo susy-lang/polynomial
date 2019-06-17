@@ -14,13 +14,25 @@
 	You should have received a copy of the GNU General Public License
 	along with polynomial.  If not, see <http://www.gnu.org/licenses/>.
 */
-/**
- * Information generated during analyzer part of inline assembly.
+/** @file IpolTestOptions.h
  */
 
-#include <libyul/AsmAnalysisInfo.h>
+#pragma once
 
-#include <libyul/AsmScope.h>
+#include <test/Common.h>
 
-#include <ostream>
+namespace dev
+{
+namespace test
+{
 
+struct IpolTestOptions: CommonOptions
+{
+	bool noColor = false;
+	bool showHelp = false;
+
+	IpolTestOptions(std::string* _editor);
+	bool parse(int _argc, char const* const* _argv) override;
+};
+}
+}

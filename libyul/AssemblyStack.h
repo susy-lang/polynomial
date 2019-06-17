@@ -36,19 +36,15 @@ namespace langutil
 {
 class Scanner;
 }
+
 namespace yul
 {
 class AbstractAssembly;
-}
 
-namespace dev
-{
-namespace polynomial
-{
 
 struct MachineAssemblyObject
 {
-	std::shared_ptr<sof::LinkerObject> bytecode;
+	std::shared_ptr<dev::sof::LinkerObject> bytecode;
 	std::string assembly;
 };
 
@@ -62,7 +58,7 @@ public:
 	enum class Language { Yul, Assembly, StrictAssembly };
 	enum class Machine { SVM, SVM15, eWasm };
 
-	explicit AssemblyStack(SVMVersion _svmVersion = SVMVersion(), Language _language = Language::Assembly):
+	explicit AssemblyStack(langutil::SVMVersion _svmVersion = langutil::SVMVersion(), Language _language = Language::Assembly):
 		m_language(_language), m_svmVersion(_svmVersion), m_errorReporter(m_errors)
 	{}
 
@@ -86,6 +82,9 @@ public:
 	/// Pretty-print the input after having parsed it.
 	std::string print() const;
 
+	/// Return the parsed and analyzed object.
+	std::shared_ptr<Object> parserResult() const;
+
 private:
 	bool analyzeParsed();
 	bool analyzeParsed(yul::Object& _object);
@@ -95,7 +94,7 @@ private:
 	void optimize(yul::Object& _object);
 
 	Language m_language = Language::Assembly;
-	SVMVersion m_svmVersion;
+	langutil::SVMVersion m_svmVersion;
 
 	std::shared_ptr<langutil::Scanner> m_scanner;
 
@@ -105,5 +104,4 @@ private:
 	langutil::ErrorReporter m_errorReporter;
 };
 
-}
 }

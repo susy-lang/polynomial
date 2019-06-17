@@ -1,7 +1,6 @@
 add_library(yul
 	AsmAnalysis.cpp
 	AsmAnalysis.h
-	AsmAnalysisInfo.cpp
 	AsmAnalysisInfo.h
 	AsmData.h
 	AsmDataForward.h
@@ -13,9 +12,10 @@ add_library(yul
 	AsmScope.h
 	AsmScopeFiller.cpp
 	AsmScopeFiller.h
+	AssemblyStack.h
+	AssemblyStack.cpp
 	CompilabilityChecker.cpp
 	CompilabilityChecker.h
-	Dialect.cpp
 	Dialect.h
 	Exceptions.h
 	Object.cpp
@@ -26,6 +26,8 @@ add_library(yul
 	Utilities.h
 	YulString.h
 	backends/svm/AbstractAssembly.h
+	backends/svm/AsmCodeGen.h
+	backends/svm/AsmCodeGen.cpp
 	backends/svm/SVMAssembly.cpp
 	backends/svm/SVMAssembly.h
 	backends/svm/SVMCodeTransform.cpp
@@ -108,5 +110,7 @@ add_library(yul
 	optimiser/UnusedPruner.h
 	optimiser/VarDeclInitializer.cpp
 	optimiser/VarDeclInitializer.h
+	optimiser/VarNameCleaner.cpp
+	optimiser/VarNameCleaner.h
 )
 target_link_libraries(yul PUBLIC svmasm devcore langutil)

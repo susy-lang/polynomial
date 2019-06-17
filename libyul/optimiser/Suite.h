@@ -22,6 +22,7 @@
 
 #include <libyul/AsmDataForward.h>
 #include <libyul/YulString.h>
+#include <liblangutil/SVMVersion.h>
 
 #include <set>
 

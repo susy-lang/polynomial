@@ -18,7 +18,7 @@
  * Adaptor between the abstract assembly and sof assembly.
  */
 
-#include <libpolynomial/codegen/AsmCodeGen.h>
+#include <libyul/backends/svm/AsmCodeGen.h>
 
 #include <libyul/AsmData.h>
 #include <libyul/AsmAnalysisInfo.h>
@@ -41,7 +41,6 @@ using namespace std;
 using namespace dev;
 using namespace langutil;
 using namespace yul;
-using namespace dev::polynomial;
 
 SofAssemblyAdapter::SofAssemblyAdapter(sof::Assembly& _assembly):
 	m_assembly(_assembly)
@@ -178,13 +177,14 @@ void CodeGenerator::assemble(
 	Block const& _parsedData,
 	AsmAnalysisInfo& _analysisInfo,
 	sof::Assembly& _assembly,
+	langutil::SVMVersion _svmVersion,
 	ExternalIdentifierAccess const& _identifierAccess,
 	bool _useNamedLabelsForFunctions,
 	bool _optimize
 )
 {
 	SofAssemblyAdapter assemblyAdapter(_assembly);
-	shared_ptr<SVMDialect> dialect = SVMDialect::strictAssemblyForSVM();
+	shared_ptr<SVMDialect> dialect = SVMDialect::strictAssemblyForSVM(_svmVersion);
 	CodeTransform transform(
 		assemblyAdapter,
 		_analysisInfo,

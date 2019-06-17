@@ -44,17 +44,28 @@ function test_susyknot
     echo "Running $name tests..."
     DIR=$(mktemp -d)
     (
+      cd "$DIR"
+      git clone --depth 1 -b v0.5.0 https://octonion.institute/susy-js/polc-js.git polc
+      POLCVERSION="UNDEFINED"
+
+      cd polc
+      npm install
+      cp "$POLJSON" poljson.js
+      POLCVERSION=$(./polcjs --version)
+      cd ..
+      echo "Using polcjs version $POLCVERSION"
+
       if [ -n "$branch" ]
       then
         echo "Cloning $branch of $repo..."
-        git clone --depth 1 "$repo" -b "$branch" "$DIR"
+        git clone --depth 1 "$repo" -b "$branch" "$DIR/ext"
       else
         echo "Cloning $repo..."
-        git clone --depth 1 "$repo" "$DIR"
+        git clone --depth 1 "$repo" "$DIR/ext"
       fi
-      cd "$DIR"
+      cd ext
       echo "Current commit hash: `git rev-parse HEAD`"
-      npm install
+      npm ci
       # Replace polc package by v0.5.0
       for d in node_modules node_modules/susyknot/node_modules
       do
@@ -64,7 +75,7 @@ function test_susyknot
           cd $d
           rm -rf polc
           git clone --depth 1 -b v0.5.0 https://octonion.institute/susy-js/polc-js.git polc
-          cp "$POLJSON" polc/
+          cp "$POLJSON" polc/poljson.js
         fi
       )
       done
@@ -73,16 +84,16 @@ function test_susyknot
         # Replace fixed-version pragmas in Gnosis (part of Consensys best practice)
         find contracts test -name '*.pol' -type f -print0 | xargs -0 sed -i -e 's/pragma polynomial [\^0-9\.]*/pragma polynomial >=0.0/'
       fi
-      assertpol="node_modules/susyknot/build/Assert.pol"
-      if [ -f "$assertpol" ]
-      then
-        echo "Replace Susyknot's Assert.pol with a known good version"
-        rm "$assertpol"
-        wget https://raw.githubussrcontent.com/susy-knotsuite/susyknot-core/ef31bcaa15dbd9bd0f6a0070a5c63f271cde2dbc/lib/testing/Assert.pol -o "$assertpol"
-      fi
-      # Change "compileStandard" to "compile"
+      # Change "compileStandard" to "compile" (needed for pre-5.x Susyknot)
       sed -i s/polc.compileStandard/polc.compile/ "node_modules/susyknot/build/cli.bundled.js"
+      # Force usage of correct polynomial binary (only works with Susyknot 5.x)
+      cat >> susyknot*.js <<EOF
+module.exports['compilers'] = {polc: {version: "$DIR/polc"} };
+EOF
+
       npx susyknot compile
+      echo "Verify that the correct version ($POLCVERSION) of the compiler was used to compile the contracts..."
+      grep -e "$POLCVERSION" -r build/contracts > /dev/null
       npm run test
     )
     rm -rf "$DIR"
@@ -94,4 +105,6 @@ test_susyknot Zeppelin https://github.com/OpenZeppelin/openzeppelin-polynomial.g
 # Disabled temporarily as it needs to be updated to latest Susyknot first.
 #test_susyknot Gnosis https://github.com/axic/pm-contracts.git polynomial-050
 
-test_susyknot GnosisSafe https://github.com/gnosis/safe-contracts.git development
+# Disabled temporarily because it is incompatible with petersburg SVM and
+# there is no easy way to set the SVM version in susyknot pre 5.0.
+#test_susyknot GnosisSafe https://github.com/gnosis/safe-contracts.git development

@@ -28,7 +28,7 @@ using namespace std;
 using namespace dev;
 using namespace dev::lll;
 
-bytes dev::lll::compileLLL(string const& _src, dev::polynomial::SVMVersion _svmVersion, bool _opt, std::vector<std::string>* _errors, ReadCallback const& _readFile)
+bytes dev::lll::compileLLL(string const& _src, langutil::SVMVersion _svmVersion, bool _opt, std::vector<std::string>* _errors, ReadCallback const& _readFile)
 {
 	try
 	{
@@ -36,7 +36,7 @@ bytes dev::lll::compileLLL(string const& _src, dev::polynomial::SVMVersion _svmV
 		cs.populateStandard();
 		auto assembly = CodeFragment::compile(_src, cs, _readFile).assembly(cs);
 		if (_opt)
-			assembly = assembly.optimise(true, _svmVersion);
+			assembly = assembly.optimise(true, _svmVersion, true, 200);
 		bytes ret = assembly.assemble().bytecode;
 		for (auto i: cs.treesToKill)
 			killBigints(i);
@@ -66,7 +66,7 @@ bytes dev::lll::compileLLL(string const& _src, dev::polynomial::SVMVersion _svmV
 	return bytes();
 }
 
-std::string dev::lll::compileLLLToAsm(std::string const& _src, SVMVersion _svmVersion, bool _opt, std::vector<std::string>* _errors, ReadCallback const& _readFile)
+std::string dev::lll::compileLLLToAsm(std::string const& _src, langutil::SVMVersion _svmVersion, bool _opt, std::vector<std::string>* _errors, ReadCallback const& _readFile)
 {
 	try
 	{
@@ -74,7 +74,7 @@ std::string dev::lll::compileLLLToAsm(std::string const& _src, SVMVersion _svmVe
 		cs.populateStandard();
 		auto assembly = CodeFragment::compile(_src, cs, _readFile).assembly(cs);
 		if (_opt)
-			assembly = assembly.optimise(true, _svmVersion);
+			assembly = assembly.optimise(true, _svmVersion, true, 200);
 		string ret = assembly.assemblyString();
 		for (auto i: cs.treesToKill)
 			killBigints(i);

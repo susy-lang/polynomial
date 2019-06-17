@@ -37,8 +37,8 @@ using namespace yul;
 using namespace dev::polynomial;
 
 
-SVMDialect::SVMDialect(AsmFlavour _flavour, bool _objectAccess):
-	Dialect{_flavour}, m_objectAccess(_objectAccess)
+SVMDialect::SVMDialect(AsmFlavour _flavour, bool _objectAccess, langutil::SVMVersion _svmVersion):
+	Dialect{_flavour}, m_objectAccess(_objectAccess), m_svmVersion(_svmVersion)
 {
 	// The SVM instructions will be moved to builtins at some point.
 	if (!m_objectAccess)
@@ -91,24 +91,24 @@ BuiltinFunctionForSVM const* SVMDialect::builtin(YulString _name) const
 		return nullptr;
 }
 
-shared_ptr<SVMDialect> SVMDialect::looseAssemblyForSVM()
+shared_ptr<SVMDialect> SVMDialect::looseAssemblyForSVM(langutil::SVMVersion _version)
 {
-	return make_shared<SVMDialect>(AsmFlavour::Loose, false);
+	return make_shared<SVMDialect>(AsmFlavour::Loose, false, _version);
 }
 
-shared_ptr<SVMDialect> SVMDialect::strictAssemblyForSVM()
+shared_ptr<SVMDialect> SVMDialect::strictAssemblyForSVM(langutil::SVMVersion _version)
 {
-	return make_shared<SVMDialect>(AsmFlavour::Strict, false);
+	return make_shared<SVMDialect>(AsmFlavour::Strict, false, _version);
 }
 
-shared_ptr<SVMDialect> SVMDialect::strictAssemblyForSVMObjects()
+shared_ptr<SVMDialect> SVMDialect::strictAssemblyForSVMObjects(langutil::SVMVersion _version)
 {
-	return make_shared<SVMDialect>(AsmFlavour::Strict, true);
+	return make_shared<SVMDialect>(AsmFlavour::Strict, true, _version);
 }
 
-shared_ptr<yul::SVMDialect> SVMDialect::yulForSVM()
+shared_ptr<yul::SVMDialect> SVMDialect::yulForSVM(langutil::SVMVersion _version)
 {
-	return make_shared<SVMDialect>(AsmFlavour::Yul, false);
+	return make_shared<SVMDialect>(AsmFlavour::Yul, false, _version);
 }
 
 void SVMDialect::setSubIDs(map<YulString, AbstractAssembly::SubID> _subIDs)

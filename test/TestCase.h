@@ -30,11 +30,25 @@ namespace polynomial
 namespace test
 {
 
+#define poltestAssert(CONDITION, DESCRIPTION) \
+	do \
+	{ \
+		if (!(CONDITION)) \
+			BOOST_THROW_EXCEPTION(runtime_error(DESCRIPTION)); \
+	} \
+	while (false)
+
 /** Common supsrclass of SyntaxTest and SemanticsTest. */
 class TestCase
 {
 public:
-	using TestCaseCreator = std::unique_ptr<TestCase>(*)(std::string const&);
+	struct Config
+	{
+		std::string filename;
+		std::string ipcPath;
+	};
+
+	using TestCaseCreator = std::unique_ptr<TestCase>(*)(Config const&);
 
 	virtual ~TestCase() = default;
 

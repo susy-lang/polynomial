@@ -47,24 +47,24 @@ namespace GasCosts
 	static unsigned const tier5Gas = 10;
 	static unsigned const tier6Gas = 20;
 	static unsigned const tier7Gas = 0;
-	inline unsigned extCodeGas(SVMVersion _svmVersion)
+	inline unsigned extCodeGas(langutil::SVMVersion _svmVersion)
 	{
-		return _svmVersion >= SVMVersion::tangerineWhistle() ? 700 : 20;
+		return _svmVersion >= langutil::SVMVersion::tangerineWhistle() ? 700 : 20;
 	}
-	inline unsigned balanceGas(SVMVersion _svmVersion)
+	inline unsigned balanceGas(langutil::SVMVersion _svmVersion)
 	{
-		return _svmVersion >= SVMVersion::tangerineWhistle() ? 400 : 20;
+		return _svmVersion >= langutil::SVMVersion::tangerineWhistle() ? 400 : 20;
 	}
 	static unsigned const expGas = 10;
-	inline unsigned expByteGas(SVMVersion _svmVersion)
+	inline unsigned expByteGas(langutil::SVMVersion _svmVersion)
 	{
-		return _svmVersion >= SVMVersion::spuriousDragon() ? 50 : 10;
+		return _svmVersion >= langutil::SVMVersion::spuriousDragon() ? 50 : 10;
 	}
 	static unsigned const keccak256Gas = 30;
 	static unsigned const keccak256WordGas = 6;
-	inline unsigned sloadGas(SVMVersion _svmVersion)
+	inline unsigned sloadGas(langutil::SVMVersion _svmVersion)
 	{
-		return _svmVersion >= SVMVersion::tangerineWhistle() ? 200 : 50;
+		return _svmVersion >= langutil::SVMVersion::tangerineWhistle() ? 200 : 50;
 	}
 	static unsigned const sstoreSetGas = 20000;
 	static unsigned const sstoreResetGas = 5000;
@@ -74,16 +74,16 @@ namespace GasCosts
 	static unsigned const logDataGas = 8;
 	static unsigned const logTopicGas = 375;
 	static unsigned const createGas = 32000;
-	inline unsigned callGas(SVMVersion _svmVersion)
+	inline unsigned callGas(langutil::SVMVersion _svmVersion)
 	{
-		return _svmVersion >= SVMVersion::tangerineWhistle() ? 700 : 40;
+		return _svmVersion >= langutil::SVMVersion::tangerineWhistle() ? 700 : 40;
 	}
 	static unsigned const callStipend = 2300;
 	static unsigned const callValueTransferGas = 9000;
 	static unsigned const callNewAccountGas = 25000;
-	inline unsigned selfdestructGas(SVMVersion _svmVersion)
+	inline unsigned selfdestructGas(langutil::SVMVersion _svmVersion)
 	{
-		return _svmVersion >= SVMVersion::tangerineWhistle() ? 5000 : 0;
+		return _svmVersion >= langutil::SVMVersion::tangerineWhistle() ? 5000 : 0;
 	}
 	static unsigned const selfdestructRefundGas = 24000;
 	static unsigned const memoryGas = 3;
@@ -122,7 +122,7 @@ public:
 	};
 
 	/// Constructs a new gas meter given the current state.
-	GasMeter(std::shared_ptr<KnownState> const& _state, polynomial::SVMVersion _svmVersion, u256 const& _largestMemoryAccess = 0):
+	GasMeter(std::shared_ptr<KnownState> const& _state, langutil::SVMVersion _svmVersion, u256 const& _largestMemoryAccess = 0):
 		m_state(_state), m_svmVersion(_svmVersion), m_largestMemoryAccess(_largestMemoryAccess) {}
 
 	/// @returns an upper bound on the gas consumed by the given instruction and updates
@@ -152,7 +152,7 @@ private:
 	GasConsumption memoryGas(int _stackPosOffset, int _stackPosSize);
 
 	std::shared_ptr<KnownState> m_state;
-	SVMVersion m_svmVersion;
+	langutil::SVMVersion m_svmVersion;
 	/// Largest point where memory was accessed since the creation of this object.
 	u256 m_largestMemoryAccess;
 };

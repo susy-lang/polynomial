@@ -70,13 +70,19 @@ BOOST_AUTO_TEST_CASE(string_storage)
 
 	if (Options::get().svmVersion() <= SVMVersion::byzantium())
 		CHECK_GAS(134435, 130591, 100);
+	// This is only correct on >=Constantinople.
+	else if (Options::get().useABIEncoderV2)
+		CHECK_GAS(151819, 136003, 100);
 	else
-		CHECK_GAS(127225, 124873, 100);
+		CHECK_GAS(127225, 120159, 100);
 	if (Options::get().svmVersion() >= SVMVersion::byzantium())
 	{
 		callContractFunction("f()");
 		if (Options::get().svmVersion() == SVMVersion::byzantium())
 			CHECK_GAS(21551, 21526, 20);
+		// This is only correct on >=Constantinople.
+		else if (Options::get().useABIEncoderV2)
+			CHECK_GAS(21713, 21635, 20);
 		else
 			CHECK_GAS(21546, 21526, 20);
 	}

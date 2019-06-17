@@ -52,12 +52,14 @@ bool AsmAnalyzer::analyze(Block const& _block)
 	if (!(ScopeFiller(m_info, m_errorReporter))(_block))
 		return false;
 
-	return (*this)(_block);
+	bool success = (*this)(_block);
+	if (!success)
+		polAssert(m_errorReporter.hasErrors(), "No success but no error.");
+	return success && !m_errorReporter.hasErrors();
 }
 
 AsmAnalysisInfo AsmAnalyzer::analyzeStrictAssertCorrect(
 	shared_ptr<Dialect> _dialect,
-	SVMVersion _svmVersion,
 	Block const& _ast
 )
 {
@@ -67,7 +69,6 @@ AsmAnalysisInfo AsmAnalyzer::analyzeStrictAssertCorrect(
 	bool success = yul::AsmAnalyzer(
 		analysisInfo,
 		errors,
-		_svmVersion,
 		Error::Type::SyntaxError,
 		_dialect
 	).analyze(_ast);
@@ -638,59 +639,67 @@ void AsmAnalyzer::warnOnInstructions(polynomial::Instruction _instr, SourceLocat
 	polAssert(m_svmVersion.supportsReturndata() == m_svmVersion.hasStaticCall(), "");
 	// Similarly we assume bitwise shifting and create2 go together.
 	polAssert(m_svmVersion.hasBitwiseShifting() == m_svmVersion.hasCreate2(), "");
+	polAssert(m_dialect->flavour != AsmFlavour::Yul, "");
 
-	if (_instr == polynomial::Instruction::EXTCODEHASH)
-		m_errorReporter.warning(
+	auto errorForVM = [=](string const& vmKindMessage) {
+		m_errorReporter.typeError(
 			_location,
 			"The \"" +
 			boost::to_lower_copy(instructionInfo(_instr).name)
-			+ "\" instruction is not supported by the VM version \"" +
-			"" + m_svmVersion.name() +
-			"\" you are currently compiling for. " +
-			"It will be interpreted as an invalid instruction on this VM."
-		);
-	else if ((
-		_instr == polynomial::Instruction::RETURNDATACOPY ||
-		_instr == polynomial::Instruction::RETURNDATASIZE ||
-		_instr == polynomial::Instruction::STATICCALL
-	) && !m_svmVersion.supportsReturndata())
-		m_errorReporter.warning(
-			_location,
-			"The \"" +
-			boost::to_lower_copy(instructionInfo(_instr).name)
-			+ "\" instruction is only available for Byzantium-compatible VMs. " +
-			"You are currently compiling for \"" +
+			+ "\" instruction is " +
+			vmKindMessage +
+			" VMs " +
+			" (you are currently compiling for \"" +
 			m_svmVersion.name() +
-			"\", where it will be interpreted as an invalid instruction."
+			"\")."
 		);
+	};
+
+	if ((
+		_instr == polynomial::Instruction::RETURNDATACOPY ||
+		_instr == polynomial::Instruction::RETURNDATASIZE
+	) && !m_svmVersion.supportsReturndata())
+	{
+		errorForVM("only available for Byzantium-compatible");
+	}
+	else if (_instr == polynomial::Instruction::STATICCALL && !m_svmVersion.hasStaticCall())
+	{
+		errorForVM("only available for Byzantium-compatible");
+	}
 	else if ((
 		_instr == polynomial::Instruction::SHL ||
 		_instr == polynomial::Instruction::SHR ||
-		_instr == polynomial::Instruction::SAR ||
-		_instr == polynomial::Instruction::CREATE2
+		_instr == polynomial::Instruction::SAR
 	) && !m_svmVersion.hasBitwiseShifting())
-		m_errorReporter.warning(
-			_location,
-			"The \"" +
-			boost::to_lower_copy(instructionInfo(_instr).name)
-			+ "\" instruction is only available for Constantinople-compatible VMs. " +
-			"You are currently compiling for \"" +
-			m_svmVersion.name() +
-			"\", where it will be interpreted as an invalid instruction."
-		);
-
-	if (_instr == polynomial::Instruction::JUMP || _instr == polynomial::Instruction::JUMPI || _instr == polynomial::Instruction::JUMPDEST)
 	{
-		if (m_dialect->flavour != AsmFlavour::Loose)
-			polAssert(m_errorTypeForLoose && *m_errorTypeForLoose != Error::Type::Warning, "");
-
-		m_errorReporter.error(
-			m_errorTypeForLoose ? *m_errorTypeForLoose : Error::Type::Warning,
-			_location,
-			"Jump instructions and labels are low-level SVM features that can lead to "
-			"incorrect stack access. Because of that they are discouraged. "
-			"Please consider using \"switch\", \"if\" or \"for\" statements instead."
-		);
+		errorForVM("only available for Constantinople-compatible");
+	}
+	else if (_instr == polynomial::Instruction::CREATE2 && !m_svmVersion.hasCreate2())
+	{
+		errorForVM("only available for Constantinople-compatible");
+	}
+	else if (_instr == polynomial::Instruction::EXTCODEHASH && !m_svmVersion.hasExtCodeHash())
+	{
+		errorForVM("only available for Constantinople-compatible");
+	}
+	else if (_instr == polynomial::Instruction::JUMP || _instr == polynomial::Instruction::JUMPI || _instr == polynomial::Instruction::JUMPDEST)
+	{
+		if (m_dialect->flavour == AsmFlavour::Loose)
+			m_errorReporter.error(
+				m_errorTypeForLoose ? *m_errorTypeForLoose : Error::Type::Warning,
+				_location,
+				"Jump instructions and labels are low-level SVM features that can lead to "
+				"incorrect stack access. Because of that they are discouraged. "
+				"Please consider using \"switch\", \"if\" or \"for\" statements instead."
+			);
+		else
+			m_errorReporter.error(
+				Error::Type::SyntaxError,
+				_location,
+				"Jump instructions and labels are low-level SVM features that can lead to "
+				"incorrect stack access. Because of that they are disallowed in strict assembly. "
+				"Use functions, \"switch\", \"if\" or \"for\" statements instead."
+			);
 	}
 }
 

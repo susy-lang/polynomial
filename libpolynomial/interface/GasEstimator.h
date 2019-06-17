@@ -47,7 +47,7 @@ public:
 	using ASTGasConsumptionSelfAccumulated =
 		std::map<ASTNode const*, std::array<GasConsumption, 2>>;
 
-	explicit GasEstimator(SVMVersion _svmVersion): m_svmVersion(_svmVersion) {}
+	explicit GasEstimator(langutil::SVMVersion _svmVersion): m_svmVersion(_svmVersion) {}
 
 	/// Estimates the gas consumption for every assembly item in the given assembly and stores
 	/// it by source location.
@@ -84,7 +84,7 @@ public:
 private:
 	/// @returns the set of AST nodes which are the finest nodes at their location.
 	static std::set<ASTNode const*> finestNodesAtLocation(std::vector<ASTNode const*> const& _roots);
-	SVMVersion m_svmVersion;
+	langutil::SVMVersion m_svmVersion;
 };
 
 }

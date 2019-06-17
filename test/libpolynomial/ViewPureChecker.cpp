@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE(assembly_staticcall)
 		}
 	)";
 	if (!dev::test::Options::get().svmVersion().hasStaticCall())
-		CHECK_WARNING(text, "\"staticcall\" instruction is only available for Byzantium-compatible");
+		CHECK_ERROR(text, TypeError, "\"staticcall\" instruction is only available for Byzantium-compatible");
 	else
 		CHECK_SUCCESS_NO_WARNINGS(text);
 }

@@ -14,16 +14,18 @@
 	You should have received a copy of the GNU General Public License
 	along with polynomial.  If not, see <http://www.gnu.org/licenses/>.
 */
-/**
- * Yul dialect.
- */
+#include <test/tools/yulInterpreter/Interpreter.h>
 
-#include <libyul/Dialect.h>
-
-#include <libyul/Object.h>
-#include <libyul/backends/svm/AbstractAssembly.h>
-
-#include <map>
-
-using namespace yul;
-using namespace std;
+namespace yul
+{
+namespace test
+{
+namespace yul_fuzzer
+{
+struct yulFuzzerUtil
+{
+	static void interpret(std::ostream& _os, std::shared_ptr<yul::Block> _ast);
+};
+}
+}
+}

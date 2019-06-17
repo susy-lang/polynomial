@@ -27,7 +27,7 @@ using namespace std;
 using namespace dev;
 using namespace dev::sof;
 
-PathGasMeter::PathGasMeter(AssemblyItems const& _items, polynomial::SVMVersion _svmVersion):
+PathGasMeter::PathGasMeter(AssemblyItems const& _items, langutil::SVMVersion _svmVersion):
 	m_items(_items), m_svmVersion(_svmVersion)
 {
 	for (size_t i = 0; i < m_items.size(); ++i)

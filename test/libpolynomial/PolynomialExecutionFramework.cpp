@@ -28,7 +28,12 @@ using namespace dev::test;
 using namespace dev::polynomial;
 using namespace dev::polynomial::test;
 
-PolynomialExecutionFramework::PolynomialExecutionFramework() :
+PolynomialExecutionFramework::PolynomialExecutionFramework():
 	ExecutionFramework()
+{
+}
+
+PolynomialExecutionFramework::PolynomialExecutionFramework(std::string const& _ipcPath):
+	ExecutionFramework(_ipcPath)
 {
 }

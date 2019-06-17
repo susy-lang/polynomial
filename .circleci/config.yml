@@ -56,10 +56,10 @@ jobs:
           paths:
             - boost_1_68_0
       - store_artifacts:
-          path: build/libpolc/poljson.js
+          path: emscripten_build/libpolc/poljson.js
           destination: poljson.js
       - run: mkdir -p workspace
-      - run: cp build/libpolc/poljson.js workspace/poljson.js
+      - run: cp emscripten_build/libpolc/poljson.js workspace/poljson.js
       - run: scripts/get_version.sh > workspace/version.txt
       - persist_to_workspace:
           root: workspace
@@ -202,8 +202,6 @@ jobs:
       - run:
           name: Install build dependencies
           command: |
-            brew update
-            brew upgrade
             brew unlink python
             brew install z3
             brew install boost
@@ -353,8 +351,6 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            brew update
-            brew upgrade
             brew unlink python
             brew install z3
       - run: mkdir -p test_results

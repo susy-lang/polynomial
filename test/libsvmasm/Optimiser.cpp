@@ -1053,7 +1053,7 @@ BOOST_AUTO_TEST_CASE(jumpdest_removal_subassemblies)
 	main.append(t1.toSubAssemblyTag(subId));
 	main.append(u256(8));
 
-	main.optimise(true, dev::test::Options::get().svmVersion());
+	main.optimise(true, dev::test::Options::get().svmVersion(), false, 200);
 
 	AssemblyItems expectationMain{
 		AssemblyItem(PushSubSize, 0),

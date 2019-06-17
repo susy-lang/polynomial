@@ -20,15 +20,10 @@
 
 #pragma once
 
-#include <libyul/AsmAnalysis.h>
 #include <libyul/backends/svm/AbstractAssembly.h>
+#include <libyul/AsmAnalysis.h>
 #include <liblangutil/SourceLocation.h>
 #include <functional>
-
-namespace yul
-{
-struct Block;
-}
 
 namespace dev
 {
@@ -37,18 +32,20 @@ namespace sof
 class Assembly;
 class AssemblyItem;
 }
+}
 
-namespace polynomial
+namespace yul
 {
+struct Block;
 
-class SofAssemblyAdapter: public yul::AbstractAssembly
+class SofAssemblyAdapter: public AbstractAssembly
 {
 public:
-	explicit SofAssemblyAdapter(sof::Assembly& _assembly);
+	explicit SofAssemblyAdapter(dev::sof::Assembly& _assembly);
 	void setSourceLocation(langutil::SourceLocation const& _location) override;
 	int stackHeight() const override;
-	void appendInstruction(polynomial::Instruction _instruction) override;
-	void appendConstant(u256 const& _constant) override;
+	void appendInstruction(dev::polynomial::Instruction _instruction) override;
+	void appendConstant(dev::u256 const& _constant) override;
 	void appendLabel(LabelID _labelId) override;
 	void appendLabelReference(LabelID _labelId) override;
 	size_t newLabelId() override;
@@ -67,9 +64,9 @@ public:
 	SubID appendData(dev::bytes const& _data) override;
 
 private:
-	static LabelID assemblyTagToIdentifier(sof::AssemblyItem const& _tag);
+	static LabelID assemblyTagToIdentifier(dev::sof::AssemblyItem const& _tag);
 
-	sof::Assembly& m_assembly;
+	dev::sof::Assembly& m_assembly;
 	std::map<SubID, dev::u256> m_dataHashBySubId;
 	size_t m_nextDataCounter = std::numeric_limits<size_t>::max() / 2;
 };
@@ -79,14 +76,14 @@ class CodeGenerator
 public:
 	/// Performs code generation and appends generated to _assembly.
 	static void assemble(
-		yul::Block const& _parsedData,
-		yul::AsmAnalysisInfo& _analysisInfo,
+		Block const& _parsedData,
+		AsmAnalysisInfo& _analysisInfo,
 		dev::sof::Assembly& _assembly,
-		yul::ExternalIdentifierAccess const& _identifierAccess = yul::ExternalIdentifierAccess(),
+		langutil::SVMVersion _svmVersion,
+		ExternalIdentifierAccess const& _identifierAccess = ExternalIdentifierAccess(),
 		bool _useNamedLabelsForFunctions = false,
 		bool _optimize = false
 	);
 };
 
-}
 }

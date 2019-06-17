@@ -1,18 +1,18 @@
 /*
-    This file is part of polynomial.
+	This file is part of polynomial.
 
-    polynomial is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	polynomial is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    polynomial is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MSRCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	polynomial is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MSRCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with polynomial.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with polynomial.  If not, see <http://www.gnu.org/licenses/>.
 */
 /**
  * @author Christian <c@sofdev.com>
@@ -42,13 +42,13 @@ struct UnimplementedFeatureError: virtual dev::Exception {};
 
 /// Assertion that throws an InternalCompilerError containing the given description if it is not met.
 #define polAssert(CONDITION, DESCRIPTION) \
-        assertThrow(CONDITION, ::langutil::InternalCompilerError, DESCRIPTION)
+	assertThrow(CONDITION, ::langutil::InternalCompilerError, DESCRIPTION)
 
 #define polUnimplementedAssert(CONDITION, DESCRIPTION) \
-        assertThrow(CONDITION, ::langutil::UnimplementedFeatureError, DESCRIPTION)
+	assertThrow(CONDITION, ::langutil::UnimplementedFeatureError, DESCRIPTION)
 
 #define polUnimplemented(DESCRIPTION) \
-        polUnimplementedAssert(false, DESCRIPTION)
+	polUnimplementedAssert(false, DESCRIPTION)
 
 class Error: virtual public dev::Exception
 {

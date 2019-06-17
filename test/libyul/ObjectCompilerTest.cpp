@@ -19,7 +19,7 @@
 
 #include <libdevcore/AnsiColorized.h>
 
-#include <libpolynomial/interface/AssemblyStack.h>
+#include <libyul/AssemblyStack.h>
 
 #include <libsvmasm/Instruction.h>
 

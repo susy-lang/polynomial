@@ -20,13 +20,11 @@
 
 #include <test/Options.h>
 
-#include <libpolynomial/interface/AssemblyStack.h>
+#include <libyul/AssemblyStack.h>
 #include <libsvmasm/Instruction.h>
 
 using namespace std;
 
-namespace dev
-{
 namespace yul
 {
 namespace test
@@ -36,9 +34,9 @@ namespace
 {
 string assemble(string const& _input)
 {
-	polynomial::AssemblyStack asmStack;
+	AssemblyStack asmStack;
 	BOOST_REQUIRE_MESSAGE(asmStack.parseAndAnalyze("", _input), "Source did not parse: " + _input);
-	return polynomial::disassemble(asmStack.assemble(polynomial::AssemblyStack::Machine::SVM, true).bytecode->bytecode);
+	return dev::polynomial::disassemble(asmStack.assemble(AssemblyStack::Machine::SVM, true).bytecode->bytecode);
 }
 }
 
@@ -348,6 +346,5 @@ BOOST_AUTO_TEST_CASE(reuse_slots_function_with_gaps)
 
 BOOST_AUTO_TEST_SUITE_END()
 
-}
 }
 }

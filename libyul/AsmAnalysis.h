@@ -28,6 +28,7 @@
 #include <libyul/AsmDataForward.h>
 
 #include <libyul/backends/svm/AbstractAssembly.h>
+#include <libyul/backends/svm/SVMDialect.h>
 
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
@@ -57,7 +58,6 @@ public:
 	explicit AsmAnalyzer(
 		AsmAnalysisInfo& _analysisInfo,
 		langutil::ErrorReporter& _errorReporter,
-		dev::polynomial::SVMVersion _svmVersion,
 		boost::optional<langutil::Error::Type> _errorTypeForLoose,
 		std::shared_ptr<Dialect> _dialect,
 		ExternalIdentifierAccess::Resolver const& _resolver = ExternalIdentifierAccess::Resolver()
@@ -65,16 +65,17 @@ public:
 		m_resolver(_resolver),
 		m_info(_analysisInfo),
 		m_errorReporter(_errorReporter),
-		m_svmVersion(_svmVersion),
 		m_dialect(std::move(_dialect)),
 		m_errorTypeForLoose(_errorTypeForLoose)
-	{}
+	{
+		if (SVMDialect const* svmDialect = dynamic_cast<SVMDialect const*>(m_dialect.get()))
+			m_svmVersion = svmDialect->svmVersion();
+	}
 
 	bool analyze(Block const& _block);
 
 	static AsmAnalysisInfo analyzeStrictAssertCorrect(
 		std::shared_ptr<Dialect> _dialect,
-		dev::polynomial::SVMVersion _svmVersion,
 		Block const& _ast
 	);
 
@@ -120,7 +121,7 @@ private:
 	std::set<Scope::Variable const*> m_activeVariables;
 	AsmAnalysisInfo& m_info;
 	langutil::ErrorReporter& m_errorReporter;
-	dev::polynomial::SVMVersion m_svmVersion;
+	langutil::SVMVersion m_svmVersion;
 	std::shared_ptr<Dialect> m_dialect;
 	boost::optional<langutil::Error::Type> m_errorTypeForLoose;
 };

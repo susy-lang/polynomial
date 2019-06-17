@@ -30,7 +30,7 @@ add_executable(poltest ${sources} ${headers}
     ${libpolynomial_sources} ${libpolynomial_headers}
     ${libpolynomial_util_sources} ${libpolynomial_util_headers}
 )
-target_link_libraries(poltest PRIVATE libpolc yul polynomial svmasm devcore ${Boost_UNIT_TEST_FRAMEWORK_LIBRARIES})
+target_link_libraries(poltest PRIVATE libpolc yul polynomial yulInterpreter svmasm devcore ${Boost_PROGRAM_OPTIONS_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARIES})
 
 if (LLL)
     target_link_libraries(poltest PRIVATE lll)

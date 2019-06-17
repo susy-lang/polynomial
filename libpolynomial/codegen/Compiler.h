@@ -23,6 +23,7 @@
 #pragma once
 
 #include <libpolynomial/codegen/CompilerContext.h>
+#include <libpolynomial/interface/OptimiserSettings.h>
 #include <liblangutil/SVMVersion.h>
 #include <libsvmasm/Assembly.h>
 #include <functional>
@@ -34,9 +35,8 @@ namespace polynomial {
 class Compiler
 {
 public:
-	explicit Compiler(SVMVersion _svmVersion = SVMVersion{}, bool _optimize = false, unsigned _runs = 200):
-		m_optimize(_optimize),
-		m_optimizeRuns(_runs),
+	explicit Compiler(langutil::SVMVersion _svmVersion, OptimiserSettings _optimiserSettings):
+		m_optimiserSettings(std::move(_optimiserSettings)),
 		m_runtimeContext(_svmVersion),
 		m_context(_svmVersion, &m_runtimeContext)
 	{ }
@@ -78,8 +78,7 @@ public:
 	sof::AssemblyItem functionEntryLabel(FunctionDefinition const& _function) const;
 
 private:
-	bool const m_optimize;
-	unsigned const m_optimizeRuns;
+	OptimiserSettings const m_optimiserSettings;
 	CompilerContext m_runtimeContext;
 	size_t m_runtimeSub = size_t(-1); ///< Identifier of the runtime sub-assembly, if present.
 	CompilerContext m_context;

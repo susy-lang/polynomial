@@ -22,6 +22,8 @@
 
 #include <libyul/backends/svm/AbstractAssembly.h>
 
+#include <libyul/backends/svm/SVMDialect.h>
+
 #include <libsvmasm/LinkerObject.h>
 
 #include <map>
@@ -33,6 +35,7 @@ struct SourceLocation;
 
 namespace yul
 {
+
 
 /**
  * Assembly class that just ignores everything and only performs stack counting.
@@ -71,5 +74,15 @@ private:
 	bool m_svm15 = false; ///< if true, switch to svm1.5 mode
 	int m_stackHeight = 0;
 };
+
+
+/**
+ * SVM dialect that does not generate any code.
+ */
+struct NoOutputSVMDialect: public SVMDialect
+{
+	explicit NoOutputSVMDialect(std::shared_ptr<SVMDialect> const& _copyFrom);
+};
+
 
 }

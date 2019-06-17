@@ -40,13 +40,15 @@ std::map<YulString, int> CompilabilityChecker::run(std::shared_ptr<Dialect> _dia
 
 	polAssert(_dialect->flavour == AsmFlavour::Strict, "");
 
-	SVMDialect const& svmDialect = dynamic_cast<SVMDialect const&>(*_dialect);
+	polAssert(dynamic_cast<SVMDialect const*>(_dialect.get()), "");
+	shared_ptr<NoOutputSVMDialect> noOutputDialect = make_shared<NoOutputSVMDialect>(dynamic_pointer_cast<SVMDialect>(_dialect));
 
 	bool optimize = true;
 	yul::AsmAnalysisInfo analysisInfo =
-		yul::AsmAnalyzer::analyzeStrictAssertCorrect(_dialect, SVMVersion(), _ast);
+		yul::AsmAnalyzer::analyzeStrictAssertCorrect(noOutputDialect, _ast);
+
 	NoOutputAssembly assembly;
-	CodeTransform transform(assembly, analysisInfo, _ast, svmDialect, optimize);
+	CodeTransform transform(assembly, analysisInfo, _ast, *noOutputDialect, optimize);
 	try
 	{
 		transform(_ast);

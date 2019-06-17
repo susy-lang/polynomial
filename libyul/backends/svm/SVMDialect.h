@@ -23,6 +23,7 @@
 #include <libyul/Dialect.h>
 
 #include <libyul/backends/svm/AbstractAssembly.h>
+#include <liblangutil/SVMVersion.h>
 
 #include <map>
 
@@ -49,15 +50,17 @@ struct BuiltinFunctionForSVM: BuiltinFunction
  */
 struct SVMDialect: public Dialect
 {
-	SVMDialect(AsmFlavour _flavour, bool _objectAccess);
+	SVMDialect(AsmFlavour _flavour, bool _objectAccess, langutil::SVMVersion _svmVersion);
 
 	/// @returns the builtin function of the given name or a nullptr if it is not a builtin function.
 	BuiltinFunctionForSVM const* builtin(YulString _name) const override;
 
-	static std::shared_ptr<SVMDialect> looseAssemblyForSVM();
-	static std::shared_ptr<SVMDialect> strictAssemblyForSVM();
-	static std::shared_ptr<SVMDialect> strictAssemblyForSVMObjects();
-	static std::shared_ptr<SVMDialect> yulForSVM();
+	static std::shared_ptr<SVMDialect> looseAssemblyForSVM(langutil::SVMVersion _version);
+	static std::shared_ptr<SVMDialect> strictAssemblyForSVM(langutil::SVMVersion _version);
+	static std::shared_ptr<SVMDialect> strictAssemblyForSVMObjects(langutil::SVMVersion _version);
+	static std::shared_ptr<SVMDialect> yulForSVM(langutil::SVMVersion _version);
+
+	langutil::SVMVersion svmVersion() const { return m_svmVersion; }
 
 	bool providesObjectAccess() const { return m_objectAccess; }
 
@@ -66,7 +69,7 @@ struct SVMDialect: public Dialect
 	/// Sets the current object. Used during code generation.
 	void setCurrentObject(Object const* _object);
 
-private:
+protected:
 	void addFunction(
 		std::string _name,
 		size_t _params,
@@ -77,6 +80,7 @@ private:
 	);
 
 	bool m_objectAccess;
+	langutil::SVMVersion m_svmVersion;
 	Object const* m_currentObject = nullptr;
 	/// Mapping from named objects to abstract assembly sub IDs.
 	std::map<YulString, AbstractAssembly::SubID> m_subIDs;

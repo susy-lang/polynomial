@@ -22,7 +22,7 @@
 #pragma once
 
 #include <libpolynomial/interface/CompilerStack.h>
-#include <libpolynomial/interface/AssemblyStack.h>
+#include <libyul/AssemblyStack.h>
 #include <liblangutil/SVMVersion.h>
 
 #include <boost/program_options.hpp>
@@ -57,7 +57,7 @@ private:
 	/// @returns the full object with library placeholder hints in hex.
 	static std::string objectWithLinkRefsHex(sof::LinkerObject const& _obj);
 
-	bool assemble(AssemblyStack::Language _language, AssemblyStack::Machine _targetMachine, bool _optimize);
+	bool assemble(yul::AssemblyStack::Language _language, yul::AssemblyStack::Machine _targetMachine, bool _optimize);
 
 	void outputCompilationResults();
 
@@ -108,7 +108,7 @@ private:
 	/// Polynomial compiler stack
 	std::unique_ptr<dev::polynomial::CompilerStack> m_compiler;
 	/// SVM version to use
-	SVMVersion m_svmVersion;
+	langutil::SVMVersion m_svmVersion;
 	/// whether or not to colorize diagnostics output.
 	bool m_coloredOutput = true;
 };

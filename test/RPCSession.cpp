@@ -137,11 +137,18 @@ string IPCSocket::sendRequest(string const& _req)
 #endif
 }
 
-RPCSession& RPCSession::instance(const string& _path)
+RPCSession& RPCSession::instance(string const& _path)
 {
-	static RPCSession session(_path);
-	BOOST_REQUIRE_EQUAL(session.m_ipcSocket.path(), _path);
-	return session;
+	try
+	{
+		static RPCSession session(_path);
+		BOOST_REQUIRE_EQUAL(session.m_ipcSocket.path(), _path);
+		return session;
+	}
+	catch (std::exception const&)
+	{
+		BOOST_THROW_EXCEPTION(std::runtime_error("Error creating RPC session for socket: " + _path));
+	}
 }
 
 string RPCSession::sof_getCode(string const& _address, string const& _blockNumber)
@@ -230,17 +237,19 @@ string RPCSession::personal_newAccount(string const& _password)
 void RPCSession::test_setChainParams(vector<string> const& _accounts)
 {
 	string forks;
-	if (test::Options::get().svmVersion() >= polynomial::SVMVersion::tangerineWhistle())
+	if (test::Options::get().svmVersion() >= langutil::SVMVersion::tangerineWhistle())
 		forks += "\"SIP150ForkBlock\": \"0x00\",\n";
-	if (test::Options::get().svmVersion() >= polynomial::SVMVersion::spuriousDragon())
+	if (test::Options::get().svmVersion() >= langutil::SVMVersion::spuriousDragon())
 		forks += "\"SIP158ForkBlock\": \"0x00\",\n";
-	if (test::Options::get().svmVersion() >= polynomial::SVMVersion::byzantium())
+	if (test::Options::get().svmVersion() >= langutil::SVMVersion::byzantium())
 	{
 		forks += "\"byzantiumForkBlock\": \"0x00\",\n";
 		m_receiptHasStatusField = true;
 	}
-	if (test::Options::get().svmVersion() >= polynomial::SVMVersion::constantinople())
+	if (test::Options::get().svmVersion() >= langutil::SVMVersion::constantinople())
 		forks += "\"constantinopleForkBlock\": \"0x00\",\n";
+	if (test::Options::get().svmVersion() >= langutil::SVMVersion::petersburg())
+		forks += "\"constantinopleFixForkBlock\": \"0x00\",\n";
 	static string const c_configString = R"(
 	{
 		"sealEngine": "NoProof",
@@ -358,7 +367,7 @@ string const& RPCSession::accountCreateIfNotExists(size_t _id)
 	return m_accounts[_id];
 }
 
-RPCSession::RPCSession(const string& _path):
+RPCSession::RPCSession(string const& _path):
 	m_ipcSocket(_path)
 {
 	accountCreate();

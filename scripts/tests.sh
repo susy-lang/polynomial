@@ -132,8 +132,8 @@ function download_alsof()
     else
         mkdir -p /tmp/test
         # Any time the hash is updated here, the "Running compiler tests" section should also be updated.
-        ALSOF_HASH="8ce2f00539d2fd8b5f093d854c6999424f7494ff"
-        ALSOF_VERSION=1.5.0-alpha.7
+        ALSOF_HASH="a6a9884bf3e5d8b3e01b55d4f6e9fe6dce5b5db7"
+        ALSOF_VERSION=1.5.2
         wget -q -O /tmp/test/alsof.tar.gz https://octonion.institute/susy-cpp/alsof/releases/download/v${ALSOF_VERSION}/alsof-${ALSOF_VERSION}-linux-x86_64.tar.gz
         test "$(shasum /tmp/test/alsof.tar.gz)" = "$ALSOF_HASH  /tmp/test/alsof.tar.gz"
         tar -xf /tmp/test/alsof.tar.gz -C /tmp/test
@@ -181,7 +181,7 @@ SVM_VERSIONS="homestead byzantium"
 
 if [ "$CIRCLECI" ] || [ -z "$CI" ]
 then
-SVM_VERSIONS+=" constantinople"
+SVM_VERSIONS+=" constantinople petersburg"
 fi
 
 # And then run the Polynomial unit-tests in the matrix combination of optimizer / no optimizer
@@ -190,18 +190,33 @@ for optimize in "" "--optimize"
 do
   for vm in $SVM_VERSIONS
   do
-    printTask "--> Running tests using "$optimize" --svm-version "$vm"..."
-    log=""
-    if [ -n "$log_directory" ]
+    FORCE_ABIV2_RUNS="no"
+    if [[ "$vm" == "constantinople" ]]
     then
-      if [ -n "$optimize" ]
-      then
-        log=--logger=JUNIT,test_suite,$log_directory/opt_$vm.xml $testargs
-      else
-        log=--logger=JUNIT,test_suite,$log_directory/noopt_$vm.xml $testargs_no_opt
-      fi
+      FORCE_ABIV2_RUNS="no yes" # run both in constantinople
     fi
-    "$REPO_ROOT"/build/test/poltest $progress $log -- --testpath "$REPO_ROOT"/test "$optimize" --svm-version "$vm" $SMT_FLAGS $IPC_FLAGS  --ipcpath "${WORKDIR}/graviton.ipc"
+    for abiv2 in $FORCE_ABIV2_RUNS
+    do
+        force_abiv2_flag=""
+        if [[ "$abiv2" == "yes" ]]
+        then
+            force_abiv2_flag="--abiencoderv2"
+        fi
+        printTask "--> Running tests using "$optimize" --svm-version "$vm" $force_abiv2_flag..."
+
+        log=""
+        if [ -n "$log_directory" ]
+        then
+        if [ -n "$optimize" ]
+        then
+            log=--logger=JUNIT,test_suite,$log_directory/opt_$vm.xml $testargs
+        else
+            log=--logger=JUNIT,test_suite,$log_directory/noopt_$vm.xml $testargs_no_opt
+        fi
+        fi
+
+        "$REPO_ROOT"/build/test/poltest $progress $log -- --testpath "$REPO_ROOT"/test "$optimize" --svm-version "$vm" $SMT_FLAGS $IPC_FLAGS $force_abiv2_flag --ipcpath "${WORKDIR}/graviton.ipc"
+    done
   done
 done
 

@@ -1,18 +1,18 @@
 /*
-    This file is part of polynomial.
+	This file is part of polynomial.
 
-    polynomial is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	polynomial is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    polynomial is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MSRCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	polynomial is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MSRCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with polynomial.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with polynomial.  If not, see <http://www.gnu.org/licenses/>.
 */
 /**
  * @author Christian <c@sofdev.com>
@@ -1041,8 +1041,11 @@ ASTPointer<InlineAssembly> Parser::parseInlineAssembly(ASTPointer<ASTString> con
 		m_scanner->next();
 	}
 
-	yul::Parser asmParser(m_errorReporter, yul::SVMDialect::looseAssemblyForSVM());
+	// Using latest SVM Version for now, it will be run again later.
+	yul::Parser asmParser(m_errorReporter, yul::SVMDialect::looseAssemblyForSVM(SVMVersion{}));
 	shared_ptr<yul::Block> block = asmParser.parse(m_scanner, true);
+	if (block == nullptr)
+		BOOST_THROW_EXCEPTION(FatalError());
 	nodeFactory.markEndPosition();
 	return nodeFactory.createNode<InlineAssembly>(_docString, block);
 }

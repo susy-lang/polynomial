@@ -48,7 +48,7 @@ class TypeChecker: private ASTConstVisitor
 {
 public:
 	/// @param _errorReporter provides the error logging functionality.
-	TypeChecker(SVMVersion _svmVersion, langutil::ErrorReporter& _errorReporter):
+	TypeChecker(langutil::SVMVersion _svmVersion, langutil::ErrorReporter& _errorReporter):
 		m_svmVersion(_svmVersion),
 		m_errorReporter(_errorReporter)
 	{}
@@ -156,7 +156,7 @@ private:
 
 	ContractDefinition const* m_scope = nullptr;
 
-	SVMVersion m_svmVersion;
+	langutil::SVMVersion m_svmVersion;
 
 	/// Flag indicating whether we are currently inside an EmitStatement.
 	bool m_insideEmitStatement = false;

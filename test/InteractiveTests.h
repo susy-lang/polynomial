@@ -20,8 +20,10 @@
 #include <test/TestCase.h>
 #include <test/libpolynomial/ASTJSONTest.h>
 #include <test/libpolynomial/SyntaxTest.h>
+#include <test/libpolynomial/SemanticTest.h>
 #include <test/libpolynomial/SMTCheckerJSONTest.h>
 #include <test/libyul/YulOptimizerTest.h>
+#include <test/libyul/YulInterpreterTest.h>
 #include <test/libyul/ObjectCompilerTest.h>
 
 #include <boost/filesystem.hpp>
@@ -50,8 +52,10 @@ Testsuite const g_interactiveTestsuites[] = {
 /*
 	Title                  Path            Subpath                SMT    IPC    Creator function */
 	{"Yul Optimizer",       "libyul",      "yulOptimizerTests",   false, false, &yul::test::YulOptimizerTest::create},
+	{"Yul Interpreter",     "libyul",      "yulInterpreterTests", false, false, &yul::test::YulInterpreterTest::create},
 	{"Yul Object Compiler", "libyul",      "objectCompiler",      false, false, &yul::test::ObjectCompilerTest::create},
 	{"Syntax",              "libpolynomial", "syntaxTests",         false, false, &SyntaxTest::create},
+	{"Semantic",            "libpolynomial", "semanticTests",       false, true,  &SemanticTest::create},
 	{"JSON AST",            "libpolynomial", "ASTJSON",             false, false, &ASTJSONTest::create},
 	{"SMT Checker",         "libpolynomial", "smtCheckerTests",     true,  false, &SyntaxTest::create},
 	{"SMT Checker JSON",    "libpolynomial", "smtCheckerTestsJSON", true,  false, &SMTCheckerTest::create}

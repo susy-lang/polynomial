@@ -1,5 +1,6 @@
 # Polynomial Commons Library (Polynomial related sharing bits between libpolynomial and libyul)
 set(sources
+	Common.h
 	CharStream.cpp
 	CharStream.h
 	ErrorReporter.cpp

@@ -53,13 +53,13 @@ struct GasPath
 class PathGasMeter
 {
 public:
-	explicit PathGasMeter(AssemblyItems const& _items, polynomial::SVMVersion _svmVersion);
+	explicit PathGasMeter(AssemblyItems const& _items, langutil::SVMVersion _svmVersion);
 
 	GasMeter::GasConsumption estimateMax(size_t _startIndex, std::shared_ptr<KnownState> const& _state);
 
 	static GasMeter::GasConsumption estimateMax(
 		AssemblyItems const& _items,
-		polynomial::SVMVersion _svmVersion,
+		langutil::SVMVersion _svmVersion,
 		size_t _startIndex,
 		std::shared_ptr<KnownState> const& _state
 	)
@@ -81,7 +81,7 @@ private:
 	std::map<size_t, GasMeter::GasConsumption> m_highestGasUsagePerJumpdest;
 	std::map<u256, size_t> m_tagPositions;
 	AssemblyItems const& m_items;
-	polynomial::SVMVersion m_svmVersion;
+	langutil::SVMVersion m_svmVersion;
 };
 
 }

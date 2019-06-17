@@ -52,7 +52,7 @@ public:
 	static unsigned optimiseConstants(
 		bool _isCreation,
 		size_t _runs,
-		polynomial::SVMVersion _svmVersion,
+		langutil::SVMVersion _svmVersion,
 		Assembly& _assembly
 	);
 
@@ -64,7 +64,7 @@ protected:
 		bool isCreation; ///< whether this is called during contract creation or runtime.
 		size_t runs; ///< Estimated number of calls per opcode oven the lifetime of the contract.
 		size_t multiplicity; ///< Number of times the constant appears in the code.
-		polynomial::SVMVersion svmVersion; ///< Version of the SVM
+		langutil::SVMVersion svmVersion; ///< Version of the SVM
 	};
 
 	explicit ConstantOptimisationMethod(Params const& _params, u256 const& _value):
@@ -155,7 +155,7 @@ protected:
 	/// Tries to recursively find a way to compute @a _value.
 	AssemblyItems findRepresentation(u256 const& _value);
 	/// Recomputes the value from the calculated representation and checks for correctness.
-	static bool checkRepresentation(u256 const& _value, AssemblyItems const& _routine);
+	bool checkRepresentation(u256 const& _value, AssemblyItems const& _routine) const;
 	bigint gasNeeded(AssemblyItems const& _routine) const;
 
 	/// Counter for the complexity of optimization, will stop when it reaches zero.

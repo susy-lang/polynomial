@@ -29,6 +29,12 @@ set -e
 
 REPO_ROOT="$(dirname "$0")"/../..
 
+if test -z "$1"; then
+	BUILD_DIR="build"
+else
+	BUILD_DIR="$1"
+fi
+
 echo "Compiling all test contracts into bytecode..."
 TMPDIR=$(mktemp -d)
 (
@@ -43,7 +49,7 @@ TMPDIR=$(mktemp -d)
         # npm install polc
         git clone --depth 1 https://octonion.institute/susy-js/polc-js.git polc-js
         ( cd polc-js; npm install )
-        cp "$REPO_ROOT/build/libpolc/poljson.js" polc-js/
+        cp "$REPO_ROOT/emscripten_build/libpolc/poljson.js" polc-js/
         cat > polc <<EOF
 #!/usr/bin/env node
 var process = require('process')
@@ -82,8 +88,12 @@ for (var optimize of [false, true])
             {
                 for (var contractName in result['contracts'][filename])
                 {
-                    console.log(filename + ':' + contractName + ' ' + result['contracts'][filename][contractName].svm.bytecode.object)
-                    console.log(filename + ':' + contractName + ' ' + result['contracts'][filename][contractName].metadata)
+                    var contractData = result['contracts'][filename][contractName];
+                    if (contractData.svm !== undefined && contractData.svm.bytecode !== undefined)
+                        console.log(filename + ':' + contractName + ' ' + contractData.svm.bytecode.object)
+                    else
+                        console.log(filename + ':' + contractName + ' NO BYTECODE')
+                    console.log(filename + ':' + contractName + ' ' + contractData.metadata)
                 }
             }
         }
@@ -93,7 +103,7 @@ EOF
         chmod +x polc
         ./polc *.pol > report.txt
     else
-        $REPO_ROOT/scripts/bytecodecompare/prepare_report.py $REPO_ROOT/build/polc/polc
+        $REPO_ROOT/scripts/bytecodecompare/prepare_report.py $REPO_ROOT/$BUILD_DIR/polc/polc
     fi
 
     if [ "$TRAVIS_SECURE_ENV_VARS" = "true" ]

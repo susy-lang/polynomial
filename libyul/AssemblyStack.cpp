@@ -20,16 +20,13 @@
  */
 
 
-#include <libpolynomial/interface/AssemblyStack.h>
-
-#include <libpolynomial/codegen/AsmCodeGen.h>
-#include <libsvmasm/Assembly.h>
-#include <liblangutil/Scanner.h>
+#include <libyul/AssemblyStack.h>
 
 #include <libyul/AsmAnalysis.h>
 #include <libyul/AsmAnalysisInfo.h>
 #include <libyul/AsmParser.h>
 #include <libyul/AsmPrinter.h>
+#include <libyul/backends/svm/AsmCodeGen.h>
 #include <libyul/backends/svm/SVMAssembly.h>
 #include <libyul/backends/svm/SVMCodeTransform.h>
 #include <libyul/backends/svm/SVMDialect.h>
@@ -37,26 +34,28 @@
 #include <libyul/ObjectParser.h>
 #include <libyul/optimiser/Suite.h>
 
+#include <libsvmasm/Assembly.h>
+#include <liblangutil/Scanner.h>
+
 using namespace std;
-using namespace dev;
 using namespace langutil;
-using namespace dev::polynomial;
+using namespace yul;
 
 namespace
 {
-shared_ptr<yul::Dialect> languageToDialect(AssemblyStack::Language _language)
+shared_ptr<Dialect> languageToDialect(AssemblyStack::Language _language, SVMVersion _version)
 {
 	switch (_language)
 	{
 	case AssemblyStack::Language::Assembly:
-		return yul::SVMDialect::looseAssemblyForSVM();
+		return SVMDialect::looseAssemblyForSVM(_version);
 	case AssemblyStack::Language::StrictAssembly:
-		return yul::SVMDialect::strictAssemblyForSVMObjects();
+		return SVMDialect::strictAssemblyForSVMObjects(_version);
 	case AssemblyStack::Language::Yul:
-		return yul::Dialect::yul();
+		return Dialect::yul();
 	}
 	polAssert(false, "");
-	return yul::Dialect::yul();
+	return Dialect::yul();
 }
 
 }
@@ -73,7 +72,7 @@ bool AssemblyStack::parseAndAnalyze(std::string const& _sourceName, std::string 
 	m_errors.clear();
 	m_analysisSuccessful = false;
 	m_scanner = make_shared<Scanner>(CharStream(_source, _sourceName));
-	m_parserResult = yul::ObjectParser(m_errorReporter, languageToDialect(m_language)).parse(m_scanner, false);
+	m_parserResult = ObjectParser(m_errorReporter, languageToDialect(m_language, m_svmVersion)).parse(m_scanner, false);
 	if (!m_errorReporter.errors().empty())
 		return false;
 	polAssert(m_parserResult, "");
@@ -88,6 +87,7 @@ void AssemblyStack::optimize()
 		polUnimplemented("Optimizer for both loose assembly and Yul is not yet implemented");
 	polAssert(m_analysisSuccessful, "Analysis was not successful.");
 	m_analysisSuccessful = false;
+	polAssert(m_parserResult, "");
 	optimize(*m_parserResult);
 	polAssert(analyzeParsed(), "Invalid source code after optimization.");
 }
@@ -99,43 +99,43 @@ bool AssemblyStack::analyzeParsed()
 	return m_analysisSuccessful;
 }
 
-bool AssemblyStack::analyzeParsed(yul::Object& _object)
+bool AssemblyStack::analyzeParsed(Object& _object)
 {
 	polAssert(_object.code, "");
-	_object.analysisInfo = make_shared<yul::AsmAnalysisInfo>();
-	yul::AsmAnalyzer analyzer(*_object.analysisInfo, m_errorReporter, m_svmVersion, boost::none, languageToDialect(m_language));
+	_object.analysisInfo = make_shared<AsmAnalysisInfo>();
+	AsmAnalyzer analyzer(*_object.analysisInfo, m_errorReporter, boost::none, languageToDialect(m_language, m_svmVersion));
 	bool success = analyzer.analyze(*_object.code);
 	for (auto& subNode: _object.subObjects)
-		if (auto subObject = dynamic_cast<yul::Object*>(subNode.get()))
+		if (auto subObject = dynamic_cast<Object*>(subNode.get()))
 			if (!analyzeParsed(*subObject))
 				success = false;
 	return success;
 }
 
-void AssemblyStack::compileSVM(yul::AbstractAssembly& _assembly, bool _svm15, bool _optimize) const
+void AssemblyStack::compileSVM(AbstractAssembly& _assembly, bool _svm15, bool _optimize) const
 {
-	shared_ptr<yul::SVMDialect> dialect;
+	shared_ptr<SVMDialect> dialect;
 
 	if (m_language == Language::Assembly)
-		dialect = yul::SVMDialect::looseAssemblyForSVM();
+		dialect = SVMDialect::looseAssemblyForSVM(m_svmVersion);
 	else if (m_language == AssemblyStack::Language::StrictAssembly)
-		dialect = yul::SVMDialect::strictAssemblyForSVMObjects();
+		dialect = SVMDialect::strictAssemblyForSVMObjects(m_svmVersion);
 	else if (m_language == AssemblyStack::Language::Yul)
-		dialect = yul::SVMDialect::yulForSVM();
+		dialect = SVMDialect::yulForSVM(m_svmVersion);
 	else
 		polAssert(false, "Invalid language.");
 
-	yul::SVMObjectCompiler::compile(*m_parserResult, _assembly, *dialect, _svm15, _optimize);
+	SVMObjectCompiler::compile(*m_parserResult, _assembly, *dialect, _svm15, _optimize);
 }
 
-void AssemblyStack::optimize(yul::Object& _object)
+void AssemblyStack::optimize(Object& _object)
 {
 	polAssert(_object.code, "");
 	polAssert(_object.analysisInfo, "");
 	for (auto& subNode: _object.subObjects)
-		if (auto subObject = dynamic_cast<yul::Object*>(subNode.get()))
+		if (auto subObject = dynamic_cast<Object*>(subNode.get()))
 			optimize(*subObject);
-	yul::OptimiserSuite::run(languageToDialect(m_language), *_object.code, *_object.analysisInfo);
+	OptimiserSuite::run(languageToDialect(m_language, m_svmVersion), *_object.code, *_object.analysisInfo);
 }
 
 MachineAssemblyObject AssemblyStack::assemble(Machine _machine, bool _optimize) const
@@ -150,19 +150,19 @@ MachineAssemblyObject AssemblyStack::assemble(Machine _machine, bool _optimize) 
 	case Machine::SVM:
 	{
 		MachineAssemblyObject object;
-		sof::Assembly assembly;
+		dev::sof::Assembly assembly;
 		SofAssemblyAdapter adapter(assembly);
 		compileSVM(adapter, false, _optimize);
-		object.bytecode = make_shared<sof::LinkerObject>(assembly.assemble());
+		object.bytecode = make_shared<dev::sof::LinkerObject>(assembly.assemble());
 		object.assembly = assembly.assemblyString();
 		return object;
 	}
 	case Machine::SVM15:
 	{
 		MachineAssemblyObject object;
-		yul::SVMAssembly assembly(true);
+		SVMAssembly assembly(true);
 		compileSVM(assembly, true, _optimize);
-		object.bytecode = make_shared<sof::LinkerObject>(assembly.finalize());
+		object.bytecode = make_shared<dev::sof::LinkerObject>(assembly.finalize());
 		/// TODO: fill out text representation
 		return object;
 	}
@@ -178,4 +178,12 @@ string AssemblyStack::print() const
 	polAssert(m_parserResult, "");
 	polAssert(m_parserResult->code, "");
 	return m_parserResult->toString(m_language == Language::Yul) + "\n";
+}
+
+shared_ptr<Object> AssemblyStack::parserResult() const
+{
+	polAssert(m_analysisSuccessful, "Analysis was not successful.");
+	polAssert(m_parserResult, "");
+	polAssert(m_parserResult->code, "");
+	return m_parserResult;
 }

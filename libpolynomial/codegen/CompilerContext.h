@@ -27,6 +27,8 @@
 #include <libpolynomial/ast/Types.h>
 #include <libpolynomial/codegen/ABIFunctions.h>
 
+#include <libpolynomial/interface/OptimiserSettings.h>
+
 #include <libsvmasm/Assembly.h>
 #include <libsvmasm/Instruction.h>
 #include <liblangutil/SVMVersion.h>
@@ -50,7 +52,7 @@ class Compiler;
 class CompilerContext
 {
 public:
-	explicit CompilerContext(SVMVersion _svmVersion = SVMVersion{}, CompilerContext* _runtimeContext = nullptr):
+	explicit CompilerContext(langutil::SVMVersion _svmVersion, CompilerContext* _runtimeContext = nullptr):
 		m_asm(std::make_shared<sof::Assembly>()),
 		m_svmVersion(_svmVersion),
 		m_runtimeContext(_runtimeContext),
@@ -60,7 +62,7 @@ public:
 			m_runtimeSub = size_t(m_asm->newSub(m_runtimeContext->m_asm).data());
 	}
 
-	SVMVersion const& svmVersion() const { return m_svmVersion; }
+	langutil::SVMVersion const& svmVersion() const { return m_svmVersion; }
 
 	/// Update currently enabled set of experimental features.
 	void setExperimentalFeatures(std::set<ExperimentalFeature> const& _features) { m_experimentalFeatures = _features; }
@@ -214,14 +216,15 @@ public:
 		std::string const& _assembly,
 		std::vector<std::string> const& _localVariables = std::vector<std::string>(),
 		std::set<std::string> const& _externallyUsedFunctions = std::set<std::string>(),
-		bool _system = false
+		bool _system = false,
+		bool _optimise = false
 	);
 
 	/// Appends arbitrary data to the end of the bytecode.
 	void appendAuxiliaryData(bytes const& _data) { m_asm->appendAuxiliaryDataToEnd(_data); }
 
 	/// Run optimisation step.
-	void optimise(bool _fullOptimsation, unsigned _runs = 200) { m_asm->optimise(_fullOptimsation, m_svmVersion, true, _runs); }
+	void optimise(OptimiserSettings const& _settings) { m_asm->optimise(translateOptimiserSettings(_settings)); }
 
 	/// @returns the runtime context if in creation mode and runtime context is set, nullptr otherwise.
 	CompilerContext* runtimeContext() const { return m_runtimeContext; }
@@ -267,9 +270,11 @@ private:
 		std::vector<ContractDefinition const*>::const_iterator _searchStart
 	);
 	/// @returns an iterator to the contract directly above the given contract.
-	std::vector<ContractDefinition const*>::const_iterator superContract(const ContractDefinition &_contract) const;
+	std::vector<ContractDefinition const*>::const_iterator superContract(ContractDefinition const& _contract) const;
 	/// Updates source location set in the assembly.
 	void updateSourceLocation();
+
+	sof::Assembly::OptimiserSettings translateOptimiserSettings(OptimiserSettings const& _settings);
 
 	/**
 	 * Helper class that manages function labels and ensures that referenced functions are
@@ -291,7 +296,7 @@ private:
 		Declaration const* nextFunctionToCompile() const;
 		/// Informs the queue that we are about to compile the given function, i.e. removes
 		/// the function from the queue of functions to compile.
-		void startFunction(const Declaration &_function);
+		void startFunction(Declaration const& _function);
 
 		/// Labels pointing to the entry points of functions.
 		std::map<Declaration const*, sof::AssemblyItem> m_entryLabels;
@@ -305,7 +310,7 @@ private:
 
 	sof::AssemblyPointer m_asm;
 	/// Version of the SVM to compile against.
-	SVMVersion m_svmVersion;
+	langutil::SVMVersion m_svmVersion;
 	/// Activated experimental features.
 	std::set<ExperimentalFeature> m_experimentalFeatures;
 	/// Other already compiled contracts to be used in contract creation calls.

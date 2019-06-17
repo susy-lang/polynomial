@@ -34,6 +34,12 @@
 
 set -ev
 
+if test -z "$1"; then
+	BUILD_DIR="emscripten_build"
+else
+	BUILD_DIR="$1"
+fi
+
 if ! type git &>/dev/null; then
     # We need git for extracting the commit hash
     apt-get update
@@ -76,8 +82,8 @@ echo -en 'travis_fold:end:install_cmake.sh\\r'
 # Build dependent components and polynomial itself
 echo -en 'travis_fold:start:compiling_polynomial\\r'
 cd $WORKSPACE
-mkdir -p build
-cd build
+mkdir -p $BUILD_DIR
+cd $BUILD_DIR
 cmake \
   -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/emscripten.cmake \
   -DCMAKE_BUILD_TYPE=Release \
@@ -97,9 +103,9 @@ make -j 4
 cd ..
 mkdir -p upload
 # Patch poljson.js to provide backwards-compatibility with older emscripten versions
-echo ";/* backwards compatibility */ Module['Runtime'] = Module;" >> build/libpolc/poljson.js
-cp build/libpolc/poljson.js upload/
-cp build/libpolc/poljson.js ./
+echo ";/* backwards compatibility */ Module['Runtime'] = Module;" >> $BUILD_DIR/libpolc/poljson.js
+cp $BUILD_DIR/libpolc/poljson.js upload/
+cp $BUILD_DIR/libpolc/poljson.js ./
 
 OUTPUT_SIZE=`ls -la poljson.js`
 
