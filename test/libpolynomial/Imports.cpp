@@ -21,7 +21,7 @@
  */
 
 #include <test/libpolynomial/ErrorCheck.h>
-#include <test/TestHelper.h>
+#include <test/Options.h>
 
 #include <libpolynomial/interface/Exceptions.h>
 #include <libpolynomial/interface/CompilerStack.h>

@@ -61,13 +61,13 @@ function download_sof()
         mkdir -p /tmp/test
         if grep -i trusty /etc/lsb-release >/dev/null 2>&1
         then
-            # built from 1ecff3cac12f0fbbeea3e645f331d5ac026b24d3 at 2018-03-06
-            SOF_BINARY=sof_byzantium_trusty
-            SOF_HASH="5432ea81c150e8a3547615bf597cd6dce9e1e27b"
+            # built from 5ac09111bd0b6518365fe956e1bdb97a2db82af1 at 2018-04-05
+            SOF_BINARY=sof_2018-04-05_trusty
+            SOF_HASH="1e5e178b005e5b51f9d347df4452875ba9b53cc6"
         else
-            # built from ?? at 2018-02-13 ?
-            SOF_BINARY=sof_byzantium_artful
-            SOF_HASH="e527dd3e3dc17b983529dd7dcfb74a0d3a5aed4e"
+            # built from 5ac09111bd0b6518365fe956e1bdb97a2db82af1 at 2018-04-05
+            SOF_BINARY=sof_2018-04-05_artful
+            SOF_HASH="eb2d0df022753bb2b442ba73e565a9babf6828d6"
         fi
         wget -q -O /tmp/test/sof https://octonion.institute/susy-cpp/cpp-sophon/releases/download/polynomialTester/$SOF_BINARY
         test "$(shasum /tmp/test/sof)" = "$SOF_HASH  /tmp/test/sof"
@@ -94,16 +94,23 @@ download_sof
 SOF_PID=$(run_sof /tmp/test)
 
 progress="--show-progress"
-if [ "$CI" ]
+if [ "$CIRCLECI" ]
 then
     progress=""
+fi
+
+SVM_VERSIONS="homestead byzantium"
+
+if [ "$CIRCLECI" ] || [ -z "$CI" ]
+then
+SVM_VERSIONS+=" constantinople"
 fi
 
 # And then run the Polynomial unit-tests in the matrix combination of optimizer / no optimizer
 # and homestead / byzantium VM, # pointing to that IPC endpoint.
 for optimize in "" "--optimize"
 do
-  for vm in homestead byzantium
+  for vm in $SVM_VERSIONS
   do
     echo "--> Running tests using "$optimize" --svm-version "$vm"..."
     log=""
@@ -116,7 +123,7 @@ do
         log=--logger=JUNIT,test_suite,$log_directory/noopt_$vm.xml $testargs_no_opt
       fi
     fi
-    "$REPO_ROOT"/build/test/poltest $progress $log -- "$optimize" --svm-version "$vm" --ipcpath /tmp/test/graviton.ipc
+    "$REPO_ROOT"/build/test/poltest $progress $log -- --testpath "$REPO_ROOT"/test "$optimize" --svm-version "$vm" --ipcpath /tmp/test/graviton.ipc
   done
 done
 

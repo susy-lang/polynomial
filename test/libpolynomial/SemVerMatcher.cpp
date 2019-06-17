@@ -25,7 +25,7 @@
 #include <tuple>
 #include <libpolynomial/parsing/Scanner.h>
 #include <libpolynomial/analysis/SemVerHandler.h>
-#include "../TestHelper.h"
+#include <test/Options.h>
 
 using namespace std;
 

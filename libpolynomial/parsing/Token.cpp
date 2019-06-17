@@ -53,7 +53,7 @@ namespace polynomial
 
 void ElementaryTypeNameToken::assertDetails(Token::Value _baseType, unsigned const& _first, unsigned const& _second)
 {
-	polAssert(Token::isElementaryTypeName(_baseType), "");
+	polAssert(Token::isElementaryTypeName(_baseType), "Expected elementary type name: " + string(Token::toString(_baseType)));
 	if (_baseType == Token::BytesM)
 	{
 		polAssert(_second == 0, "There should not be a second size argument to type bytesM.");

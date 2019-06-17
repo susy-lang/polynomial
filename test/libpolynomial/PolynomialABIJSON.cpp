@@ -20,7 +20,7 @@
  * Unit tests for the polynomial compiler JSON Interface output.
  */
 
-#include "../TestHelper.h"
+#include <test/Options.h>
 #include <libpolynomial/interface/CompilerStack.h>
 
 #include <libdevcore/Exceptions.h>

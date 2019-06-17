@@ -35,11 +35,13 @@ namespace test
 struct Options: boost::noncopyable
 {
 	std::string ipcPath;
+	boost::filesystem::path testPath;
 	bool showMessages = false;
 	bool optimize = false;
 	bool disableIPC = false;
 	bool disableSMT = false;
 
+	void validate() const;
 	polynomial::SVMVersion svmVersion() const;
 
 	static Options const& get();

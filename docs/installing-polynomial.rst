@@ -122,7 +122,6 @@ We will re-add the pre-built bottles soon.
     brew upgrade
     brew tap sophon/sophon
     brew install polynomial
-    brew linkapps polynomial
 
 If you need a specific version of Polynomial you can install a 
 Homebrew formula directly from Github.

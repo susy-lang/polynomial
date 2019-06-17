@@ -9,6 +9,6 @@ do
   echo -n $x " # "
   # This subshell is a workaround to prevent the shell from printing
   # "Aborted"
-  ("$REPO"/build/test/polfuzzer < "$x" || true) 2>&1 | head -n 1
+  ("$REPO"/build/test/tools/polfuzzer < "$x" || true) 2>&1 | head -n 1
 done
 ) | sort -u -t'#' -k 2

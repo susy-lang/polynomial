@@ -261,19 +261,24 @@ BOOST_AUTO_TEST_CASE(basic_compilation)
 	BOOST_CHECK(contract["svm"]["bytecode"]["object"].isString());
 	BOOST_CHECK_EQUAL(
 		dev::test::bytecodeSansMetadata(contract["svm"]["bytecode"]["object"].asString()),
-		"60606040523415600e57600080fd5b603580601b6000396000f3006060604052600080fd00"
+		"6080604052348015600f57600080fd5b50603580601d6000396000f3006080604052600080fd00"
 	);
 	BOOST_CHECK(contract["svm"]["assembly"].isString());
 	BOOST_CHECK(contract["svm"]["assembly"].asString().find(
-		"    /* \"fileA\":0:14  contract A { } */\n  mstore(0x40, 0x60)\n  jumpi(tag_1, iszero(callvalue))\n"
-		"  0x0\n  dup1\n  revert\ntag_1:\n  dataSize(sub_0)\n  dup1\n  dataOffset(sub_0)\n  0x0\n  codecopy\n  0x0\n"
-		"  return\nstop\n\nsub_0: assembly {\n        /* \"fileA\":0:14  contract A { } */\n"
-		"      mstore(0x40, 0x60)\n      0x0\n      dup1\n      revert\n\n"
-		"    auxdata: 0xa165627a7a7230582") == 0);
+		"    /* \"fileA\":0:14  contract A { } */\n  mstore(0x40, 0x80)\n  "
+		"callvalue\n    /* \"--CODEGEN--\":8:17   */\n  dup1\n    "
+		"/* \"--CODEGEN--\":5:7   */\n  iszero\n  tag_1\n  jumpi\n    "
+		"/* \"--CODEGEN--\":30:31   */\n  0x0\n    /* \"--CODEGEN--\":27:28   */\n  "
+		"dup1\n    /* \"--CODEGEN--\":20:32   */\n  revert\n    /* \"--CODEGEN--\":5:7   */\n"
+		"tag_1:\n    /* \"fileA\":0:14  contract A { } */\n  pop\n  dataSize(sub_0)\n  dup1\n  "
+		"dataOffset(sub_0)\n  0x0\n  codecopy\n  0x0\n  return\nstop\n\nsub_0: assembly {\n        "
+		"/* \"fileA\":0:14  contract A { } */\n      mstore(0x40, 0x80)\n      0x0\n      "
+		"dup1\n      revert\n\n    auxdata: 0xa165627a7a72305820"
+	) == 0);
 	BOOST_CHECK(contract["svm"]["gasEstimates"].isObject());
 	BOOST_CHECK_EQUAL(
 		dev::jsonCompactPrint(contract["svm"]["gasEstimates"]),
-		"{\"creation\":{\"codeDepositCost\":\"10600\",\"executionCost\":\"61\",\"totalCost\":\"10661\"}}"
+		"{\"creation\":{\"codeDepositCost\":\"10600\",\"executionCost\":\"66\",\"totalCost\":\"10666\"}}"
 	);
 	BOOST_CHECK(contract["metadata"].isString());
 	BOOST_CHECK(dev::test::isValidMetadata(contract["metadata"].asString()));
@@ -752,6 +757,8 @@ BOOST_AUTO_TEST_CASE(svm_version)
 	BOOST_CHECK(result["contracts"]["fileA"]["A"]["metadata"].asString().find("\"svmVersion\":\"spuriousDragon\"") != string::npos);
 	result = compile(inputForVersion("\"svmVersion\": \"byzantium\","));
 	BOOST_CHECK(result["contracts"]["fileA"]["A"]["metadata"].asString().find("\"svmVersion\":\"byzantium\"") != string::npos);
+	result = compile(inputForVersion("\"svmVersion\": \"constantinople\","));
+	BOOST_CHECK(result["contracts"]["fileA"]["A"]["metadata"].asString().find("\"svmVersion\":\"constantinople\"") != string::npos);
 	// test default
 	result = compile(inputForVersion(""));
 	BOOST_CHECK(result["contracts"]["fileA"]["A"]["metadata"].asString().find("\"svmVersion\":\"byzantium\"") != string::npos);

@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include <test/TestHelper.h>
+#include <test/Options.h>
 #include <test/RPCSession.h>
 
 #include <libpolynomial/interface/SVMVersion.h>

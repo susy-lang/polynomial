@@ -30,7 +30,7 @@
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/analysis/TypeChecker.h>
 #include <libpolynomial/interface/ErrorReporter.h>
-#include "../TestHelper.h"
+#include <test/Options.h>
 
 using namespace std;
 
@@ -503,12 +503,15 @@ BOOST_AUTO_TEST_CASE(blockhash)
 	char const* sourceCode = R"(
 		contract test {
 			function f() {
-				block.blockhash(3);
+				blockhash(3);
 			}
 		}
 	)";
-	bytes code = compileFirstExpression(sourceCode, {}, {},
-										{make_shared<MagicVariableDeclaration>("block", make_shared<MagicType>(MagicType::Kind::Block))});
+
+	auto blockhashFun = make_shared<FunctionType>(strings{"uint256"}, strings{"bytes32"}, 
+		FunctionType::Kind::BlockHash, false, StateMutability::View);
+	
+	bytes code = compileFirstExpression(sourceCode, {}, {}, {make_shared<MagicVariableDeclaration>("blockhash", blockhashFun)});
 
 	bytes expectation({byte(Instruction::PUSH1), 0x03,
 					   byte(Instruction::BLOCKHASH)});

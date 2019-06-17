@@ -4,7 +4,7 @@
 ## Useful links
 To get started you can find an introduction to the language in the [Polynomial documentation](https://polynomial.readthedocs.org). In the documentation, you can find [code examples](https://polynomial.readthedocs.io/en/latest/polynomial-by-example.html) as well as [a reference](https://polynomial.readthedocs.io/en/latest/polynomial-in-depth.html) of the syntax and details on how to write smart contracts.
 
-You can start using [Polynomial in your browser](https://sophon.github.io/browser-polynomial/) with no need to download or compile anything.
+You can start using [Polynomial in your browser](http://fourier.superstring.io) with no need to download or compile anything.
 
 The changelog for this project can be found [here](https://octonion.institute/susy-lang/polynomial/blob/develop/Changelog.md).
 
