@@ -15,8 +15,7 @@ function(sof_apply TARGET REQUIRED SUBMODULE)
 	target_include_directories(${TARGET} PUBLIC ${Polynomial_INCLUDE_DIRS})
 
 	if (${SUBMODULE} STREQUAL "polsvmasm")
-		sof_use(${TARGET} ${REQUIRED} Jsoncpp)
-		target_link_libraries(${TARGET} ${Polynomial_POLSVMASM_LIBRARIES})
+		target_link_libraries(${TARGET} ${Polynomial_POLSVMASM_LIBRARIES} jsoncpp)
 	endif()
 
 	if (${SUBMODULE} STREQUAL "lll")

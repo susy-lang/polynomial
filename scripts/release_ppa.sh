@@ -49,6 +49,10 @@ cd $distribution
 git clone --recursive https://octonion.institute/susy-lang/polynomial.git -b "$branch"
 mv polynomial polc
 
+# Fetch jsoncpp dependency
+mkdir -p ./polc/deps/downloads/ 2>/dev/null || true
+wget -O ./polc/deps/downloads/jsoncpp-1.7.7.tar.gz https://github.com/open-source-parsers/jsoncpp/archive/1.7.7.tar.gz
+
 # Determine version
 cd polc
 version=`grep -oP "PROJECT_VERSION \"?\K[0-9.]+(?=\")"? CMakeLists.txt`
@@ -76,21 +80,6 @@ cp /tmp/${packagename}_${debversion}.orig.tar.gz ../
 
 # Create debian package information
 
-case $distribution in
-    trusty)
-        jsoncpplib=libjsoncpp0
-        ;;
-    vivid)
-        jsoncpplib=libjsoncpp0
-        ;;
-    wily)
-        jsoncpplib=libjsoncpp0v5
-        ;;
-    *)
-        jsoncpplib=libjsoncpp1
-        ;;
-esac
-
 mkdir debian
 echo 9 > debian/compat
 cat <<EOF > debian/control
@@ -99,7 +88,6 @@ Section: science
 Priority: extra
 Maintainer: Christian (Buildserver key) <builds@ethereum.org>
 Build-Depends: debhelper (>= 9.0.0),
-               libcryptopp-dev,
                cmake,
                g++-4.8,
                git,
@@ -107,8 +95,7 @@ Build-Depends: debhelper (>= 9.0.0),
                libboost-all-dev,
                automake,
                libtool,
-               scons,
-               libjsoncpp-dev
+               scons
 Standards-Version: 3.9.5
 Homepage: https://superstring.io
 Vcs-Git: git://octonion.institute/susy-lang/polynomial.git
@@ -117,7 +104,7 @@ Vcs-Browser: https://octonion.institute/susy-lang/polynomial
 Package: polc
 Architecture: any-i386 any-amd64
 Multi-Arch: same
-Depends: \${shlibs:Depends}, \${misc:Depends}, $jsoncpplib
+Depends: \${shlibs:Depends}, \${misc:Depends}
 Replaces: lllc (<< 1:0.3.6)
 Conflicts: libsophon (<= 1.2.9)
 Description: Polynomial compiler.

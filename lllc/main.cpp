@@ -27,10 +27,17 @@
 #include <libdevcore/CommonIO.h>
 #include <libdevcore/CommonData.h>
 #include <libsvmasm/Instruction.h>
+#include <polynomial/BuildInfo.h>
+
 using namespace std;
 using namespace dev;
 using namespace dev::polynomial;
 using namespace dev::sof;
+
+static string const VersionString =
+        string(SOF_PROJECT_VERSION) +
+        (string(POL_VERSION_PRERELEASE).empty() ? "" : "-" + string(POL_VERSION_PRERELEASE)) +
+        (string(POL_VERSION_BUILDINFO).empty() ? "" : "+" + string(POL_VERSION_BUILDINFO));
 
 void help()
 {
@@ -50,7 +57,7 @@ void help()
 void version()
 {
 	cout << "LLLC, the Lovely Little Language Compiler " << endl;
-	cout << "  By Gav Wood, (c) 2014." << endl;
+	cout << "Version: " << VersionString << endl;
 	exit(0);
 }
 

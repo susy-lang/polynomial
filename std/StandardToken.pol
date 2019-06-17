@@ -1,3 +1,5 @@
+pragma polynomial ^0.4.0;
+
 import "./Token.pol";
 
 contract StandardToken is Token {

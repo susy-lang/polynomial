@@ -15,31 +15,40 @@
 	along with cpp-sophon.  If not, see <http://www.gnu.org/licenses/>.
 */
 /**
- * @author Christian <c@sofdev.com>
- * @date 2014
- * Polynomial Utilities.
+ * @file PeepholeOptimiser.h
+ * Performs local optimising code changes to assembly.
  */
-
 #pragma once
 
-#include <libdevcore/Assertions.h>
-#include <libpolynomial/interface/Exceptions.h>
+#include <vector>
+#include <cstddef>
+#include <iterator>
 
 namespace dev
 {
-namespace polynomial
+namespace sof
 {
-struct InternalCompilerError;
-struct UnimplementedFeatureError;
+class AssemblyItem;
+using AssemblyItems = std::vector<AssemblyItem>;
+
+class PeepholeOptimisationMethod
+{
+public:
+	virtual size_t windowSize() const;
+	virtual bool apply(AssemblyItems::const_iterator _in, std::back_insert_iterator<AssemblyItems> _out);
+};
+
+class PeepholeOptimiser
+{
+public:
+	explicit PeepholeOptimiser(AssemblyItems& _items): m_items(_items) {}
+
+	bool optimise();
+
+private:
+	AssemblyItems& m_items;
+	AssemblyItems m_optimisedItems;
+};
+
 }
 }
-
-/// Assertion that throws an InternalCompilerError containing the given description if it is not met.
-#define polAssert(CONDITION, DESCRIPTION) \
-	assertThrow(CONDITION, ::dev::polynomial::InternalCompilerError, DESCRIPTION)
-
-#define polUnimplementedAssert(CONDITION, DESCRIPTION) \
-	assertThrow(CONDITION, ::dev::polynomial::UnimplementedFeatureError, DESCRIPTION)
-
-#define polUnimplemented(DESCRIPTION) \
-	polUnimplementedAssert(false, DESCRIPTION)

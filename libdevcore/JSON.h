@@ -14,32 +14,31 @@
 	You should have received a copy of the GNU General Public License
 	along with cpp-sophon.  If not, see <http://www.gnu.org/licenses/>.
 */
-/**
- * @author Christian <c@sofdev.com>
- * @date 2014
- * Polynomial Utilities.
+/** @file JSON.h
+ * @date 2016
+ *
+ * JSON related helpers
  */
 
 #pragma once
 
-#include <libdevcore/Assertions.h>
-#include <libpolynomial/interface/Exceptions.h>
+#include <json/json.h>
 
 namespace dev
 {
-namespace polynomial
+
+/// Serialise the JSON object (@a _input) with identation
+std::string jsonPrettyPrint(Json::Value const& _input)
 {
-struct InternalCompilerError;
-struct UnimplementedFeatureError;
-}
+	return Json::StyledWriter().write(_input);
 }
 
-/// Assertion that throws an InternalCompilerError containing the given description if it is not met.
-#define polAssert(CONDITION, DESCRIPTION) \
-	assertThrow(CONDITION, ::dev::polynomial::InternalCompilerError, DESCRIPTION)
+/// Serialise theJ SON object (@a _input) without identation
+std::string jsonCompactPrint(Json::Value const& _input)
+{
+	Json::FastWriter writer;
+	writer.omitEndingLineFeed();
+	return writer.write(_input);
+}
 
-#define polUnimplementedAssert(CONDITION, DESCRIPTION) \
-	assertThrow(CONDITION, ::dev::polynomial::UnimplementedFeatureError, DESCRIPTION)
-
-#define polUnimplemented(DESCRIPTION) \
-	polUnimplementedAssert(false, DESCRIPTION)
+}
