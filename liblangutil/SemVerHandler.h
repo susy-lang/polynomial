@@ -22,13 +22,11 @@
 
 #pragma once
 
-#include <libpolynomial/parsing/Token.h>
+#include <liblangutil/Token.h>
 #include <string>
 #include <vector>
 
-namespace dev
-{
-namespace polynomial
+namespace langutil
 {
 
 class SemVerError: dev::Exception
@@ -108,5 +106,4 @@ private:
 	SemVerMatchExpression m_expression;
 };
 
-}
 }

@@ -24,7 +24,7 @@
 
 namespace dev
 {
-namespace polynomial
+namespace sof
 {
 
 /**

@@ -36,7 +36,7 @@ ExpressionStatement makePopExpressionStatement(langutil::SourceLocation const& _
 {
 	return {_location, FunctionalInstruction{
 		_location,
-		polynomial::Instruction::POP,
+		dev::sof::Instruction::POP,
 		{std::move(_expression)}
 	}};
 }
@@ -105,7 +105,7 @@ OptionalStatements reduceSingleCaseSwitch(Switch& _switchStmt)
 				std::move(_switchStmt.location),
 				make_unique<Expression>(FunctionalInstruction{
 					std::move(loc),
-					polynomial::Instruction::EQ,
+					dev::sof::Instruction::EQ,
 					{std::move(*switchCase.value), std::move(*_switchStmt.expression)}
 				}),
 				std::move(switchCase.body)

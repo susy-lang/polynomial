@@ -19,7 +19,7 @@
  * Performs local optimising code changes to assembly.
  */
 
-#include "PeepholeOptimiser.h"
+#include <libsvmasm/PeepholeOptimiser.h>
 
 #include <libsvmasm/AssemblyItem.h>
 #include <libsvmasm/SemanticInformation.h>

@@ -108,11 +108,11 @@ public:
 
 private:
 	std::function<void(StateMutability, SourceLocation const&)> m_reportMutability;
-	void checkInstruction(SourceLocation _location, polynomial::Instruction _instruction)
+	void checkInstruction(SourceLocation _location, dev::sof::Instruction _instruction)
 	{
 		if (sof::SemanticInformation::invalidInViewFunctions(_instruction))
 			m_reportMutability(StateMutability::NonPayable, _location);
-		else if (_instruction == Instruction::CALLVALUE)
+		else if (_instruction == dev::sof::Instruction::CALLVALUE)
 			m_reportMutability(StateMutability::Payable, _location);
 		else if (sof::SemanticInformation::invalidInPureFunctions(_instruction))
 			m_reportMutability(StateMutability::View, _location);

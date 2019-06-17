@@ -29,6 +29,9 @@
 
 #include <cstdlib>
 
+#include <chrono>
+#include <thread>
+
 using namespace std;
 using namespace dev;
 using namespace dev::test;
@@ -57,10 +60,14 @@ ExecutionFramework::ExecutionFramework():
 ExecutionFramework::ExecutionFramework(string const& _ipcPath, langutil::SVMVersion _svmVersion):
 	m_rpc(RPCSession::instance(_ipcPath)),
 	m_svmVersion(_svmVersion),
-	m_optimiserSettings(dev::test::Options::get().optimize ? polynomial::OptimiserSettings::standard() : polynomial::OptimiserSettings::minimal()),
+	m_optimiserSettings(polynomial::OptimiserSettings::minimal()),
 	m_showMessages(dev::test::Options::get().showMessages),
 	m_sender(m_rpc.account(0))
 {
+	if (dev::test::Options::get().optimizeYul)
+		m_optimiserSettings = polynomial::OptimiserSettings::full();
+	else if (dev::test::Options::get().optimize)
+		m_optimiserSettings = polynomial::OptimiserSettings::standard();
 	m_rpc.test_rewindToBlock(0);
 }
 
@@ -133,6 +140,7 @@ void ExecutionFramework::sendMessage(bytes const& _data, bool _isCreation, u256 
 	}
 
 	string txHash = m_rpc.sof_sendTransaction(d);
+	waitForTransaction(txHash);
 	m_rpc.test_mineBlocks(1);
 	RPCSession::TransactionReceipt receipt(m_rpc.sof_getTransactionReceipt(txHash));
 
@@ -168,6 +176,27 @@ void ExecutionFramework::sendMessage(bytes const& _data, bool _isCreation, u256 
 		m_transactionSuccessful = (receipt.status == "1");
 	else
 		m_transactionSuccessful = (m_gas != m_gasUsed);
+}
+
+void ExecutionFramework::waitForTransaction(std::string const& _txHash) const
+{
+	for (int polls = 0; polls < 3000; polls++)
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		auto pendingBlock = m_rpc.sof_getBlockByNumber("pending", false);
+
+		if (!pendingBlock["transactions"].empty())
+		{
+			BOOST_REQUIRE_EQUAL(pendingBlock["transactions"][0].asString(), _txHash);
+			return;
+		}
+
+		if (polls == 200)
+		{
+			cerr << "Note: Already used 200 iterations while waiting for transaction confirmation. Issuing an sof_flush request." << endl;
+			m_rpc.rpcCall("sof_flush");
+		}
+	}
 }
 
 void ExecutionFramework::sendSophy(Address const& _to, u256 const& _value)

@@ -44,7 +44,7 @@ public:
 	explicit SofAssemblyAdapter(dev::sof::Assembly& _assembly);
 	void setSourceLocation(langutil::SourceLocation const& _location) override;
 	int stackHeight() const override;
-	void appendInstruction(dev::polynomial::Instruction _instruction) override;
+	void appendInstruction(dev::sof::Instruction _instruction) override;
 	void appendConstant(dev::u256 const& _constant) override;
 	void appendLabel(LabelID _labelId) override;
 	void appendLabelReference(LabelID _labelId) override;

@@ -31,6 +31,8 @@ set -e
 REPO_ROOT="$(dirname "$0")"/..
 
 WORKDIR=`mktemp -d`
+# Will be printed in case of a test failure
+ALSOF_TMP_OUT=`mktemp`
 IPC_ENABLED=true
 ALSOF_PID=
 CMDLINE_PID=
@@ -71,8 +73,8 @@ safe_kill() {
 }
 
 cleanup() {
-	# ensure failing commands don't cause termination during cleanup (especially within safe_kill)
-	set +e
+    # ensure failing commands don't cause termination during cleanup (especially within safe_kill)
+    set +e
 
     if [[ "$IPC_ENABLED" = true ]] && [[ -n "${ALSOF_PID}" ]]
     then
@@ -85,6 +87,7 @@ cleanup() {
 
     echo "Cleaning up working directory ${WORKDIR} ..."
     rm -rf "$WORKDIR" || true
+    rm $ALSOF_TMP_OUT
 }
 trap cleanup INT TERM
 
@@ -132,8 +135,8 @@ function download_alsof()
     else
         mkdir -p /tmp/test
         # Any time the hash is updated here, the "Running compiler tests" section should also be updated.
-        ALSOF_HASH="a6a9884bf3e5d8b3e01b55d4f6e9fe6dce5b5db7"
-        ALSOF_VERSION=1.5.2
+        ALSOF_HASH="8979a9179d5222c89bf9daf7ca73cc115fa2dac2"
+        ALSOF_VERSION=1.6.0-rc.1
         wget -q -O /tmp/test/alsof.tar.gz https://octonion.institute/susy-cpp/alsof/releases/download/v${ALSOF_VERSION}/alsof-${ALSOF_VERSION}-linux-x86_64.tar.gz
         test "$(shasum /tmp/test/alsof.tar.gz)" = "$ALSOF_HASH  /tmp/test/alsof.tar.gz"
         tar -xf /tmp/test/alsof.tar.gz -C /tmp/test
@@ -149,7 +152,9 @@ function download_alsof()
 # echos the PID
 function run_alsof()
 {
-    $ALSOF_PATH --db memorydb --test -d "${WORKDIR}" >/dev/null 2>&1 &
+    # Use this to have alsof log output
+    #$REPO_ROOT/scripts/alsof_with_log.sh $ALSOF_PATH $ALSOF_TMP_OUT --log-verbosity 3 --db memorydb --test -d "${WORKDIR}" &> /dev/null &
+    $ALSOF_PATH --db memorydb --test -d "${WORKDIR}" &> /dev/null &
     echo $!
     # Wait until the IPC endpoint is available.
     while [ ! -S "${WORKDIR}/graviton.ipc" ] ; do sleep 1; done
@@ -200,7 +205,7 @@ do
         force_abiv2_flag=""
         if [[ "$abiv2" == "yes" ]]
         then
-            force_abiv2_flag="--abiencoderv2"
+            force_abiv2_flag="--abiencoderv2 --optimize-yul"
         fi
         printTask "--> Running tests using "$optimize" --svm-version "$vm" $force_abiv2_flag..."
 
@@ -209,13 +214,27 @@ do
         then
         if [ -n "$optimize" ]
         then
-            log=--logger=JUNIT,test_suite,$log_directory/opt_$vm.xml $testargs
+            log=--logger=JUNIT,error,$log_directory/opt_$vm.xml $testargs
         else
-            log=--logger=JUNIT,test_suite,$log_directory/noopt_$vm.xml $testargs_no_opt
+            log=--logger=JUNIT,error,$log_directory/noopt_$vm.xml $testargs_no_opt
         fi
         fi
 
+        set +e
         "$REPO_ROOT"/build/test/poltest $progress $log -- --testpath "$REPO_ROOT"/test "$optimize" --svm-version "$vm" $SMT_FLAGS $IPC_FLAGS $force_abiv2_flag --ipcpath "${WORKDIR}/graviton.ipc"
+
+        if test "0" -ne "$?"; then
+            if [ -n "$log_directory" ]
+            then
+                # Need to kill alsof first so the log is written
+                safe_kill $ALSOF_PID $ALSOF_PATH
+                cp $ALSOF_TMP_OUT $log_directory/alsof.log
+                printError "Some test failed, wrote alsof.log"
+            fi
+            exit 1
+        fi
+        set -e
+
     done
   done
 done

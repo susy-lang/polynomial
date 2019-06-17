@@ -38,6 +38,8 @@ add_library(yul
 	backends/svm/SVMObjectCompiler.h
 	backends/svm/NoOutputAssembly.h
 	backends/svm/NoOutputAssembly.cpp
+	backends/wasm/WasmDialect.cpp
+	backends/wasm/WasmDialect.h
 	optimiser/ASTCopier.cpp
 	optimiser/ASTCopier.h
 	optimiser/ASTWalker.cpp
@@ -48,6 +50,8 @@ add_library(yul
 	optimiser/CommonSubexpressionEliminator.h
 	optimiser/DataFlowAnalyzer.cpp
 	optimiser/DataFlowAnalyzer.h
+	optimiser/DeadCodeEliminator.cpp
+	optimiser/DeadCodeEliminator.h
 	optimiser/Disambiguator.cpp
 	optimiser/Disambiguator.h
 	optimiser/EquivalentFunctionDetector.cpp

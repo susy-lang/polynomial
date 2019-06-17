@@ -17,10 +17,10 @@
 
 #include <libpolynomial/analysis/PostTypeChecker.h>
 
-#include <libpolynomial/analysis/SemVerHandler.h>
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/interface/Version.h>
 #include <liblangutil/ErrorReporter.h>
+#include <liblangutil/SemVerHandler.h>
 #include <libdevcore/Algorithms.h>
 
 #include <boost/range/adaptor/map.hpp>

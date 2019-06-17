@@ -46,8 +46,8 @@ class GasMeterTestFramework: public PolynomialExecutionFramework
 public:
 	void compile(string const& _sourceCode)
 	{
-		m_compiler.reset(false);
-		m_compiler.addSource("", "pragma polynomial >=0.0;\n" + _sourceCode);
+		m_compiler.reset();
+		m_compiler.setSources({{"", "pragma polynomial >=0.0;\n" + _sourceCode}});
 		m_compiler.setOptimiserSettings(dev::test::Options::get().optimize);
 		m_compiler.setSVMVersion(m_svmVersion);
 		BOOST_REQUIRE_MESSAGE(m_compiler.compile(), "Compiling contract failed");

@@ -34,8 +34,6 @@
 using namespace std;
 using namespace dev;
 using namespace yul;
-using namespace dev::polynomial;
-
 
 SVMDialect::SVMDialect(AsmFlavour _flavour, bool _objectAccess, langutil::SVMVersion _svmVersion):
 	Dialect{_flavour}, m_objectAccess(_objectAccess), m_svmVersion(_svmVersion)
@@ -84,7 +82,7 @@ SVMDialect::SVMDialect(AsmFlavour _flavour, bool _objectAccess, langutil::SVMVer
 		std::function<void()> _visitArguments
 	) {
 		_visitArguments();
-		_assembly.appendInstruction(polynomial::Instruction::CODECOPY);
+		_assembly.appendInstruction(dev::sof::Instruction::CODECOPY);
 	});
 }
 

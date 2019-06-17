@@ -17,12 +17,12 @@
 
 #include <libpolynomial/analysis/SyntaxChecker.h>
 
-#include <libpolynomial/analysis/SemVerHandler.h>
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/ast/ExperimentalFeatures.h>
 #include <libpolynomial/interface/Version.h>
 
 #include <liblangutil/ErrorReporter.h>
+#include <liblangutil/SemVerHandler.h>
 
 #include <boost/algorithm/cxx11/all_of.hpp>
 #include <boost/algorithm/string.hpp>

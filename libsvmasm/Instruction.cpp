@@ -19,17 +19,18 @@
  * @date 2014
  */
 
-#include "./Instruction.h"
+#include <libsvmasm/Instruction.h>
 
-#include <algorithm>
-#include <functional>
 #include <libdevcore/Common.h>
 #include <libdevcore/CommonIO.h>
+#include <algorithm>
+#include <functional>
+
 using namespace std;
 using namespace dev;
-using namespace dev::polynomial;
+using namespace dev::sof;
 
-std::map<std::string, Instruction> const dev::polynomial::c_instructions =
+std::map<std::string, Instruction> const dev::sof::c_instructions =
 {
 	{ "STOP", Instruction::STOP },
 	{ "ADD", Instruction::ADD },
@@ -317,7 +318,7 @@ static std::map<Instruction, InstructionInfo> const c_instructionInfo =
 	{ Instruction::SELFDESTRUCT,	{ "SELFDESTRUCT",		0, 1, 0, true, Tier::Special } }
 };
 
-void dev::polynomial::eachInstruction(
+void dev::sof::eachInstruction(
 	bytes const& _mem,
 	function<void(Instruction,u256 const&)> const& _onInstruction
 )
@@ -346,7 +347,7 @@ void dev::polynomial::eachInstruction(
 	}
 }
 
-string dev::polynomial::disassemble(bytes const& _mem)
+string dev::sof::disassemble(bytes const& _mem)
 {
 	stringstream ret;
 	eachInstruction(_mem, [&](Instruction _instr, u256 const& _data) {
@@ -363,7 +364,7 @@ string dev::polynomial::disassemble(bytes const& _mem)
 	return ret.str();
 }
 
-InstructionInfo dev::polynomial::instructionInfo(Instruction _inst)
+InstructionInfo dev::sof::instructionInfo(Instruction _inst)
 {
 	try
 	{
@@ -375,7 +376,7 @@ InstructionInfo dev::polynomial::instructionInfo(Instruction _inst)
 	}
 }
 
-bool dev::polynomial::isValidInstruction(Instruction _inst)
+bool dev::sof::isValidInstruction(Instruction _inst)
 {
 	return !!c_instructionInfo.count(_inst);
 }

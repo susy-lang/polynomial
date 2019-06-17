@@ -35,81 +35,14 @@ then
 fi
 
 POLJSON="$1"
+REPO_ROOT="$(dirname "$0")"
 
-function test_susyknot
-{
-    name="$1"
-    repo="$2"
-    branch="$3"
-    echo "Running $name tests..."
-    DIR=$(mktemp -d)
-    (
-      cd "$DIR"
-      git clone --depth 1 -b v0.5.0 https://octonion.institute/susy-js/polc-js.git polc
-      POLCVERSION="UNDEFINED"
+source test/externalTests/common.sh
 
-      cd polc
-      npm install
-      cp "$POLJSON" poljson.js
-      POLCVERSION=$(./polcjs --version)
-      cd ..
-      echo "Using polcjs version $POLCVERSION"
+printTask "Running external tests..."
 
-      if [ -n "$branch" ]
-      then
-        echo "Cloning $branch of $repo..."
-        git clone --depth 1 "$repo" -b "$branch" "$DIR/ext"
-      else
-        echo "Cloning $repo..."
-        git clone --depth 1 "$repo" "$DIR/ext"
-      fi
-      cd ext
-      echo "Current commit hash: `git rev-parse HEAD`"
-      npm ci
-      # Replace polc package by v0.5.0
-      for d in node_modules node_modules/susyknot/node_modules
-      do
-      (
-        if [ -d "$d" ]
-        then
-          cd $d
-          rm -rf polc
-          git clone --depth 1 -b v0.5.0 https://octonion.institute/susy-js/polc-js.git polc
-          cp "$POLJSON" polc/poljson.js
-        fi
-      )
-      done
-      if [ "$name" == "Zeppelin" -o "$name" == "Gnosis" ]; then
-        echo "Replaced fixed-version pragmas..."
-        # Replace fixed-version pragmas in Gnosis (part of Consensys best practice)
-        find contracts test -name '*.pol' -type f -print0 | xargs -0 sed -i -e 's/pragma polynomial [\^0-9\.]*/pragma polynomial >=0.0/'
-      fi
-      # Change "compileStandard" to "compile" (needed for pre-5.x Susyknot)
-      sed -i s/polc.compileStandard/polc.compile/ "node_modules/susyknot/build/cli.bundled.js"
-      # Force usage of correct polynomial binary (only works with Susyknot 5.x)
-      cat >> susyknot*.js <<EOF
-module.exports['compilers'] = {polc: {version: "$DIR/polc"} };
-EOF
-
-      for optimize in "{enabled: false }" "{enabled: true }" "{enabled: true, details: { yul: true } }"
-      do
-        rm -rf build || true
-        echo "module.exports['compilers']['polc']['settings'] = {optimizer: $optimize };" >> susyknot*.js
-        npx susyknot compile
-        echo "Verify that the correct version ($POLCVERSION) of the compiler was used to compile the contracts..."
-        grep -e "$POLCVERSION" -r build/contracts > /dev/null
-        npm run test
-      done
-    )
-    rm -rf "$DIR"
-}
-
-# Since Zeppelin 2.1.1 it supports Polynomial 0.5.0.
-test_susyknot Zeppelin https://github.com/OpenZeppelin/openzeppelin-polynomial.git master
+$REPO_ROOT/externalTests/zeppelin.sh "$POLJSON"
+$REPO_ROOT/externalTests/gnosis.sh "$POLJSON"
 
 # Disabled temporarily as it needs to be updated to latest Susyknot first.
 #test_susyknot Gnosis https://github.com/axic/pm-contracts.git polynomial-050
-
-# Disabled temporarily because it is incompatible with petersburg SVM and
-# there is no easy way to set the SVM version in susyknot pre 5.0.
-#test_susyknot GnosisSafe https://github.com/gnosis/safe-contracts.git development

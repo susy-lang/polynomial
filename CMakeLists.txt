@@ -10,7 +10,7 @@ include(SofPolicy)
 sof_policy()
 
 # project name and version should be set after cmake_policy CMP0048
-set(PROJECT_VERSION "0.5.7")
+set(PROJECT_VERSION "0.5.8")
 project(polynomial VERSION ${PROJECT_VERSION} LANGUAGES CXX)
 
 option(LLL "Build LLL" OFF)

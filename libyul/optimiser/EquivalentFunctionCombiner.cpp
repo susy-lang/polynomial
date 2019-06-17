@@ -25,7 +25,6 @@
 using namespace std;
 using namespace dev;
 using namespace yul;
-using namespace dev::polynomial;
 
 void EquivalentFunctionCombiner::run(Block& _ast)
 {

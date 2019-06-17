@@ -20,13 +20,13 @@
  * Utilities to handle semantic versioning.
  */
 
-#include <libpolynomial/analysis/SemVerHandler.h>
+#include <liblangutil/SemVerHandler.h>
 
 #include <functional>
 
 using namespace std;
 using namespace dev;
-using namespace dev::polynomial;
+using namespace langutil;
 
 SemVerVersion::SemVerVersion(string const& _versionString)
 {

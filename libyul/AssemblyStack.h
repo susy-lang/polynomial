@@ -27,6 +27,8 @@
 #include <libyul/Object.h>
 #include <libyul/ObjectParser.h>
 
+#include <libpolynomial/interface/OptimiserSettings.h>
+
 #include <libsvmasm/LinkerObject.h>
 
 #include <memory>
@@ -58,8 +60,14 @@ public:
 	enum class Language { Yul, Assembly, StrictAssembly };
 	enum class Machine { SVM, SVM15, eWasm };
 
-	explicit AssemblyStack(langutil::SVMVersion _svmVersion = langutil::SVMVersion(), Language _language = Language::Assembly):
-		m_language(_language), m_svmVersion(_svmVersion), m_errorReporter(m_errors)
+	AssemblyStack():
+		AssemblyStack(langutil::SVMVersion{}, Language::Assembly, dev::polynomial::OptimiserSettings::none())
+	{}
+	AssemblyStack(langutil::SVMVersion _svmVersion, Language _language, dev::polynomial::OptimiserSettings _optimiserSettings):
+		m_language(_language),
+		m_svmVersion(_svmVersion),
+		m_optimiserSettings(std::move(_optimiserSettings)),
+		m_errorReporter(m_errors)
 	{}
 
 	/// @returns the scanner used during parsing
@@ -70,11 +78,11 @@ public:
 	bool parseAndAnalyze(std::string const& _sourceName, std::string const& _source);
 
 	/// Run the optimizer suite. Can only be used with Yul or strict assembly.
+	/// If the settings (see constructor) disabled the optimizer, nothing is done here.
 	void optimize();
 
 	/// Run the assembly step (should only be called after parseAndAnalyze).
-	/// @param _optimize does not run the optimizer but performs optimized code generation.
-	MachineAssemblyObject assemble(Machine _machine, bool _optimize) const;
+	MachineAssemblyObject assemble(Machine _machine) const;
 
 	/// @returns the errors generated during parsing, analysis (and potentially assembly).
 	langutil::ErrorList const& errors() const { return m_errors; }
@@ -95,6 +103,7 @@ private:
 
 	Language m_language = Language::Assembly;
 	langutil::SVMVersion m_svmVersion;
+	dev::polynomial::OptimiserSettings m_optimiserSettings;
 
 	std::shared_ptr<langutil::Scanner> m_scanner;
 

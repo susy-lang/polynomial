@@ -19,7 +19,7 @@
  * @date 2015
  */
 
-#include "PathGasMeter.h"
+#include <libsvmasm/PathGasMeter.h>
 #include <libsvmasm/KnownState.h>
 #include <libsvmasm/SemanticInformation.h>
 

@@ -46,7 +46,7 @@ public:
 	/// at the beginning.
 	int stackHeight() const override { return m_stackHeight; }
 	/// Append an SVM instruction.
-	void appendInstruction(dev::polynomial::Instruction _instruction) override;
+	void appendInstruction(dev::sof::Instruction _instruction) override;
 	/// Append a constant.
 	void appendConstant(dev::u256 const& _constant) override;
 	/// Append a label.

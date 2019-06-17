@@ -129,12 +129,18 @@ bool hashMatchesContent(string const& _hash, string const& _content)
 	}
 }
 
-bool isArtifactRequested(Json::Value const& _outputSelection, string const& _artifact)
+bool isArtifactRequested(Json::Value const& _outputSelection, string const& _artifact, bool _wildcardMatchesIR)
 {
 	for (auto const& artifact: _outputSelection)
 		/// @TODO support sub-matching, e.g "svm" matches "svm.assembly"
-		if (artifact == "*" || artifact == _artifact)
+		if (artifact == _artifact)
 			return true;
+		else if (artifact == "*")
+		{
+			// "ir" and "irOptimized" can only be matched by "*" if activated.
+			if ((_artifact != "ir" && _artifact != "irOptimized") || _wildcardMatchesIR)
+				return true;
+		}
 	return false;
 }
 
@@ -151,7 +157,7 @@ bool isArtifactRequested(Json::Value const& _outputSelection, string const& _art
 ///
 /// @TODO optimise this. Perhaps flatten the structure upfront.
 ///
-bool isArtifactRequested(Json::Value const& _outputSelection, string const& _file, string const& _contract, string const& _artifact)
+bool isArtifactRequested(Json::Value const& _outputSelection, string const& _file, string const& _contract, string const& _artifact, bool _wildcardMatchesIR)
 {
 	if (!_outputSelection.isObject())
 		return false;
@@ -168,7 +174,7 @@ bool isArtifactRequested(Json::Value const& _outputSelection, string const& _fil
 				if (
 					_outputSelection[file].isMember(contract) &&
 					_outputSelection[file][contract].isArray() &&
-					isArtifactRequested(_outputSelection[file][contract], _artifact)
+					isArtifactRequested(_outputSelection[file][contract], _artifact, _wildcardMatchesIR)
 				)
 					return true;
 		}
@@ -176,10 +182,10 @@ bool isArtifactRequested(Json::Value const& _outputSelection, string const& _fil
 	return false;
 }
 
-bool isArtifactRequested(Json::Value const& _outputSelection, string const& _file, string const& _contract, vector<string> const& _artifacts)
+bool isArtifactRequested(Json::Value const& _outputSelection, string const& _file, string const& _contract, vector<string> const& _artifacts, bool _wildcardMatchesIR)
 {
 	for (auto const& artifact: _artifacts)
-		if (isArtifactRequested(_outputSelection, _file, _contract, artifact))
+		if (isArtifactRequested(_outputSelection, _file, _contract, artifact, _wildcardMatchesIR))
 			return true;
 	return false;
 }
@@ -193,6 +199,7 @@ bool isBinaryRequested(Json::Value const& _outputSelection)
 	// This does not inculde "svm.methodIdentifiers" on purpose!
 	static vector<string> const outputsThatRequireBinaries{
 		"*",
+		"ir", "irOptimized",
 		"svm.deployedBytecode", "svm.deployedBytecode.object", "svm.deployedBytecode.opcodes",
 		"svm.deployedBytecode.sourceMap", "svm.deployedBytecode.linkReferences",
 		"svm.bytecode", "svm.bytecode.object", "svm.bytecode.opcodes", "svm.bytecode.sourceMap",
@@ -203,10 +210,27 @@ bool isBinaryRequested(Json::Value const& _outputSelection)
 	for (auto const& fileRequests: _outputSelection)
 		for (auto const& requests: fileRequests)
 			for (auto const& output: outputsThatRequireBinaries)
-				if (isArtifactRequested(requests, output))
+				if (isArtifactRequested(requests, output, false))
 					return true;
 	return false;
 }
+
+/// @returns true if any Yul IR was requested. Note that as an exception, '*' does not
+/// yet match "ir" or "irOptimized"
+bool isIRRequested(Json::Value const& _outputSelection)
+{
+	if (!_outputSelection.isObject())
+		return false;
+
+	for (auto const& fileRequests: _outputSelection)
+		for (auto const& requests: fileRequests)
+			for (auto const& request: requests)
+				if (request == "ir" || request == "irOptimized")
+					return true;
+
+	return false;
+}
+
 
 Json::Value formatLinkReferences(std::map<size_t, std::string> const& linkReferences)
 {
@@ -239,7 +263,7 @@ Json::Value collectSVMObject(sof::LinkerObject const& _object, string const* _so
 {
 	Json::Value output = Json::objectValue;
 	output["object"] = _object.toHex();
-	output["opcodes"] = polynomial::disassemble(_object.bytecode);
+	output["opcodes"] = dev::sof::disassemble(_object.bytecode);
 	output["sourceMap"] = _sourceMap ? *_sourceMap : "";
 	output["linkReferences"] = formatLinkReferences(_object.linkReferences);
 	return output;
@@ -647,8 +671,7 @@ Json::Value StandardCompiler::compilePolynomial(StandardCompiler::InputsAndSetti
 	CompilerStack compilerStack(m_readFile);
 
 	StringMap sourceList = std::move(_inputsAndSettings.sources);
-	for (auto const& source: sourceList)
-		compilerStack.addSource(source.first, source.second);
+	compilerStack.setSources(sourceList);
 	for (auto const& smtLib2Response: _inputsAndSettings.smtLib2Responses)
 		compilerStack.addSMTLib2Response(smtLib2Response.first, smtLib2Response.second);
 	compilerStack.setSVMVersion(_inputsAndSettings.svmVersion);
@@ -657,6 +680,10 @@ Json::Value StandardCompiler::compilePolynomial(StandardCompiler::InputsAndSetti
 	compilerStack.setLibraries(_inputsAndSettings.libraries);
 	compilerStack.useMetadataLiteralSources(_inputsAndSettings.metadataLiteralSources);
 	compilerStack.setRequestedContractNames(requestedContractNames(_inputsAndSettings.outputSelection));
+
+	bool const irRequested = isIRRequested(_inputsAndSettings.outputSelection);
+
+	compilerStack.enableIRGeneration(irRequested);
 
 	Json::Value errors = std::move(_inputsAndSettings.errors);
 
@@ -768,15 +795,17 @@ Json::Value StandardCompiler::compilePolynomial(StandardCompiler::InputsAndSetti
 		for (string const& query: compilerStack.unhandledSMTLib2Queries())
 			output["auxiliaryInputRequested"]["smtlib2queries"]["0x" + keccak256(query).hex()] = query;
 
+	bool const wildcardMatchesIR = false;
+
 	output["sources"] = Json::objectValue;
 	unsigned sourceIndex = 0;
 	for (string const& sourceName: analysisSuccess ? compilerStack.sourceNames() : vector<string>())
 	{
 		Json::Value sourceResult = Json::objectValue;
 		sourceResult["id"] = sourceIndex++;
-		if (isArtifactRequested(_inputsAndSettings.outputSelection, sourceName, "", "ast"))
+		if (isArtifactRequested(_inputsAndSettings.outputSelection, sourceName, "", "ast", wildcardMatchesIR))
 			sourceResult["ast"] = ASTJsonConverter(false, compilerStack.sourceIndices()).toJson(compilerStack.ast(sourceName));
-		if (isArtifactRequested(_inputsAndSettings.outputSelection, sourceName, "", "legacyAST"))
+		if (isArtifactRequested(_inputsAndSettings.outputSelection, sourceName, "", "legacyAST", wildcardMatchesIR))
 			sourceResult["legacyAST"] = ASTJsonConverter(true, compilerStack.sourceIndices()).toJson(compilerStack.ast(sourceName));
 		output["sources"][sourceName] = sourceResult;
 	}
@@ -791,32 +820,38 @@ Json::Value StandardCompiler::compilePolynomial(StandardCompiler::InputsAndSetti
 
 		// ABI, documentation and metadata
 		Json::Value contractData(Json::objectValue);
-		if (isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "abi"))
+		if (isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "abi", wildcardMatchesIR))
 			contractData["abi"] = compilerStack.contractABI(contractName);
-		if (isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "metadata"))
+		if (isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "metadata", wildcardMatchesIR))
 			contractData["metadata"] = compilerStack.metadata(contractName);
-		if (isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "userdoc"))
+		if (isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "userdoc", wildcardMatchesIR))
 			contractData["userdoc"] = compilerStack.natspecUser(contractName);
-		if (isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "devdoc"))
+		if (isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "devdoc", wildcardMatchesIR))
 			contractData["devdoc"] = compilerStack.natspecDev(contractName);
+
+		// IR
+		if (compilationSuccess && isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "ir", wildcardMatchesIR))
+			contractData["ir"] = compilerStack.yulIR(contractName);
+		if (compilationSuccess && isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "irOptimized", wildcardMatchesIR))
+			contractData["irOptimized"] = compilerStack.yulIROptimized(contractName);
 
 		// SVM
 		Json::Value svmData(Json::objectValue);
-		// @TODO: add ir
-		if (compilationSuccess && isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "svm.assembly"))
+		if (compilationSuccess && isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "svm.assembly", wildcardMatchesIR))
 			svmData["assembly"] = compilerStack.assemblyString(contractName, sourceList);
-		if (compilationSuccess && isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "svm.legacyAssembly"))
+		if (compilationSuccess && isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "svm.legacyAssembly", wildcardMatchesIR))
 			svmData["legacyAssembly"] = compilerStack.assemblyJSON(contractName, sourceList);
-		if (isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "svm.methodIdentifiers"))
+		if (isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "svm.methodIdentifiers", wildcardMatchesIR))
 			svmData["methodIdentifiers"] = compilerStack.methodIdentifiers(contractName);
-		if (compilationSuccess && isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "svm.gasEstimates"))
+		if (compilationSuccess && isArtifactRequested(_inputsAndSettings.outputSelection, file, name, "svm.gasEstimates", wildcardMatchesIR))
 			svmData["gasEstimates"] = compilerStack.gasEstimates(contractName);
 
 		if (compilationSuccess && isArtifactRequested(
 			_inputsAndSettings.outputSelection,
 			file,
 			name,
-			{ "svm.bytecode", "svm.bytecode.object", "svm.bytecode.opcodes", "svm.bytecode.sourceMap", "svm.bytecode.linkReferences" }
+			{ "svm.bytecode", "svm.bytecode.object", "svm.bytecode.opcodes", "svm.bytecode.sourceMap", "svm.bytecode.linkReferences" },
+			wildcardMatchesIR
 		))
 			svmData["bytecode"] = collectSVMObject(
 				compilerStack.object(contractName),
@@ -827,7 +862,8 @@ Json::Value StandardCompiler::compilePolynomial(StandardCompiler::InputsAndSetti
 			_inputsAndSettings.outputSelection,
 			file,
 			name,
-			{ "svm.deployedBytecode", "svm.deployedBytecode.object", "svm.deployedBytecode.opcodes", "svm.deployedBytecode.sourceMap", "svm.deployedBytecode.linkReferences" }
+			{ "svm.deployedBytecode", "svm.deployedBytecode.object", "svm.deployedBytecode.opcodes", "svm.deployedBytecode.sourceMap", "svm.deployedBytecode.linkReferences" },
+			wildcardMatchesIR
 		))
 			svmData["deployedBytecode"] = collectSVMObject(
 				compilerStack.runtimeObject(contractName),
@@ -864,7 +900,11 @@ Json::Value StandardCompiler::compileYul(InputsAndSettings _inputsAndSettings)
 
 	Json::Value output = Json::objectValue;
 
-	AssemblyStack stack(_inputsAndSettings.svmVersion, AssemblyStack::Language::StrictAssembly);
+	AssemblyStack stack(
+		_inputsAndSettings.svmVersion,
+		AssemblyStack::Language::StrictAssembly,
+		_inputsAndSettings.optimiserSettings
+	);
 	string const& sourceName = _inputsAndSettings.sources.begin()->first;
 	string const& sourceContents = _inputsAndSettings.sources.begin()->second;
 
@@ -897,28 +937,26 @@ Json::Value StandardCompiler::compileYul(InputsAndSettings _inputsAndSettings)
 
 	string contractName = stack.parserResult()->name.str();
 
-	if (isArtifactRequested(_inputsAndSettings.outputSelection, sourceName, contractName, "ir"))
+	bool const wildcardMatchesIR = true;
+	if (isArtifactRequested(_inputsAndSettings.outputSelection, sourceName, contractName, "ir", wildcardMatchesIR))
 		output["contracts"][sourceName][contractName]["ir"] = stack.print();
 
-	if (_inputsAndSettings.optimiserSettings.runYulOptimiser)
-		stack.optimize();
+	stack.optimize();
 
-	MachineAssemblyObject object = stack.assemble(
-		AssemblyStack::Machine::SVM,
-		_inputsAndSettings.optimiserSettings.optimizeStackAllocation
-	);
+	MachineAssemblyObject object = stack.assemble(AssemblyStack::Machine::SVM);
 
 	if (isArtifactRequested(
 		_inputsAndSettings.outputSelection,
 		sourceName,
 		contractName,
-		{ "svm.bytecode", "svm.bytecode.object", "svm.bytecode.opcodes", "svm.bytecode.sourceMap", "svm.bytecode.linkReferences" }
+		{ "svm.bytecode", "svm.bytecode.object", "svm.bytecode.opcodes", "svm.bytecode.sourceMap", "svm.bytecode.linkReferences" },
+		wildcardMatchesIR
 	))
 		output["contracts"][sourceName][contractName]["svm"]["bytecode"] = collectSVMObject(*object.bytecode, nullptr);
 
-	if (isArtifactRequested(_inputsAndSettings.outputSelection, sourceName, contractName, "irOptimized"))
+	if (isArtifactRequested(_inputsAndSettings.outputSelection, sourceName, contractName, "irOptimized", wildcardMatchesIR))
 		output["contracts"][sourceName][contractName]["irOptimized"] = stack.print();
-	if (isArtifactRequested(_inputsAndSettings.outputSelection, sourceName, contractName, "svm.assembly"))
+	if (isArtifactRequested(_inputsAndSettings.outputSelection, sourceName, contractName, "svm.assembly", wildcardMatchesIR))
 		output["contracts"][sourceName][contractName]["svm"]["assembly"] = object.assembly;
 
 	return output;

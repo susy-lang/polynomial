@@ -20,10 +20,10 @@
  * Polynomial commandline compiler.
  */
 
-#include "CommandLineInterface.h"
+#include <polc/CommandLineInterface.h>
+#include <boost/exception/all.hpp>
 #include <clocale>
 #include <iostream>
-#include <boost/exception/all.hpp>
 
 using namespace std;
 

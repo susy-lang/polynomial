@@ -27,7 +27,11 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* _data, size_t _size)
 		return 0;
 
 	string input(reinterpret_cast<char const*>(_data), _size);
-	AssemblyStack stack(langutil::SVMVersion(), AssemblyStack::Language::StrictAssembly);
+	AssemblyStack stack(
+		langutil::SVMVersion(),
+		AssemblyStack::Language::StrictAssembly,
+		dev::polynomial::OptimiserSettings::full()
+	);
 
 	if (!stack.parseAndAnalyze("source", input))
 		return 0;

@@ -32,7 +32,6 @@
 using namespace std;
 using namespace dev;
 using namespace yul;
-using namespace dev::polynomial;
 
 void VariableReferenceCounter::operator()(Identifier const& _identifier)
 {
@@ -155,7 +154,7 @@ void CodeTransform::freeUnusedVariables()
 	while (m_unusedStackSlots.count(m_assembly.stackHeight() - 1))
 	{
 		polAssert(m_unusedStackSlots.erase(m_assembly.stackHeight() - 1), "");
-		m_assembly.appendInstruction(polynomial::Instruction::POP);
+		m_assembly.appendInstruction(dev::sof::Instruction::POP);
 		--m_stackAdjustment;
 	}
 }
@@ -203,7 +202,7 @@ void CodeTransform::operator()(VariableDeclaration const& _varDecl)
 			{
 				m_context->variableStackHeights.erase(&var);
 				m_assembly.setSourceLocation(_varDecl.location);
-				m_assembly.appendInstruction(polynomial::Instruction::POP);
+				m_assembly.appendInstruction(dev::sof::Instruction::POP);
 				--m_stackAdjustment;
 			}
 			else
@@ -218,8 +217,8 @@ void CodeTransform::operator()(VariableDeclaration const& _varDecl)
 			m_context->variableStackHeights[&var] = slot;
 			m_assembly.setSourceLocation(_varDecl.location);
 			if (int heightDiff = variableHeightDiff(var, varName, true))
-				m_assembly.appendInstruction(polynomial::swapInstruction(heightDiff - 1));
-			m_assembly.appendInstruction(polynomial::Instruction::POP);
+				m_assembly.appendInstruction(dev::sof::swapInstruction(heightDiff - 1));
+			m_assembly.appendInstruction(dev::sof::Instruction::POP);
 			--m_stackAdjustment;
 		}
 	}
@@ -228,10 +227,10 @@ void CodeTransform::operator()(VariableDeclaration const& _varDecl)
 
 void CodeTransform::stackError(StackTooDeepError _error, int _targetStackHeight)
 {
-	m_assembly.appendInstruction(polynomial::Instruction::INVALID);
+	m_assembly.appendInstruction(dev::sof::Instruction::INVALID);
 	// Correct the stack.
 	while (m_assembly.stackHeight() > _targetStackHeight)
-		m_assembly.appendInstruction(polynomial::Instruction::POP);
+		m_assembly.appendInstruction(dev::sof::Instruction::POP);
 	while (m_assembly.stackHeight() < _targetStackHeight)
 		m_assembly.appendConstant(u256(0));
 	// Store error.
@@ -324,11 +323,11 @@ void CodeTransform::operator()(FunctionCall const& _call)
 void CodeTransform::operator()(FunctionalInstruction const& _instruction)
 {
 	if (m_svm15 && (
-		_instruction.instruction == polynomial::Instruction::JUMP ||
-		_instruction.instruction == polynomial::Instruction::JUMPI
+		_instruction.instruction == dev::sof::Instruction::JUMP ||
+		_instruction.instruction == dev::sof::Instruction::JUMPI
 	))
 	{
-		bool const isJumpI = _instruction.instruction == polynomial::Instruction::JUMPI;
+		bool const isJumpI = _instruction.instruction == dev::sof::Instruction::JUMPI;
 		if (isJumpI)
 		{
 			polAssert(_instruction.arguments.size() == 2, "");
@@ -366,7 +365,7 @@ void CodeTransform::operator()(Identifier const& _identifier)
 			// TODO: opportunity for optimization: Do not DUP if this is the last reference
 			// to the top most element of the stack
 			if (int heightDiff = variableHeightDiff(_var, _identifier.name, false))
-				m_assembly.appendInstruction(polynomial::dupInstruction(heightDiff));
+				m_assembly.appendInstruction(dev::sof::dupInstruction(heightDiff));
 			else
 				// Store something to balance the stack
 				m_assembly.appendConstant(u256(0));
@@ -403,8 +402,8 @@ void CodeTransform::operator()(Literal const& _literal)
 void CodeTransform::operator()(yul::Instruction const& _instruction)
 {
 	polAssert(!m_allowStackOpt, "");
-	polAssert(!m_svm15 || _instruction.instruction != polynomial::Instruction::JUMP, "Bare JUMP instruction used for SVM1.5");
-	polAssert(!m_svm15 || _instruction.instruction != polynomial::Instruction::JUMPI, "Bare JUMPI instruction used for SVM1.5");
+	polAssert(!m_svm15 || _instruction.instruction != dev::sof::Instruction::JUMP, "Bare JUMP instruction used for SVM1.5");
+	polAssert(!m_svm15 || _instruction.instruction != dev::sof::Instruction::JUMPI, "Bare JUMPI instruction used for SVM1.5");
 	m_assembly.setSourceLocation(_instruction.location);
 	m_assembly.appendInstruction(_instruction.instruction);
 	checkStackHeight(&_instruction);
@@ -414,7 +413,7 @@ void CodeTransform::operator()(If const& _if)
 {
 	visitExpression(*_if.condition);
 	m_assembly.setSourceLocation(_if.location);
-	m_assembly.appendInstruction(polynomial::Instruction::ISZERO);
+	m_assembly.appendInstruction(dev::sof::Instruction::ISZERO);
 	AbstractAssembly::LabelID end = m_assembly.newLabelId();
 	m_assembly.appendJumpToIf(end);
 	(*this)(_if.body);
@@ -440,8 +439,8 @@ void CodeTransform::operator()(Switch const& _switch)
 			AbstractAssembly::LabelID bodyLabel = m_assembly.newLabelId();
 			caseBodies[&c] = bodyLabel;
 			polAssert(m_assembly.stackHeight() == expressionHeight + 1, "");
-			m_assembly.appendInstruction(polynomial::dupInstruction(2));
-			m_assembly.appendInstruction(polynomial::Instruction::EQ);
+			m_assembly.appendInstruction(dev::sof::dupInstruction(2));
+			m_assembly.appendInstruction(dev::sof::Instruction::EQ);
 			m_assembly.appendJumpToIf(bodyLabel);
 		}
 		else
@@ -467,7 +466,7 @@ void CodeTransform::operator()(Switch const& _switch)
 
 	m_assembly.setSourceLocation(_switch.location);
 	m_assembly.appendLabel(end);
-	m_assembly.appendInstruction(polynomial::Instruction::POP);
+	m_assembly.appendInstruction(dev::sof::Instruction::POP);
 	checkStackHeight(&_switch);
 }
 
@@ -536,7 +535,7 @@ void CodeTransform::operator()(FunctionDefinition const& _function)
 		StackTooDeepError error(_error);
 		if (error.functionName.empty())
 			error.functionName = _function.name;
-		stackError(error, height);
+		stackError(std::move(error), height);
 	}
 
 	{
@@ -566,19 +565,19 @@ void CodeTransform::operator()(FunctionDefinition const& _function)
 				to_string(stackLayout.size() - 17) +
 				" parameters or return variables too many to fit the stack size."
 			);
-			stackError(error, m_assembly.stackHeight() - _function.parameters.size());
+			stackError(std::move(error), m_assembly.stackHeight() - _function.parameters.size());
 		}
 		else
 		{
 			while (!stackLayout.empty() && stackLayout.back() != int(stackLayout.size() - 1))
 				if (stackLayout.back() < 0)
 				{
-					m_assembly.appendInstruction(polynomial::Instruction::POP);
+					m_assembly.appendInstruction(dev::sof::Instruction::POP);
 					stackLayout.pop_back();
 				}
 				else
 				{
-					m_assembly.appendInstruction(swapInstruction(stackLayout.size() - stackLayout.back() - 1));
+					m_assembly.appendInstruction(dev::sof::swapInstruction(stackLayout.size() - stackLayout.back() - 1));
 					swap(stackLayout[stackLayout.back()], stackLayout.back());
 				}
 			for (int i = 0; size_t(i) < stackLayout.size(); ++i)
@@ -612,7 +611,7 @@ void CodeTransform::operator()(ForLoop const& _forLoop)
 
 	visitExpression(*_forLoop.condition);
 	m_assembly.setSourceLocation(_forLoop.location);
-	m_assembly.appendInstruction(polynomial::Instruction::ISZERO);
+	m_assembly.appendInstruction(dev::sof::Instruction::ISZERO);
 	m_assembly.appendJumpToIf(loopEnd);
 
 	int const stackHeightBody = m_assembly.stackHeight();
@@ -634,14 +633,34 @@ void CodeTransform::operator()(ForLoop const& _forLoop)
 	checkStackHeight(&_forLoop);
 }
 
-void CodeTransform::operator()(Break const&)
+int CodeTransform::appendPopUntil(int _targetDepth)
 {
-	yulAssert(false, "Code generation for break statement in Yul is not implemented yet.");
+	int const stackDiffAfter = m_assembly.stackHeight() - _targetDepth;
+	for (int i = 0; i < stackDiffAfter; ++i)
+		m_assembly.appendInstruction(dev::sof::Instruction::POP);
+	return stackDiffAfter;
 }
 
-void CodeTransform::operator()(Continue const&)
+void CodeTransform::operator()(Break const& _break)
 {
-	yulAssert(false, "Code generation for continue statement in Yul is not implemented yet.");
+	yulAssert(!m_context->forLoopStack.empty(), "Invalid break-statement. Requires surrounding for-loop in code generation.");
+	m_assembly.setSourceLocation(_break.location);
+
+	Context::JumpInfo const& jump = m_context->forLoopStack.top().done;
+	m_assembly.appendJumpTo(jump.label, appendPopUntil(jump.targetStackHeight));
+
+	checkStackHeight(&_break);
+}
+
+void CodeTransform::operator()(Continue const& _continue)
+{
+	yulAssert(!m_context->forLoopStack.empty(), "Invalid continue-statement. Requires surrounding for-loop in code generation.");
+	m_assembly.setSourceLocation(_continue.location);
+
+	Context::JumpInfo const& jump = m_context->forLoopStack.top().post;
+	m_assembly.appendJumpTo(jump.label, appendPopUntil(jump.targetStackHeight));
+
+	checkStackHeight(&_continue);
 }
 
 void CodeTransform::operator()(Block const& _block)
@@ -732,7 +751,7 @@ void CodeTransform::finalizeBlock(Block const& _block, int blockStartStackHeight
 				m_stackAdjustment++;
 			}
 			else
-				m_assembly.appendInstruction(polynomial::Instruction::POP);
+				m_assembly.appendInstruction(dev::sof::Instruction::POP);
 		}
 
 	int deposit = m_assembly.stackHeight() - blockStartStackHeight;
@@ -754,8 +773,8 @@ void CodeTransform::generateAssignment(Identifier const& _variableName)
 	{
 		Scope::Variable const& _var = boost::get<Scope::Variable>(*var);
 		if (int heightDiff = variableHeightDiff(_var, _variableName.name, true))
-			m_assembly.appendInstruction(polynomial::swapInstruction(heightDiff - 1));
-		m_assembly.appendInstruction(polynomial::Instruction::POP);
+			m_assembly.appendInstruction(dev::sof::swapInstruction(heightDiff - 1));
+		m_assembly.appendInstruction(dev::sof::Instruction::POP);
 		decreaseReference(_variableName.name, _var);
 	}
 	else

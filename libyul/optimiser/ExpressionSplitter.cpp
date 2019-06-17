@@ -34,7 +34,6 @@ using namespace std;
 using namespace dev;
 using namespace langutil;
 using namespace yul;
-using namespace dev::polynomial;
 
 void ExpressionSplitter::operator()(FunctionalInstruction& _instruction)
 {

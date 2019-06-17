@@ -64,17 +64,20 @@ ObjectCompilerTest::ObjectCompilerTest(string const& _filename)
 
 bool ObjectCompilerTest::run(ostream& _stream, string const& _linePrefix, bool const _formatted)
 {
-	AssemblyStack stack(SVMVersion(), AssemblyStack::Language::StrictAssembly);
+	AssemblyStack stack(
+		SVMVersion(),
+		AssemblyStack::Language::StrictAssembly,
+		m_optimize ? OptimiserSettings::full() : OptimiserSettings::minimal()
+	);
 	if (!stack.parseAndAnalyze("source", m_source))
 	{
 		AnsiColorized(_stream, _formatted, {formatting::BOLD, formatting::RED}) << _linePrefix << "Error parsing source." << endl;
 		printErrors(_stream, stack.errors());
 		return false;
 	}
-	if (m_optimize)
-		stack.optimize();
+	stack.optimize();
 
-	MachineAssemblyObject obj = stack.assemble(AssemblyStack::Machine::SVM, m_optimize);
+	MachineAssemblyObject obj = stack.assemble(AssemblyStack::Machine::SVM);
 	polAssert(obj.bytecode, "");
 
 	m_obtainedResult = "Assembly:\n" + obj.assembly;
@@ -85,7 +88,7 @@ bool ObjectCompilerTest::run(ostream& _stream, string const& _linePrefix, bool c
 			"Bytecode: " +
 			toHex(obj.bytecode->bytecode) +
 			"\nOpcodes: " +
-			boost::trim_copy(polynomial::disassemble(obj.bytecode->bytecode)) +
+			boost::trim_copy(dev::sof::disassemble(obj.bytecode->bytecode)) +
 			"\n";
 
 	if (m_expectation != m_obtainedResult)
@@ -127,8 +130,5 @@ void ObjectCompilerTest::printErrors(ostream& _stream, ErrorList const& _errors)
 	SourceReferenceFormatter formatter(_stream);
 
 	for (auto const& error: _errors)
-		formatter.printExceptionInformation(
-			*error,
-			(error->type() == Error::Type::Warning) ? "Warning" : "Error"
-		);
+		formatter.printErrorInformation(*error);
 }

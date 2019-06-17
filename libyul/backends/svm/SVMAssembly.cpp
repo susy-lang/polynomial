@@ -26,6 +26,7 @@
 
 using namespace std;
 using namespace dev;
+using namespace dev::sof;
 using namespace langutil;
 using namespace yul;
 
@@ -43,23 +44,23 @@ void SVMAssembly::setSourceLocation(SourceLocation const&)
 	// Ignored for now;
 }
 
-void SVMAssembly::appendInstruction(polynomial::Instruction _instr)
+void SVMAssembly::appendInstruction(dev::sof::Instruction _instr)
 {
 	m_bytecode.push_back(uint8_t(_instr));
-	m_stackHeight += polynomial::instructionInfo(_instr).ret - polynomial::instructionInfo(_instr).args;
+	m_stackHeight += instructionInfo(_instr).ret - instructionInfo(_instr).args;
 }
 
 void SVMAssembly::appendConstant(u256 const& _constant)
 {
 	bytes data = toCompactBigEndian(_constant, 1);
-	appendInstruction(polynomial::pushInstruction(data.size()));
+	appendInstruction(pushInstruction(data.size()));
 	m_bytecode += data;
 }
 
 void SVMAssembly::appendLabel(LabelID _labelId)
 {
 	setLabelToCurrentPosition(_labelId);
-	appendInstruction(polynomial::Instruction::JUMPDEST);
+	appendInstruction(dev::sof::Instruction::JUMPDEST);
 }
 
 void SVMAssembly::appendLabelReference(LabelID _labelId)
@@ -67,7 +68,7 @@ void SVMAssembly::appendLabelReference(LabelID _labelId)
 	polAssert(!m_svm15, "Cannot use plain label references in EMV1.5 mode.");
 	// @TODO we now always use labelReferenceSize for all labels, it could be shortened
 	// for some of them.
-	appendInstruction(polynomial::pushInstruction(labelReferenceSize));
+	appendInstruction(dev::sof::pushInstruction(labelReferenceSize));
 	m_labelReferences[m_bytecode.size()] = _labelId;
 	m_bytecode += bytes(labelReferenceSize);
 }
@@ -94,7 +95,7 @@ void SVMAssembly::appendLinkerSymbol(string const&)
 void SVMAssembly::appendJump(int _stackDiffAfter)
 {
 	polAssert(!m_svm15, "Plain JUMP used for SVM 1.5");
-	appendInstruction(polynomial::Instruction::JUMP);
+	appendInstruction(dev::sof::Instruction::JUMP);
 	m_stackHeight += _stackDiffAfter;
 }
 
@@ -102,7 +103,7 @@ void SVMAssembly::appendJumpTo(LabelID _labelId, int _stackDiffAfter)
 {
 	if (m_svm15)
 	{
-		m_bytecode.push_back(uint8_t(polynomial::Instruction::JUMPTO));
+		m_bytecode.push_back(uint8_t(dev::sof::Instruction::JUMPTO));
 		appendLabelReferenceInternal(_labelId);
 		m_stackHeight += _stackDiffAfter;
 	}
@@ -117,14 +118,14 @@ void SVMAssembly::appendJumpToIf(LabelID _labelId)
 {
 	if (m_svm15)
 	{
-		m_bytecode.push_back(uint8_t(polynomial::Instruction::JUMPIF));
+		m_bytecode.push_back(uint8_t(dev::sof::Instruction::JUMPIF));
 		appendLabelReferenceInternal(_labelId);
 		m_stackHeight--;
 	}
 	else
 	{
 		appendLabelReference(_labelId);
-		appendInstruction(polynomial::Instruction::JUMPI);
+		appendInstruction(dev::sof::Instruction::JUMPI);
 	}
 }
 
@@ -133,7 +134,7 @@ void SVMAssembly::appendBeginsub(LabelID _labelId, int _arguments)
 	polAssert(m_svm15, "BEGINSUB used for SVM 1.0");
 	polAssert(_arguments >= 0, "");
 	setLabelToCurrentPosition(_labelId);
-	m_bytecode.push_back(uint8_t(polynomial::Instruction::BEGINSUB));
+	m_bytecode.push_back(uint8_t(dev::sof::Instruction::BEGINSUB));
 	m_stackHeight += _arguments;
 }
 
@@ -141,7 +142,7 @@ void SVMAssembly::appendJumpsub(LabelID _labelId, int _arguments, int _returns)
 {
 	polAssert(m_svm15, "JUMPSUB used for SVM 1.0");
 	polAssert(_arguments >= 0 && _returns >= 0, "");
-	m_bytecode.push_back(uint8_t(polynomial::Instruction::JUMPSUB));
+	m_bytecode.push_back(uint8_t(dev::sof::Instruction::JUMPSUB));
 	appendLabelReferenceInternal(_labelId);
 	m_stackHeight += _returns - _arguments;
 }
@@ -150,7 +151,7 @@ void SVMAssembly::appendReturnsub(int _returns, int _stackDiffAfter)
 {
 	polAssert(m_svm15, "RETURNSUB used for SVM 1.0");
 	polAssert(_returns >= 0, "");
-	m_bytecode.push_back(uint8_t(polynomial::Instruction::RETURNSUB));
+	m_bytecode.push_back(uint8_t(dev::sof::Instruction::RETURNSUB));
 	m_stackHeight += _stackDiffAfter - _returns;
 }
 
@@ -189,7 +190,7 @@ void SVMAssembly::appendLabelReferenceInternal(LabelID _labelId)
 
 void SVMAssembly::appendAssemblySize()
 {
-	appendInstruction(polynomial::pushInstruction(assemblySizeReferenceSize));
+	appendInstruction(dev::sof::pushInstruction(assemblySizeReferenceSize));
 	m_assemblySizePositions.push_back(m_bytecode.size());
 	m_bytecode += bytes(assemblySizeReferenceSize);
 }

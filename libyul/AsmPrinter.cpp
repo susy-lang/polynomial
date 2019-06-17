@@ -36,7 +36,6 @@
 using namespace std;
 using namespace dev;
 using namespace yul;
-using namespace dev::polynomial;
 
 //@TODO source locations
 

@@ -19,9 +19,14 @@
 */
 
 #include <test/tools/IpolTestOptions.h>
+
+#include <libdevcore/Assertions.h>
+
 #include <boost/filesystem.hpp>
-#include <string>
+
 #include <iostream>
+#include <regex>
+#include <string>
 
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
@@ -32,7 +37,7 @@ namespace test
 {
 
 auto const description = R"(ipoltest, tool for interactively managing test contracts.
-Usage: ipoltest [Options] --ipcpath ipcpath
+Usage: ipoltest [Options]
 Interactively validates test contracts.
 
 Allowed options)";
@@ -51,10 +56,10 @@ IpolTestOptions::IpolTestOptions(std::string* _editor):
 	CommonOptions(description)
 {
 	options.add_options()
+		("editor", po::value<std::string>(_editor)->default_value(editorPath()), "Path to editor for opening test files.")
 		("help", po::bool_switch(&showHelp), "Show this help screen.")
-		("no-color", po::bool_switch(&noColor), "don't use colors")
-		("editor", po::value<std::string>(_editor)->default_value(editorPath()), "editor for opening test files");
-
+		("no-color", po::bool_switch(&noColor), "Don't use colors.")
+		("test,t", po::value<std::string>(&testFilter)->default_value("*/*"), "Filters which test units to include.");
 }
 
 bool IpolTestOptions::parse(int _argc, char const* const* _argv)
@@ -68,6 +73,17 @@ bool IpolTestOptions::parse(int _argc, char const* const* _argv)
 	}
 
 	return res;
+}
+
+void IpolTestOptions::validate() const
+{
+	static std::string filterString{"[a-zA-Z1-9_/*]*"};
+	static std::regex filterExpression{filterString};
+	assertThrow(
+		regex_match(testFilter, filterExpression),
+		ConfigException,
+		"Invalid test unit filter - can only contain '" + filterString + ": " + testFilter
+	);
 }
 
 }

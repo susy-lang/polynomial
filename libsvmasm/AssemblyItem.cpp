@@ -231,7 +231,7 @@ ostream& dev::sof::operator<<(ostream& _out, AssemblyItem const& _item)
 	{
 	case Operation:
 		_out << " " << instructionInfo(_item.instruction()).name;
-		if (_item.instruction() == polynomial::Instruction::JUMP || _item.instruction() == polynomial::Instruction::JUMPI)
+		if (_item.instruction() == Instruction::JUMP || _item.instruction() == Instruction::JUMPI)
 			_out << "\t" << _item.getJumpTypeAsString();
 		break;
 	case Push:

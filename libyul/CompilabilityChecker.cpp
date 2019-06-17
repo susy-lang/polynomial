@@ -31,7 +31,6 @@
 using namespace std;
 using namespace yul;
 using namespace dev;
-using namespace dev::polynomial;
 
 map<YulString, int> CompilabilityChecker::run(
 	shared_ptr<Dialect> _dialect,

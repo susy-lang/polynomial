@@ -21,14 +21,14 @@
 
 #pragma once
 
-#include <functional>
+#include <libsvmasm/Exceptions.h>
 #include <libdevcore/Common.h>
 #include <libdevcore/Assertions.h>
-#include "Exceptions.h"
+#include <functional>
 
 namespace dev
 {
-namespace polynomial
+namespace sof
 {
 
 DEV_SIMPLE_EXCEPTION(InvalidDeposit);

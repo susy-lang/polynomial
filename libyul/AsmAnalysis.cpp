@@ -41,9 +41,9 @@ using namespace dev;
 using namespace langutil;
 using namespace yul;
 using namespace dev;
-using namespace dev::polynomial;
 
-namespace {
+namespace
+{
 
 set<string> const builtinTypes{"bool", "u8", "s8", "u32", "s32", "u64", "s64", "u128", "s128", "u256", "s256"};
 
@@ -51,12 +51,21 @@ set<string> const builtinTypes{"bool", "u8", "s8", "u32", "s32", "u64", "s64", "
 
 bool AsmAnalyzer::analyze(Block const& _block)
 {
-	if (!(ScopeFiller(m_info, m_errorReporter))(_block))
-		return false;
+	bool success = false;
+	try
+	{
+		if (!(ScopeFiller(m_info, m_errorReporter))(_block))
+			return false;
 
-	bool success = (*this)(_block);
-	if (!success)
-		polAssert(m_errorReporter.hasErrors(), "No success but no error.");
+		success = (*this)(_block);
+		if (!success)
+			polAssert(m_errorReporter.hasErrors(), "No success but no error.");
+	}
+	catch (FatalError const&)
+	{
+		// This FatalError con occur if the errorReporter has too many errors.
+		polAssert(!m_errorReporter.errors().empty(), "Fatal error detected, but no error is reported.");
+	}
 	return success && !m_errorReporter.hasErrors();
 }
 
@@ -86,7 +95,7 @@ bool AsmAnalyzer::operator()(Label const& _label)
 		"The use of labels is disallowed. Please use \"if\", \"switch\", \"for\" or function calls instead."
 	);
 	m_info.stackHeightInfo[&_label] = m_stackHeight;
-	warnOnInstructions(polynomial::Instruction::JUMPDEST, _label.location);
+	warnOnInstructions(dev::sof::Instruction::JUMPDEST, _label.location);
 	return true;
 }
 
@@ -442,15 +451,21 @@ bool AsmAnalyzer::operator()(Switch const& _switch)
 		if (_case.value)
 		{
 			int const initialStackHeight = m_stackHeight;
+			bool isCaseValueValid = true;
 			// We cannot use "expectExpression" here because *_case.value is not a
 			// Statement and would be converted to a Statement otherwise.
 			if (!(*this)(*_case.value))
+			{
+				isCaseValueValid = false;
 				success = false;
+			}
 			expectDeposit(1, initialStackHeight, _case.value->location);
 			m_stackHeight--;
 
+			// If the case value is not valid, we should not insert it into cases.
+			yulAssert(isCaseValueValid || m_errorReporter.hasErrors(), "Invalid case value.");
 			/// Note: the parser ensures there is only one default case
-			if (!cases.insert(valueOfLiteral(*_case.value)).second)
+			if (isCaseValueValid && !cases.insert(valueOfLiteral(*_case.value)).second)
 			{
 				m_errorReporter.declarationError(
 					_case.location,
@@ -653,7 +668,7 @@ void AsmAnalyzer::expectValidType(string const& type, SourceLocation const& _loc
 		);
 }
 
-void AsmAnalyzer::warnOnInstructions(polynomial::Instruction _instr, SourceLocation const& _location)
+void AsmAnalyzer::warnOnInstructions(dev::sof::Instruction _instr, SourceLocation const& _location)
 {
 	// We assume that returndatacopy, returndatasize and staticcall are either all available
 	// or all not available.
@@ -677,33 +692,37 @@ void AsmAnalyzer::warnOnInstructions(polynomial::Instruction _instr, SourceLocat
 	};
 
 	if ((
-		_instr == polynomial::Instruction::RETURNDATACOPY ||
-		_instr == polynomial::Instruction::RETURNDATASIZE
+		_instr == dev::sof::Instruction::RETURNDATACOPY ||
+		_instr == dev::sof::Instruction::RETURNDATASIZE
 	) && !m_svmVersion.supportsReturndata())
 	{
 		errorForVM("only available for Byzantium-compatible");
 	}
-	else if (_instr == polynomial::Instruction::STATICCALL && !m_svmVersion.hasStaticCall())
+	else if (_instr == dev::sof::Instruction::STATICCALL && !m_svmVersion.hasStaticCall())
 	{
 		errorForVM("only available for Byzantium-compatible");
 	}
 	else if ((
-		_instr == polynomial::Instruction::SHL ||
-		_instr == polynomial::Instruction::SHR ||
-		_instr == polynomial::Instruction::SAR
+		_instr == dev::sof::Instruction::SHL ||
+		_instr == dev::sof::Instruction::SHR ||
+		_instr == dev::sof::Instruction::SAR
 	) && !m_svmVersion.hasBitwiseShifting())
 	{
 		errorForVM("only available for Constantinople-compatible");
 	}
-	else if (_instr == polynomial::Instruction::CREATE2 && !m_svmVersion.hasCreate2())
+	else if (_instr == dev::sof::Instruction::CREATE2 && !m_svmVersion.hasCreate2())
 	{
 		errorForVM("only available for Constantinople-compatible");
 	}
-	else if (_instr == polynomial::Instruction::EXTCODEHASH && !m_svmVersion.hasExtCodeHash())
+	else if (_instr == dev::sof::Instruction::EXTCODEHASH && !m_svmVersion.hasExtCodeHash())
 	{
 		errorForVM("only available for Constantinople-compatible");
 	}
-	else if (_instr == polynomial::Instruction::JUMP || _instr == polynomial::Instruction::JUMPI || _instr == polynomial::Instruction::JUMPDEST)
+	else if (
+		_instr == dev::sof::Instruction::JUMP ||
+		_instr == dev::sof::Instruction::JUMPI ||
+		_instr == dev::sof::Instruction::JUMPDEST
+	)
 	{
 		if (m_dialect->flavour == AsmFlavour::Loose)
 			m_errorReporter.error(

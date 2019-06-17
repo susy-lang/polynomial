@@ -1,5 +1,6 @@
 # The Polynomial Contract-Oriented Programming Language
-[![Join the chat at https://gitter.im/susy-lang/polynomial](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/susy-lang/polynomial?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/susy-lang/polynomial.svg?branch=develop)](https://travis-ci.org/susy-lang/polynomial)
+[![Join the chat at https://gitter.im/susy-lang/polynomial](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/susy-lang/polynomial?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Polynomial is a statically typed, contract-oriented, high-level language for implementing smart contracts on the Sophon platform.
 
 ## Table of Contents

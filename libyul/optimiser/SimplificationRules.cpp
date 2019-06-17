@@ -30,11 +30,12 @@
 
 using namespace std;
 using namespace dev;
+using namespace dev::sof;
 using namespace langutil;
 using namespace yul;
 
 
-SimplificationRule<Pattern> const* SimplificationRules::findFirstMatch(
+SimplificationRule<yul::Pattern> const* SimplificationRules::findFirstMatch(
 	Expression const& _expr,
 	Dialect const& _dialect,
 	map<YulString, Expression const*> const& _ssaValues
@@ -59,7 +60,7 @@ SimplificationRule<Pattern> const* SimplificationRules::findFirstMatch(
 
 bool SimplificationRules::isInitialized() const
 {
-	return !m_rules[uint8_t(polynomial::Instruction::ADD)].empty();
+	return !m_rules[uint8_t(dev::sof::Instruction::ADD)].empty();
 }
 
 void SimplificationRules::addRules(vector<SimplificationRule<Pattern>> const& _rules)
@@ -93,7 +94,7 @@ SimplificationRules::SimplificationRules()
 	assertThrow(isInitialized(), OptimizerException, "Rule list not properly initialized.");
 }
 
-Pattern::Pattern(polynomial::Instruction _instruction, vector<Pattern> const& _arguments):
+yul::Pattern::Pattern(dev::sof::Instruction _instruction, vector<Pattern> const& _arguments):
 	m_kind(PatternKind::Operation),
 	m_instruction(_instruction),
 	m_arguments(_arguments)
@@ -187,7 +188,7 @@ bool Pattern::matches(
 	return true;
 }
 
-polynomial::Instruction Pattern::instruction() const
+dev::sof::Instruction Pattern::instruction() const
 {
 	assertThrow(m_kind == PatternKind::Operation, OptimizerException, "");
 	return m_instruction;

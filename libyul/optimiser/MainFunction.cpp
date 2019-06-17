@@ -31,7 +31,6 @@
 using namespace std;
 using namespace dev;
 using namespace yul;
-using namespace dev::polynomial;
 
 void MainFunction::operator()(Block& _block)
 {

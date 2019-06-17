@@ -31,13 +31,13 @@
 #include <libpolynomial/analysis/GlobalContext.h>
 #include <libpolynomial/analysis/NameAndTypeResolver.h>
 #include <libpolynomial/analysis/PostTypeChecker.h>
-#include <libpolynomial/analysis/SemVerHandler.h>
 #include <libpolynomial/analysis/StaticAnalyzer.h>
 #include <libpolynomial/analysis/SyntaxChecker.h>
 #include <libpolynomial/analysis/TypeChecker.h>
 #include <libpolynomial/analysis/ViewPureChecker.h>
 
 #include <libpolynomial/ast/AST.h>
+#include <libpolynomial/ast/TypeProvider.h>
 #include <libpolynomial/codegen/Compiler.h>
 #include <libpolynomial/formal/SMTChecker.h>
 #include <libpolynomial/interface/ABI.h>
@@ -46,9 +46,12 @@
 #include <libpolynomial/interface/Version.h>
 #include <libpolynomial/parsing/Parser.h>
 
+#include <libpolynomial/codegen/ir/IRGenerator.h>
+
 #include <libyul/YulString.h>
 
 #include <liblangutil/Scanner.h>
+#include <liblangutil/SemVerHandler.h>
 
 #include <libsvmasm/Exceptions.h>
 
@@ -63,6 +66,26 @@ using namespace std;
 using namespace dev;
 using namespace langutil;
 using namespace dev::polynomial;
+
+static int g_compilerStackCounts = 0;
+
+CompilerStack::CompilerStack(ReadCallback::Callback const& _readFile):
+	m_readFile{_readFile},
+	m_generateIR{false},
+	m_errorList{},
+	m_errorReporter{m_errorList}
+{
+	// Because TypeProvider is currently a singleton API, we must ensure that
+	// no more than one entity is actually using it at a time.
+	polAssert(g_compilerStackCounts == 0, "You shall not have another CompilerStack aside me.");
+	++g_compilerStackCounts;
+}
+
+CompilerStack::~CompilerStack()
+{
+	--g_compilerStackCounts;
+	TypeProvider::reset();
+}
 
 boost::optional<CompilerStack::Remapping> CompilerStack::parseRemapping(string const& _remapping)
 {
@@ -135,38 +158,38 @@ void CompilerStack::addSMTLib2Response(h256 const& _hash, string const& _respons
 	m_smtlib2Responses[_hash] = _response;
 }
 
-void CompilerStack::reset(bool _keepSources)
+void CompilerStack::reset(bool _keepSettings)
 {
-	if (_keepSources)
-	{
-		m_stackState = SourcesSet;
-		for (auto sourcePair: m_sources)
-			sourcePair.second.reset();
-	}
-	else
-	{
-		m_stackState = Empty;
-		m_sources.clear();
-	}
+	m_stackState = Empty;
+	m_sources.clear();
 	m_smtlib2Responses.clear();
 	m_unhandledSMTLib2Queries.clear();
-	m_libraries.clear();
-	m_svmVersion = langutil::SVMVersion();
-	m_optimiserSettings = OptimiserSettings::minimal();
+	if (!_keepSettings)
+	{
+		m_remappings.clear();
+		m_libraries.clear();
+		m_svmVersion = langutil::SVMVersion();
+		m_generateIR = false;
+		m_optimiserSettings = OptimiserSettings::minimal();
+		m_metadataLiteralSources = false;
+	}
 	m_globalContext.reset();
 	m_scopes.clear();
 	m_sourceOrder.clear();
 	m_contracts.clear();
 	m_errorReporter.clear();
+	TypeProvider::reset();
 }
 
-bool CompilerStack::addSource(string const& _name, string const& _content)
+void CompilerStack::setSources(StringMap _sources)
 {
-	bool existed = m_sources.count(_name) != 0;
-	reset(true);
-	m_sources[_name].scanner = make_shared<Scanner>(CharStream(_content, _name));
+	if (m_stackState == SourcesSet)
+		BOOST_THROW_EXCEPTION(CompilerError() << errinfo_comment("Cannot change sources once set."));
+	if (m_stackState != Empty)
+		BOOST_THROW_EXCEPTION(CompilerError() << errinfo_comment("Must set sources before parsing."));
+	for (auto source: _sources)
+		m_sources[source.first].scanner = make_shared<Scanner>(CharStream(/*content*/std::move(source.second), /*name*/source.first));
 	m_stackState = SourcesSet;
-	return existed;
 }
 
 bool CompilerStack::parse()
@@ -389,7 +412,11 @@ bool CompilerStack::compile()
 		for (ASTPointer<ASTNode> const& node: source->ast->nodes())
 			if (auto contract = dynamic_cast<ContractDefinition const*>(node.get()))
 				if (isRequestedContract(*contract))
+				{
 					compileContract(*contract, otherCompilers);
+					if (m_generateIR)
+						generateIR(*contract);
+				}
 	m_stackState = CompilationSuccessful;
 	this->link();
 	return true;
@@ -498,6 +525,22 @@ std::string const CompilerStack::filesystemFriendlyName(string const& _contractN
 	return matchContract.contract->name();
 }
 
+string const& CompilerStack::yulIR(string const& _contractName) const
+{
+	if (m_stackState != CompilationSuccessful)
+		BOOST_THROW_EXCEPTION(CompilerError() << errinfo_comment("Compilation was not successful."));
+
+	return contract(_contractName).yulIR;
+}
+
+string const& CompilerStack::yulIROptimized(string const& _contractName) const
+{
+	if (m_stackState != CompilationSuccessful)
+		BOOST_THROW_EXCEPTION(CompilerError() << errinfo_comment("Compilation was not successful."));
+
+	return contract(_contractName).yulIROptimized;
+}
+
 sof::LinkerObject const& CompilerStack::object(string const& _contractName) const
 {
 	if (m_stackState != CompilationSuccessful)
@@ -528,7 +571,7 @@ string CompilerStack::assemblyString(string const& _contractName, StringMap _sou
 }
 
 /// TODO: cache the JSON
-Json::Value CompilerStack::assemblyJSON(string const& _contractName, StringMap _sourceCodes) const
+Json::Value CompilerStack::assemblyJSON(string const& _contractName, StringMap const& _sourceCodes) const
 {
 	if (m_stackState != CompilationSuccessful)
 		BOOST_THROW_EXCEPTION(CompilerError() << errinfo_comment("Compilation was not successful."));
@@ -904,6 +947,24 @@ void CompilerStack::compileContract(
 	_otherCompilers[compiledContract.contract] = compiler;
 }
 
+void CompilerStack::generateIR(ContractDefinition const& _contract)
+{
+	polAssert(m_stackState >= AnalysisSuccessful, "");
+
+	if (!_contract.canBeDeployed())
+		return;
+
+	Contract& compiledContract = m_contracts.at(_contract.fullyQualifiedName());
+	if (!compiledContract.yulIR.empty())
+		return;
+
+	for (auto const* dependency: _contract.annotation().contractDependencies)
+		generateIR(*dependency);
+
+	IRGenerator generator(m_svmVersion, m_optimiserSettings);
+	tie(compiledContract.yulIR, compiledContract.yulIROptimized) = generator.run(_contract);
+}
+
 CompilerStack::Contract const& CompilerStack::contract(string const& _contractName) const
 {
 	polAssert(m_stackState >= AnalysisSuccessful, "");
@@ -1006,6 +1067,8 @@ string CompilerStack::createMetadata(Contract const& _contract) const
 		meta["settings"]["optimizer"]["details"] = std::move(details);
 	}
 
+	if (m_metadataLiteralSources)
+		meta["settings"]["metadata"]["useLiteralContent"] = true;
 	meta["settings"]["svmVersion"] = m_svmVersion.name();
 	meta["settings"]["compilationTarget"][_contract.contract->sourceUnitName()] =
 		_contract.contract->annotation().canonicalName;

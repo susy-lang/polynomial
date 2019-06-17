@@ -57,7 +57,7 @@ int SofAssemblyAdapter::stackHeight() const
 	return m_assembly.deposit();
 }
 
-void SofAssemblyAdapter::appendInstruction(polynomial::Instruction _instruction)
+void SofAssemblyAdapter::appendInstruction(dev::sof::Instruction _instruction)
 {
 	m_assembly.append(_instruction);
 }
@@ -94,7 +94,7 @@ void SofAssemblyAdapter::appendLinkerSymbol(std::string const& _linkerSymbol)
 
 void SofAssemblyAdapter::appendJump(int _stackDiffAfter)
 {
-	appendInstruction(polynomial::Instruction::JUMP);
+	appendInstruction(dev::sof::Instruction::JUMP);
 	m_assembly.adjustDeposit(_stackDiffAfter);
 }
 
@@ -107,7 +107,7 @@ void SofAssemblyAdapter::appendJumpTo(LabelID _labelId, int _stackDiffAfter)
 void SofAssemblyAdapter::appendJumpToIf(LabelID _labelId)
 {
 	appendLabelReference(_labelId);
-	appendInstruction(polynomial::Instruction::JUMPI);
+	appendInstruction(dev::sof::Instruction::JUMPI);
 }
 
 void SofAssemblyAdapter::appendBeginsub(LabelID, int)

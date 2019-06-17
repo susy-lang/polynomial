@@ -20,7 +20,6 @@
 
 #pragma once
 
-#include <libsvmasm/ExpressionClasses.h>
 #include <libsvmasm/SimplificationRule.h>
 
 #include <libyul/AsmDataForward.h>
@@ -47,7 +46,7 @@ public:
 	/// @returns a pointer to the first matching pattern and sets the match
 	/// groups accordingly.
 	/// @param _ssaValues values of variables that are assigned exactly once.
-	static SimplificationRule<Pattern> const* findFirstMatch(
+	static dev::sof::SimplificationRule<Pattern> const* findFirstMatch(
 		Expression const& _expr,
 		Dialect const& _dialect,
 		std::map<YulString, Expression const*> const& _ssaValues
@@ -57,13 +56,13 @@ public:
 	/// by the constructor, but we had some issues with static initialization.
 	bool isInitialized() const;
 private:
-	void addRules(std::vector<SimplificationRule<Pattern>> const& _rules);
-	void addRule(SimplificationRule<Pattern> const& _rule);
+	void addRules(std::vector<dev::sof::SimplificationRule<Pattern>> const& _rules);
+	void addRule(dev::sof::SimplificationRule<Pattern> const& _rule);
 
 	void resetMatchGroups() { m_matchGroups.clear(); }
 
 	std::map<unsigned, Expression const*> m_matchGroups;
-	std::vector<SimplificationRule<Pattern>> m_rules[256];
+	std::vector<dev::sof::SimplificationRule<Pattern>> m_rules[256];
 };
 
 enum class PatternKind
@@ -88,7 +87,7 @@ public:
 	// Matches a specific constant value.
 	Pattern(dev::u256 const& _value): m_kind(PatternKind::Constant), m_data(std::make_shared<dev::u256>(_value)) {}
 	// Matches a given instruction with given arguments
-	Pattern(dev::polynomial::Instruction _instruction, std::vector<Pattern> const& _arguments = {});
+	Pattern(dev::sof::Instruction _instruction, std::vector<Pattern> const& _arguments = {});
 	/// Sets this pattern to be part of the match group with the identifier @a _group.
 	/// Inside one rule, all patterns in the same match group have to match expressions from the
 	/// same expression equivalence class.
@@ -105,7 +104,7 @@ public:
 	/// @returns the data of the matched expression if this pattern is part of a match group.
 	dev::u256 d() const;
 
-	dev::polynomial::Instruction instruction() const;
+	dev::sof::Instruction instruction() const;
 
 	/// Turns this pattern into an actual expression. Should only be called
 	/// for patterns resulting from an action, i.e. with match groups assigned.
@@ -115,7 +114,7 @@ private:
 	Expression const& matchGroupValue() const;
 
 	PatternKind m_kind = PatternKind::Any;
-	dev::polynomial::Instruction m_instruction; ///< Only valid if m_kind is Operation
+	dev::sof::Instruction m_instruction; ///< Only valid if m_kind is Operation
 	std::shared_ptr<dev::u256> m_data; ///< Only valid if m_kind is Constant
 	std::vector<Pattern> m_arguments;
 	unsigned m_matchGroup = 0;

@@ -46,8 +46,8 @@ public:
 		bool _userDocumentation
 	)
 	{
-		m_compilerStack.reset(false);
-		m_compilerStack.addSource("", "pragma polynomial >=0.0;\n" + _code);
+		m_compilerStack.reset();
+		m_compilerStack.setSources({{"", "pragma polynomial >=0.0;\n" + _code}});
 		m_compilerStack.setSVMVersion(dev::test::Options::get().svmVersion());
 		BOOST_REQUIRE_MESSAGE(m_compilerStack.parseAndAnalyze(), "Parsing contract failed");
 
@@ -67,8 +67,8 @@ public:
 
 	void expectNatspecError(std::string const& _code)
 	{
-		m_compilerStack.reset(false);
-		m_compilerStack.addSource("", "pragma polynomial >=0.0;\n" + _code);
+		m_compilerStack.reset();
+		m_compilerStack.setSources({{"", "pragma polynomial >=0.0;\n" + _code}});
 		m_compilerStack.setSVMVersion(dev::test::Options::get().svmVersion());
 		BOOST_CHECK(!m_compilerStack.parseAndAnalyze());
 		BOOST_REQUIRE(Error::containsErrorOfType(m_compilerStack.errors(), Error::Type::DocstringParsingError));
