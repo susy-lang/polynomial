@@ -393,6 +393,9 @@ When exceptions happen in a sub-call, they "bubble up" (i.e. exceptions are rsof
 and the low-level functions ``call``, ``delegatecall`` and ``callcode`` -- those return ``false`` in case
 of an exception instead of "bubbling up".
 
+.. warning::
+    The low-level ``call``, ``delegatecall`` and ``callcode`` will return success if the calling account is non-existent, as part of the design of SVM. Existence must be checked prior to calling if desired.
+
 Catching exceptions is not yet possible.
 
 In the following example, you can see how ``require`` can be used to easily check conditions on inputs

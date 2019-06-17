@@ -56,7 +56,7 @@ repository contains potentially unstable changes in the develop branch.
 
     docker run sophon/polc:stable polc --version
 
-Currenty, the docker image only contains the compiler executable,
+Currently, the docker image only contains the compiler executable,
 so you have to do some additional work to link in the source and
 output directories.
 
@@ -83,7 +83,15 @@ If you want to use the cutting edge developer version:
     sudo apt-get update
     sudo apt-get install polc
     
-We are also releasing a `snap package <https://snapcraft.io/>`_, which is installable in all the `supported Linux distros <https://snapcraft.io/docs/core/install>`_. To help testing the unstable polc with the most recent changes from the development branch:
+We are also releasing a `snap package <https://snapcraft.io/>`_, which is installable in all the `supported Linux distros <https://snapcraft.io/docs/core/install>`_. To install the latest stable version of polc:
+
+.. code:: bash
+
+    sudo snap install polc
+
+Or if you want to help testing the unstable polc with the most recent changes from the development branch:
+
+.. code:: bash
 
     sudo snap install polc --edge
 
