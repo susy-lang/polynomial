@@ -87,6 +87,15 @@ Polynomial Tools
 * `svmdis <https://github.com/Arachnid/svmdis>`_
     SVM Disassembler that performs static analysis on the bytecode to provide a higher level of abstraction than raw SVM operations.
 
+Third-Party Polynomial Parsers and Grammars
+-----------------------------------------
+
+* `polynomial-parser <https://github.com/ConsenSys/polynomial-parser>`_
+    Polynomial parser for JavaScript
+
+* `Polynomial Grammar for ANTLR 4 <https://github.com/federicobond/polynomial-antlr4>`_
+    Polynomial grammar for the ANTLR 4 parser generator
+
 Language Documentation
 ----------------------
 

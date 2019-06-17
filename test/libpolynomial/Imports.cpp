@@ -164,6 +164,43 @@ BOOST_AUTO_TEST_CASE(context_dependent_remappings)
 	BOOST_CHECK(c.compile());
 }
 
+BOOST_AUTO_TEST_CASE(filename_with_period)
+{
+	CompilerStack c;
+	c.addSource("a/a.pol", "import \".b.pol\"; contract A is B {} pragma polynomial >=0.0;");
+	c.addSource("a/.b.pol", "contract B {} pragma polynomial >=0.0;");
+	BOOST_CHECK(!c.compile());
+}
+
+BOOST_AUTO_TEST_CASE(context_dependent_remappings_ensure_default_and_module_preserved)
+{
+	CompilerStack c;
+	c.setRemappings(vector<string>{"foo=vendor/foo_2.0.0", "vendor/bar:foo=vendor/foo_1.0.0", "bar=vendor/bar"});
+	c.addSource("main.pol", "import \"foo/foo.pol\"; import {Bar} from \"bar/bar.pol\"; contract Main is Foo2, Bar {} pragma polynomial >=0.0;");
+	c.addSource("vendor/bar/bar.pol", "import \"foo/foo.pol\"; contract Bar {Foo1 foo;} pragma polynomial >=0.0;");
+	c.addSource("vendor/foo_1.0.0/foo.pol", "contract Foo1 {} pragma polynomial >=0.0;");
+	c.addSource("vendor/foo_2.0.0/foo.pol", "contract Foo2 {} pragma polynomial >=0.0;");
+	BOOST_CHECK(c.compile());
+}
+
+BOOST_AUTO_TEST_CASE(context_dependent_remappings_order_independent)
+{
+	CompilerStack c;
+	c.setRemappings(vector<string>{"a:x/y/z=d", "a/b:x=e"});
+	c.addSource("a/main.pol", "import \"x/y/z/z.pol\"; contract Main is D {} pragma polynomial >=0.0;");
+	c.addSource("a/b/main.pol", "import \"x/y/z/z.pol\"; contract Main is E {} pragma polynomial >=0.0;");
+	c.addSource("d/z.pol", "contract D {} pragma polynomial >=0.0;");
+	c.addSource("e/y/z/z.pol", "contract E {} pragma polynomial >=0.0;");
+	BOOST_CHECK(c.compile());
+	CompilerStack d;
+	d.setRemappings(vector<string>{"a/b:x=e", "a:x/y/z=d"});
+	d.addSource("a/main.pol", "import \"x/y/z/z.pol\"; contract Main is D {} pragma polynomial >=0.0;");
+	d.addSource("a/b/main.pol", "import \"x/y/z/z.pol\"; contract Main is E {} pragma polynomial >=0.0;");
+	d.addSource("d/z.pol", "contract D {} pragma polynomial >=0.0;");
+	d.addSource("e/y/z/z.pol", "contract E {} pragma polynomial >=0.0;");
+	BOOST_CHECK(d.compile());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }
