@@ -28,13 +28,14 @@ using namespace std;
 using namespace dev;
 using namespace dev::sof;
 
-bytes dev::sof::compileLLL(string const& _src, bool _opt, vector<string>* _errors)
+
+bytes dev::sof::compileLLL(string const& _src, bool _opt, vector<string>* _errors, ReadCallback const& _readFile)
 {
 	try
 	{
 		CompilerState cs;
 		cs.populateStandard();
-		auto assembly = CodeFragment::compile(_src, cs).assembly(cs);
+		auto assembly = CodeFragment::compile(_src, cs, _readFile).assembly(cs);
 		if (_opt)
 			assembly = assembly.optimise(true);
 		bytes ret = assembly.assemble().bytecode;
@@ -66,13 +67,13 @@ bytes dev::sof::compileLLL(string const& _src, bool _opt, vector<string>* _error
 	return bytes();
 }
 
-std::string dev::sof::compileLLLToAsm(std::string const& _src, bool _opt, std::vector<std::string>* _errors)
+std::string dev::sof::compileLLLToAsm(std::string const& _src, bool _opt, std::vector<std::string>* _errors, ReadCallback const& _readFile)
 {
 	try
 	{
 		CompilerState cs;
 		cs.populateStandard();
-		auto assembly = CodeFragment::compile(_src, cs).assembly(cs);
+		auto assembly = CodeFragment::compile(_src, cs, _readFile).assembly(cs);
 		if (_opt)
 			assembly = assembly.optimise(true);
 		string ret = assembly.assemblyString();

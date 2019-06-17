@@ -20,7 +20,7 @@ Contracts can be created "from outside" via Sophon transactions or from within P
 
 IDEs, such as `Fourier <https://fourier.superstring.io/>`_, make the creation process seamless using UI elements.
 
-Creating contracts programatically on Sophon is best done via using the JavaScript API `susyweb.js <https://github.com/sophyem/susyweb.js>`_.
+Creating contracts programatically on Sophon is best done via using the JavaScript API `susyweb.js <https://octonion.institute/susy-js/susyweb.js>`_.
 As of today it has a method called `susyweb.sof.Contract <https://susywebjs.readthedocs.io/en/1.0/susyweb-sof-contract.html#new-contract>`_
 to facilitate contract creation.
 

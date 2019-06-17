@@ -125,7 +125,7 @@ bytes compileFirstExpression(
 	for (ASTPointer<ASTNode> const& node: sourceUnit->nodes())
 		if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 		{
-			SOF_TEST_REQUIRE_NO_THROW(resolver.resolveNamesAndTypes(*contract), "Repolving names failed");
+			BOOST_REQUIRE_MESSAGE(resolver.resolveNamesAndTypes(*contract), "Repolving names failed");
 			inheritanceHierarchy = vector<ContractDefinition const*>(1, contract);
 		}
 	for (ASTPointer<ASTNode> const& node: sourceUnit->nodes())

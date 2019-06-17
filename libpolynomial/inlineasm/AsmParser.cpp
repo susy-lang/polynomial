@@ -256,7 +256,7 @@ std::map<string, dev::polynomial::Instruction> const& Parser::instructions()
 		{
 			if (
 				instruction.second == polynomial::Instruction::JUMPDEST ||
-				(polynomial::Instruction::PUSH1 <= instruction.second && instruction.second <= polynomial::Instruction::PUSH32)
+				polynomial::isPushInstruction(instruction.second)
 			)
 				continue;
 			string name = instruction.first;
@@ -443,9 +443,9 @@ assembly::Statement Parser::parseCall(assembly::Statement&& _instruction)
 		ret.location = ret.instruction.location;
 		polynomial::Instruction instr = ret.instruction.instruction;
 		InstructionInfo instrInfo = instructionInfo(instr);
-		if (polynomial::Instruction::DUP1 <= instr && instr <= polynomial::Instruction::DUP16)
+		if (polynomial::isDupInstruction(instr))
 			fatalParserError("DUPi instructions not allowed for functional notation");
-		if (polynomial::Instruction::SWAP1 <= instr && instr <= polynomial::Instruction::SWAP16)
+		if (polynomial::isSwapInstruction(instr))
 			fatalParserError("SWAPi instructions not allowed for functional notation");
 		expectToken(Token::LParen);
 		unsigned args = unsigned(instrInfo.args);

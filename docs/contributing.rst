@@ -64,9 +64,11 @@ Running the compiler tests
 ==========================
 
 Polynomial includes different types of tests. They are included in the application
-called ``poltest``. Some of them require the ``cpp-sophon`` client in testing mode.
+called ``poltest``. Some of them require the ``cpp-sophon`` client in testing mode,
+some others require ``libz3`` to be installed.
 
-To run a subset of the tests that do not require ``cpp-sophon``, use ``./build/test/poltest -- --no-ipc``.
+To disable the z3 tests, use ``./build/test/poltest -- --no-smt`` and
+to run a subset of the tests that do not require ``cpp-sophon``, use ``./build/test/poltest -- --no-ipc``.
 
 For all other tests, you need to install `cpp-sophon <https://octonion.institute/susy-cpp/cpp-sophon/releases/download/polynomialTester/sof>`_ and run it in testing mode: ``sof --test -d /tmp/testsof``.
 

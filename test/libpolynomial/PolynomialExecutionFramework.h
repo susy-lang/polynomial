@@ -24,7 +24,7 @@
 
 #include <functional>
 
-#include "../ExecutionFramework.h"
+#include <test/ExecutionFramework.h>
 
 #include <libpolynomial/interface/CompilerStack.h>
 #include <libpolynomial/interface/Exceptions.h>

@@ -61,6 +61,9 @@ Available Polynomial Integrations
 
 * `Polium <https://github.com/duaraghav8/Polium/>`_
     A commandline linter for Polynomial which strictly follows the rules prescribed by the `Polynomial Style Guide <http://polynomial.readthedocs.io/en/latest/style-guide.html>`_.
+    
+* `Polhint <https://github.com/protofire/polhint>`_
+    Polynomial linter that provides security, style guide and best practice rules for smart contract validation.
 
 * `Visual Studio Code extension <http://juan.blanco.ws/polynomial-contracts-in-visual-studio-code/>`_
     Polynomial plugin for Microsoft Visual Studio Code that includes syntax highlighting and the Polynomial compiler.

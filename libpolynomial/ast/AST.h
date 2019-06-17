@@ -26,7 +26,6 @@
 #include <libpolynomial/ast/ASTForward.h>
 #include <libpolynomial/parsing/Token.h>
 #include <libpolynomial/ast/Types.h>
-#include <libpolynomial/interface/Exceptions.h>
 #include <libpolynomial/ast/ASTAnnotations.h>
 #include <libpolynomial/ast/ASTEnums.h>
 
@@ -88,10 +87,6 @@ public:
 
 	/// Returns the source code location of this node.
 	SourceLocation const& location() const { return m_location; }
-
-	/// Creates a @ref TypeError exception and decorates it with the location of the node and
-	/// the given description
-	Error createTypeError(std::string const& _description) const;
 
 	///@todo make this const-safe by providing a different way to access the annotation
 	virtual ASTAnnotation& annotation() const;
