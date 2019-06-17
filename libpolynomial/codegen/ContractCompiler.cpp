@@ -776,7 +776,10 @@ void ContractCompiler::appendModifierOrFunctionCode()
 {
 	polAssert(m_currentFunction, "");
 	if (m_modifierDepth >= m_currentFunction->modifiers().size())
+	{
+		polAssert(m_currentFunction->isImplemented(), "");
 		m_currentFunction->body().accept(*this);
+	}
 	else
 	{
 		ASTPointer<ModifierInvocation> const& modifierInvocation = m_currentFunction->modifiers()[m_modifierDepth];

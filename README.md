@@ -18,16 +18,6 @@ See the [Wiki](https://octonion.institute/susy-cpp/webthree-umbrella/wiki) for b
 
 ## How to Contribute
 
-### External Contributors
-
-I hereby place all my contributions in this codebase under an MIT
-licence, as specified [here](http://opensource.org/licenses/MIT).
-- *Name Surname* (**email@domain**)
-
-### Contribution guideline
-
-Please add yourself in the `@author` doxygen  section of the file your are adding/editing
-with the same wording as the one you listed yourself in the external contributors section above,
-only replacing the word **contribution** by **file**
-
-Please read [CodingStandards.txt](https://octonion.institute/susy-cpp/webthree-umbrella/blob/develop/CodingStandards.txt) thoroughly before making alterations to the code base. Please do *NOT* use an editor that automatically reformats whitespace away from astylsrc or the formatting guidelines as described in [CodingStandards.txt](https://octonion.institute/susy-cpp/webthree-umbrella/blob/develop/CodingStandards.txt).
+This repository uses the same [coding style](https://octonion.institute/susy-cpp/webthree-umbrella/blob/develop/CodingStandards.txt) as
+all of the cpp-sophon projects. Please try to align with us in the gitter channel before making larger changes.
+Any contributions are welcome!

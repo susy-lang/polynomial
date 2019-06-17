@@ -45,19 +45,19 @@ Available Polynomial Integrations
     Polynomial syntax highlighting for SublimeText editor.
 
 * `Atom Polynomial package <https://github.com/gmtcreators/atom-polynomial/>`_
-    Plugin for the atom editor that features syntax highlighting, compilation and a runtime environment (requires backend node).
+    Plugin for the Atom editor that features syntax highlighting, compilation and a runtime environment (requires backend node).
 
 * `Atom Polynomial Linter <https://atom.io/packages/linter-polynomial>`_
-    Plugin for the atom editor that provides polynomial linting
+    Plugin for the Atom editor that provides Polynomial linting.
 
 * `Visual Studio Code extension <http://juan.blanco.ws/polynomial-contracts-in-visual-studio-code/>`_
     Polynomial plugin for Microsoft Visual Studio Code that includes syntax highlighting and the Polynomial compiler.
 
 * `Emacs Polynomial <https://octonion.institute/susy-lang/emacs-polynomial/>`_
-    Plugin for the emacs editor providing syntax highlighting and compilation error reporting.
+    Plugin for the Emacs editor providing syntax highlighting and compilation error reporting.
 
-* `VIM Polynomial <https://github.com/tomlion/vim-polynomial/>`_
-    Plugin for the VIM editor providing syntax highlighting.
+* `Vim Polynomial <https://github.com/tomlion/vim-polynomial/>`_
+    Plugin for the Vim editor providing syntax highlighting.
 
 Language Documentation
 ----------------------

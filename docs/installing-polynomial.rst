@@ -68,67 +68,75 @@ Set up Homebrew:
     brew install llvm --HEAD --with-clang
     brew install qt5 --with-d-bus          # add --verbose if long waits with a stale screen drive you crazy as well
 
-Ubuntu
-------
+Ubuntu Trusty (14.04)
+---------------------
 
-Below are the build instructions for the latest versions of Ubuntu. The best
-supported platform as of December 2014 is Ubuntu 14.04, 64 bit, with at least 2
-GB RAM. All our tests are done with this version. Community contributions for
-other versions are welcome!
-
-Install dependencies:
-
-Before you can build the source, you need several tools and dependencies for the application to get started.
-
-First, update your repositories. Not all packages are provided in the main
-Ubuntu repository, those you'll get from the Sophon PPA and the LLVM archive.
+Below are the instructions to install the minimal dependencies required
+to compile Polynomial on Ubuntu 14.04 (Trusty Tahr).
 
 .. note::
 
-    Ubuntu 14.04 users, you'll need the latest version of cmake. For this, use:
-    `sudo apt-add-repository ppa:george-edison55/cmake-3.x`
-
-Now add all the rest:
+    These dependencies are not enough to compile the GUIs (Alsofzero and Mix).
 
 .. code-block:: bash
 
+    sudo apt-get -y install build-essential git cmake libgmp-dev libboost-all-dev \
+        libjsoncpp-dev libleveldb-dev libcurl4-openssl-dev libminiupnpc-dev \
+        libmicrohttpd-dev
+    
+    sudo add-apt-repository -y ppa:sophon/sophon
+    sudo add-apt-repository -y ppa:sophon/sophon-dev
     sudo apt-get -y update
-    sudo apt-get -y install language-pack-en-base
-    sudo dpkg-reconfigure locales
-    sudo apt-get -y install software-properties-common
+    sudo apt-get -y upgrade # this will update cmake to version 3.x
+    sudo apt-get -y install libcryptopp-dev libjson-rpc-cpp-dev
+
+Ubuntu Xenial (16.04)
+---------------------
+
+Below are the instructions to install the minimal dependencies required
+to compile Polynomial on Ubuntu 16.04 (Xenial Xerus).
+
+One of the dependencies (Crypto++ Library, with version >= 5.6.2) can be
+installed either by adding the Sophon PPA (Option 1) or by backporting
+``libcrypto++`` from Ubuntu Development to Ubuntu Xenial (Option 2).
+
+.. note::
+
+    These dependencies are not enough to compile the GUIs (Alsofzero and Mix).
+
+.. code-block:: bash
+
+    sudo apt-get -y install build-essential git cmake libgmp-dev libboost-all-dev \
+        libjsoncpp-dev libleveldb-dev libcurl4-openssl-dev libminiupnpc-dev \
+        libjsonrpccpp-dev libmicrohttpd-dev
+    
+    # (Option 1) For those willing to add the Sophon PPA:
     sudo add-apt-repository -y ppa:sophon/sophon
     sudo add-apt-repository -y ppa:sophon/sophon-dev
     sudo apt-get -y update
     sudo apt-get -y upgrade
-
-For Ubuntu 15.04 (Vivid Vervet) or older, use the following command to add the develop packages:
-
-.. code-block:: bash
-
-    sudo apt-get -y install build-essential git cmake libboost-all-dev libgmp-dev libleveldb-dev libminiupnpc-dev libreadline-dev libncurses5-dev libcurl4-openssl-dev libcryptopp-dev libjson-rpc-cpp-dev libmicrohttpd-dev libjsoncpp-dev libedit-dev libz-dev
-
-For Ubuntu 15.10 (Wily Werewolf) or newer, use the following command instead:
-
-.. code-block:: bash
-
-    sudo apt-get -y install build-essential git cmake libboost-all-dev libgmp-dev libleveldb-dev libminiupnpc-dev libreadline-dev libncurses5-dev libcurl4-openssl-dev libcryptopp-dev libjsonrpccpp-dev libmicrohttpd-dev libjsoncpp-dev libedit-dev libz-dev
-
-The reason for the change is that ``libjsonrpccpp-dev`` is available in the universe repository for newer versions of Ubuntu.
+    sudo apt-get -y install libcryptopp-dev
+    
+    ## (Option 2) For those willing to backport libcrypto++:
+    #sudo apt-get -y install ubuntu-dev-tools
+    #sudo pbuilder create
+    #mkdir ubuntu
+    #cd ubuntu
+    #backportpackage --workdir=. --build --dont-sign libcrypto++
+    #sudo dpkg -i buildresult/libcrypto++6_*.deb buildresult/libcrypto++-dev_*.deb
+    #cd ..
 
 Building
 --------
 
-Run this if you plan on installing Polynomial only, ignore errors at the end as
-they relate only to Alsofzero and Mix
+Run this if you plan on installing Polynomial only:
 
 .. code-block:: bash
 
     git clone --recursive https://octonion.institute/susy-cpp/webthree-umbrella.git
     cd webthree-umbrella
     ./webthree-helpers/scripts/sofupdate.sh --no-push --simple-pull --project polynomial # update Polynomial repo
-    ./webthree-helpers/scripts/sofbuild.sh --no-git --project polynomial --all --cores 4 -DSVMJIT=0 # build Polynomial and others
-                                                                                #enabling DSVMJIT on OS X will not build
-                                                                                #feel free to enable it on Linux
+    ./webthree-helpers/scripts/sofbuild.sh --no-git --project polynomial --cores 4 -DSVMJIT=0 -DSOFASHCL=0 # build Polynomial only
 
 If you opted to install Alsofzero and Mix:
 
