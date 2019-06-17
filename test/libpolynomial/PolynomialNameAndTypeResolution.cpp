@@ -27,6 +27,7 @@
 #include <libpolynomial/parsing/Scanner.h>
 #include <libpolynomial/parsing/Parser.h>
 #include <libpolynomial/analysis/NameAndTypeResolver.h>
+#include <libpolynomial/analysis/SyntaxChecker.h>
 #include <libpolynomial/interface/Exceptions.h>
 #include <libpolynomial/analysis/GlobalContext.h>
 #include <libpolynomial/analysis/TypeChecker.h>
@@ -56,6 +57,10 @@ parseAnalyseAndReturnError(string const& _source, bool _reportWarnings = false)
 		sourceUnit = parser.parse(std::make_shared<Scanner>(CharStream(_source)));
 		if(!sourceUnit)
 			return make_pair(sourceUnit, nullptr);
+
+		SyntaxChecker syntaxChecker(errors);
+		if (!syntaxChecker.checkSyntax(*sourceUnit))
+			return make_pair(sourceUnit, std::make_shared<Error::Type const>(errors[0]->type()));
 
 		std::shared_ptr<GlobalContext> globalContext = make_shared<GlobalContext>();
 		NameAndTypeResolver resolver(globalContext->declarations(), errors);
@@ -1003,6 +1008,17 @@ BOOST_AUTO_TEST_CASE(base_class_state_variable_accessor)
 	BOOST_CHECK(success(text));
 }
 
+BOOST_AUTO_TEST_CASE(struct_accessor_one_array_only)
+{
+	char const* sourceCode = R"(
+		contract test {
+			struct Data {  uint[15] m_array; }
+			Data public data;
+		}
+	)";
+	BOOST_CHECK(expectError(sourceCode) == Error::Type::TypeError);
+}
+
 BOOST_AUTO_TEST_CASE(base_class_state_variable_internal_member)
 {
 	char const* text = "contract Parent {\n"
@@ -1343,6 +1359,21 @@ BOOST_AUTO_TEST_CASE(enum_member_access)
 					choices = ActionChoices.GoStraight;
 				}
 				ActionChoices choices;
+			}
+	)";
+	BOOST_CHECK(success(text));
+}
+
+BOOST_AUTO_TEST_CASE(enum_member_access_accross_contracts)
+{
+	char const* text = R"(
+			contract Interface {
+				enum MyEnum { One, Two }
+			}
+			contract Impl {
+				function test() returns (Interface.MyEnum) {
+					return Interface.MyEnum.One;
+				}
 			}
 	)";
 	BOOST_CHECK(success(text));
@@ -2741,6 +2772,368 @@ BOOST_AUTO_TEST_CASE(invalid_args_creating_memory_array)
 		}
 	)";
 	BOOST_CHECK(expectError(text) == Error::Type::TypeError);
+}
+
+BOOST_AUTO_TEST_CASE(function_overload_array_type)
+{
+	char const* text = R"(
+			contract M {
+				function f(uint[] values);
+				function f(int[] values);
+			}
+	)";
+	BOOST_CHECK(success(text));
+}
+
+BOOST_AUTO_TEST_CASE(inline_array_declaration_and_passing_implicit_conversion)
+{
+	char const* text = R"(
+			contract C {
+				function f() returns (uint) {
+					uint8 x = 7;
+					uint16 y = 8;
+					uint32 z = 9;
+					uint32[3] memory ending = [x, y, z]; 
+					return (ending[1]);                   
+				}
+			}
+	)";
+	BOOST_CHECK(success(text));
+}
+
+BOOST_AUTO_TEST_CASE(inline_array_declaration_and_passing_implicit_conversion_strings)
+{
+	char const* text = R"(
+		contract C {
+			function f() returns (string) {
+				string memory x = "Hello";
+				string memory y = "World";
+				string[2] memory z = [x, y];
+				return (z[0]);
+			}
+		}
+	)";
+	BOOST_CHECK(success(text));
+}
+
+BOOST_AUTO_TEST_CASE(inline_array_declaration_const_int_conversion)
+{
+	char const* text = R"(
+		contract C {
+			function f() returns (uint) {
+				uint8[4] memory z = [1,2,3,5];
+				return (z[0]);
+			}
+		}
+	)";
+	BOOST_CHECK(success(text));
+}
+
+BOOST_AUTO_TEST_CASE(inline_array_declaration_const_string_conversion)
+{
+	char const* text = R"(
+		contract C {
+			function f() returns (string) {
+				string[2] memory z = ["Hello", "World"];
+				return (z[0]);
+			}
+		}
+	)";
+	BOOST_CHECK(success(text));
+}
+
+BOOST_AUTO_TEST_CASE(inline_array_declaration_no_type)
+{
+	char const* text = R"(
+		contract C {
+			function f() returns (uint) {
+				return ([4,5,6][1]);
+			}
+		}
+	)";
+	BOOST_CHECK(success(text));
+}
+
+BOOST_AUTO_TEST_CASE(inline_array_declaration_no_type_strings)
+{
+	char const* text = R"(
+		contract C {
+			function f() returns (string) {
+				return (["foo", "man", "choo"][1]);
+			}
+		}
+	)";
+	BOOST_CHECK(success(text));
+}
+
+BOOST_AUTO_TEST_CASE(inline_struct_declaration_arrays)
+{
+	char const* text = R"(
+		contract C {
+			struct S {
+				uint a;
+				string b;
+			}
+			function f() {
+				S[2] memory x = [S({a: 1, b: "fish"}), S({a: 2, b: "fish"})];
+			}
+		}
+	)";
+	BOOST_CHECK(success(text));
+}
+
+BOOST_AUTO_TEST_CASE(invalid_types_in_inline_array)
+{
+	char const* text = R"(
+		contract C {
+			function f() {
+				uint[3] x = [45, 'foo', true];
+			}
+		}
+	)";
+	BOOST_CHECK(expectError(text) == Error::Type::TypeError);
+}
+
+BOOST_AUTO_TEST_CASE(dynamic_inline_array)
+{
+	char const* text = R"(
+		contract C {
+			function f() {
+				uint8[4][4] memory dyn = [[1, 2, 3, 4], [2, 3, 4, 5], [3, 4, 5, 6], [4, 5, 6, 7]];
+			}
+		}
+	)";
+	BOOST_CHECK(success(text));
+}
+
+BOOST_AUTO_TEST_CASE(lvalues_as_inline_array)
+{
+	char const* text = R"(
+		contract C {
+			function f() {
+				[1, 2, 3]++;
+				[1, 2, 3] = [4, 5, 6];
+			}
+		}
+	)";
+	BOOST_CHECK(expectError(text) == Error::Type::TypeError);
+}
+
+BOOST_AUTO_TEST_CASE(break_not_in_loop)
+{
+	char const* text = R"(
+		contract C {
+			function f() {
+				if (true)
+					break;
+			}
+		}
+	)";
+	BOOST_CHECK(expectError(text) == Error::Type::SyntaxError);
+}
+
+BOOST_AUTO_TEST_CASE(continue_not_in_loop)
+{
+	char const* text = R"(
+		contract C {
+			function f() {
+				if (true)
+					continue;
+			}
+		}
+	)";
+	BOOST_CHECK(expectError(text) == Error::Type::SyntaxError);
+}
+
+BOOST_AUTO_TEST_CASE(continue_not_in_loop_2)
+{
+	char const* text = R"(
+		contract C {
+			function f() {
+				while (true)
+				{
+				}
+				continue;
+			}
+		}
+	)";
+	BOOST_CHECK(expectError(text) == Error::Type::SyntaxError);
+}
+
+BOOST_AUTO_TEST_CASE(invalid_different_types_for_conditional_expression)
+{
+	char const* text = R"(
+		contract C {
+			function f() {
+				true ? true : 2;
+			}
+		}
+	)";
+	BOOST_CHECK(expectError(text) == Error::Type::TypeError);
+}
+
+BOOST_AUTO_TEST_CASE(left_value_in_conditional_expression_not_supported_yet)
+{
+	char const* text = R"(
+		contract C {
+			function f() {
+				uint x;
+				uint y;
+				(true ? x : y) = 1;
+			}
+		}
+	)";
+	BOOST_CHECK(expectError(text) == Error::Type::TypeError);
+}
+
+BOOST_AUTO_TEST_CASE(conditional_expression_with_different_struct)
+{
+	char const* text = R"(
+		contract C {
+			struct s1 {
+				uint x;
+			}
+			struct s2 {
+				uint x;
+			}
+			function f() {
+				s1 x;
+				s2 y;
+				true ? x : y;
+			}
+		}
+	)";
+	BOOST_CHECK(expectError(text) == Error::Type::TypeError);
+}
+
+BOOST_AUTO_TEST_CASE(conditional_expression_with_different_function_type)
+{
+	char const* text = R"(
+		contract C {
+			function x(bool) {}
+			function y() {}
+
+			function f() {
+				true ? x : y;
+			}
+		}
+	)";
+	BOOST_CHECK(expectError(text) == Error::Type::TypeError);
+}
+
+BOOST_AUTO_TEST_CASE(conditional_expression_with_different_enum)
+{
+	char const* text = R"(
+		contract C {
+			enum small { A, B, C, D }
+			enum big { A, B, C, D }
+
+			function f() {
+				small x;
+				big y;
+
+				true ? x : y;
+			}
+		}
+	)";
+	BOOST_CHECK(expectError(text) == Error::Type::TypeError);
+}
+
+BOOST_AUTO_TEST_CASE(conditional_expression_with_different_mapping)
+{
+	char const* text = R"(
+		contract C {
+			mapping(uint8 => uint8) table1;
+			mapping(uint32 => uint8) table2;
+
+			function f() {
+				true ? table1 : table2;
+			}
+		}
+	)";
+	BOOST_CHECK(expectError(text) == Error::Type::TypeError);
+}
+
+BOOST_AUTO_TEST_CASE(conditional_with_all_types)
+{
+	char const* text = R"(
+		contract C {
+			struct s1 {
+				uint x;
+			}
+			s1 struct_x;
+			s1 struct_y;
+
+			function fun_x() {}
+			function fun_y() {}
+
+			enum small { A, B, C, D }
+
+			mapping(uint8 => uint8) table1;
+			mapping(uint8 => uint8) table2;
+
+			function f() {
+				// integers
+				uint x;
+				uint y;
+				true ? x : y;
+
+				// integer constants
+				true ? 1 : 3;
+
+				// string literal
+				true ? "hello" : "world";
+
+				// bool
+				true ? true : false;
+
+				// real is not there yet.
+
+				// array
+				byte[2] memory a;
+				byte[2] memory b;
+				true ? a : b;
+
+				bytes memory e;
+				bytes memory f;
+				true ? e : f;
+
+				// fixed bytes
+				bytes2 c;
+				bytes2 d;
+				true ? c : d;
+
+				// contract doesn't fit in here
+
+				// struct
+				true ? struct_x : struct_y;
+
+				// function
+				true ? fun_x : fun_y;
+
+				// enum
+				small enum_x;
+				small enum_y;
+				true ? enum_x : enum_y;
+
+				// tuple
+				true ? (1, 2) : (3, 4);
+
+				// mapping
+				true ? table1 : table2;
+
+				// typetype
+				true ? uint32(1) : uint32(2);
+
+				// modifier doesn't fit in here
+
+				// magic doesn't fit in here
+
+				// module doesn't fit in here
+			}
+		}
+	)";
+	BOOST_CHECK(success(text));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

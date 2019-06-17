@@ -28,15 +28,19 @@ using namespace std;
 using namespace dev;
 using namespace dev::polynomial;
 
-Declaration const* DeclarationContainer::conflictingDeclaration(Declaration const& _declaration) const
+Declaration const* DeclarationContainer::conflictingDeclaration(
+	Declaration const& _declaration,
+	ASTString const* _name
+) const
 {
-	ASTString const& declarationName(_declaration.name());
-	polAssert(!declarationName.empty(), "");
+	if (!_name)
+		_name = &_declaration.name();
+	polAssert(!_name->empty(), "");
 	vector<Declaration const*> declarations;
-	if (m_declarations.count(declarationName))
-		declarations += m_declarations.at(declarationName);
-	if (m_invisibleDeclarations.count(declarationName))
-		declarations += m_invisibleDeclarations.at(declarationName);
+	if (m_declarations.count(*_name))
+		declarations += m_declarations.at(*_name);
+	if (m_invisibleDeclarations.count(*_name))
+		declarations += m_invisibleDeclarations.at(*_name);
 
 	if (dynamic_cast<FunctionDefinition const*>(&_declaration))
 	{
@@ -45,31 +49,38 @@ Declaration const* DeclarationContainer::conflictingDeclaration(Declaration cons
 			if (!dynamic_cast<FunctionDefinition const*>(declaration))
 				return declaration;
 	}
+	else if (declarations.size() == 1 && declarations.front() == &_declaration)
+		return nullptr;
 	else if (!declarations.empty())
 		return declarations.front();
 
 	return nullptr;
 }
 
-bool DeclarationContainer::registerDeclaration(Declaration const& _declaration, bool _invisible, bool _update)
+bool DeclarationContainer::registerDeclaration(
+	Declaration const& _declaration,
+	ASTString const* _name,
+	bool _invisible,
+	bool _update
+)
 {
-	ASTString const& declarationName(_declaration.name());
-	if (declarationName.empty())
+	if (!_name)
+		_name = &_declaration.name();
+	if (_name->empty())
 		return true;
 
 	if (_update)
 	{
 		polAssert(!dynamic_cast<FunctionDefinition const*>(&_declaration), "Attempt to update function definition.");
-		m_declarations.erase(declarationName);
-		m_invisibleDeclarations.erase(declarationName);
+		m_declarations.erase(*_name);
+		m_invisibleDeclarations.erase(*_name);
 	}
-	else if (conflictingDeclaration(_declaration))
+	else if (conflictingDeclaration(_declaration, _name))
 		return false;
 
-	if (_invisible)
-		m_invisibleDeclarations[declarationName].push_back(&_declaration);
-	else
-		m_declarations[declarationName].push_back(&_declaration);
+	vector<Declaration const*>& decls = _invisible ? m_invisibleDeclarations[*_name] : m_declarations[*_name];
+	if (!contains(decls, &_declaration))
+		decls.push_back(&_declaration);
 	return true;
 }
 

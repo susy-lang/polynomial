@@ -8,7 +8,7 @@ include(SofPolicy)
 sof_policy()
 
 # project name and version should be set after cmake_policy CMP0048
-set(PROJECT_VERSION "0.2.0")
+set(PROJECT_VERSION "0.2.1")
 project(polynomial VERSION ${PROJECT_VERSION})
 
 # Let's find our dependencies

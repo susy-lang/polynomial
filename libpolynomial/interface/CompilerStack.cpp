@@ -22,6 +22,7 @@
  */
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/parsing/Scanner.h>
 #include <libpolynomial/parsing/Parser.h>
@@ -29,6 +30,7 @@
 #include <libpolynomial/analysis/NameAndTypeResolver.h>
 #include <libpolynomial/analysis/TypeChecker.h>
 #include <libpolynomial/analysis/DocStringAnalyser.h>
+#include <libpolynomial/analysis/SyntaxChecker.h>
 #include <libpolynomial/codegen/Compiler.h>
 #include <libpolynomial/interface/CompilerStack.h>
 #include <libpolynomial/interface/InterfaceHandler.h>
@@ -37,11 +39,8 @@
 #include <libdevcore/SHA3.h>
 
 using namespace std;
-
-namespace dev
-{
-namespace polynomial
-{
+using namespace dev;
+using namespace dev::polynomial;
 
 const map<string, string> StandardSources = map<string, string>{
 	{"coin", R"(import "CoinReg";import "Config";import "configUser";contract coin is configUser{function coin(bytes3 name, uint denom) {CoinReg(Config(configAddr()).lookup(3)).register(name, denom);}})"},
@@ -57,8 +56,8 @@ const map<string, string> StandardSources = map<string, string>{
 	{"std", R"(import "owned";import "mortal";import "Config";import "configUser";import "NameReg";import "named";)"}
 };
 
-CompilerStack::CompilerStack(bool _addStandardSources):
-	m_parseSuccessful(false)
+CompilerStack::CompilerStack(bool _addStandardSources, ReadFileCallback const& _readFile):
+	m_readFile(_readFile), m_parseSuccessful(false)
 {
 	if (_addStandardSources)
 		addSources(StandardSources, true); // add them as libraries
@@ -103,12 +102,30 @@ bool CompilerStack::parse()
 	m_errors.clear();
 	m_parseSuccessful = false;
 
-	for (auto& sourcePair: m_sources)
+	vector<string> sourcesToParse;
+	for (auto const& s: m_sources)
+		sourcesToParse.push_back(s.first);
+	map<string, SourceUnit const*> sourceUnitsByName;
+	for (size_t i = 0; i < sourcesToParse.size(); ++i)
 	{
-		sourcePair.second.scanner->reset();
-		sourcePair.second.ast = Parser(m_errors).parse(sourcePair.second.scanner);
-		if (!sourcePair.second.ast)
+		string const& path = sourcesToParse[i];
+		Source& source = m_sources[path];
+		source.scanner->reset();
+		source.ast = Parser(m_errors).parse(source.scanner);
+		sourceUnitsByName[path] = source.ast.get();
+		if (!source.ast)
 			polAssert(!Error::containsOnlyWarnings(m_errors), "Parser returned null but did not report error.");
+		else
+		{
+			source.ast->annotation().path = path;
+			for (auto const& newSource: loadMissingSources(*source.ast, path))
+			{
+				string const& newPath = newSource.first;
+				string const& newContents = newSource.second;
+				m_sources[newPath].scanner = make_shared<Scanner>(CharStream(newContents), newPath);
+				sourcesToParse.push_back(newPath);
+			}
+		}
 	}
 	if (!Error::containsOnlyWarnings(m_errors))
 		// errors while parsing. sould stop before type checking
@@ -117,6 +134,11 @@ bool CompilerStack::parse()
 	resolveImports();
 
 	bool noErrors = true;
+	SyntaxChecker syntaxChecker(m_errors);
+	for (Source const* source: m_sourceOrder)
+		if (!syntaxChecker.checkSyntax(*source->ast))
+			noErrors = false;
+
 	DocStringAnalyser docStringAnalyser(m_errors);
 	for (Source const* source: m_sourceOrder)
 		if (!docStringAnalyser.analyseDocStrings(*source->ast))
@@ -129,6 +151,10 @@ bool CompilerStack::parse()
 			return false;
 
 	for (Source const* source: m_sourceOrder)
+		if (!resolver.performImports(*source->ast, sourceUnitsByName))
+			return false;
+
+	for (Source const* source: m_sourceOrder)
 		for (ASTPointer<ASTNode> const& node: source->ast->nodes())
 			if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 			{
@@ -138,6 +164,9 @@ bool CompilerStack::parse()
 				if (!resolver.resolveNamesAndTypes(*contract)) return false;
 				m_contracts[contract->name()].contract = contract;
 			}
+
+	if (!checkLibraryNameClashes())
+		noErrors = false;
 
 	for (Source const* source: m_sourceOrder)
 		for (ASTPointer<ASTNode> const& node: source->ast->nodes())
@@ -355,6 +384,37 @@ tuple<int, int, int, int> CompilerStack::positionFromSourceLocation(SourceLocati
 	return make_tuple(++startLine, ++startColumn, ++endLine, ++endColumn);
 }
 
+StringMap CompilerStack::loadMissingSources(SourceUnit const& _ast, std::string const& _path)
+{
+	StringMap newSources;
+	for (auto const& node: _ast.nodes())
+		if (ImportDirective const* import = dynamic_cast<ImportDirective*>(node.get()))
+		{
+			string path = absolutePath(import->path(), _path);
+			import->annotation().absolutePath = path;
+			if (m_sources.count(path) || newSources.count(path))
+				continue;
+			string contents;
+			string errorMessage;
+			if (!m_readFile)
+				errorMessage = "File not supplied initially.";
+			else
+				tie(contents, errorMessage) = m_readFile(path);
+			if (!errorMessage.empty())
+			{
+				auto err = make_shared<Error>(Error::Type::ParserError);
+				*err <<
+					errinfo_sourceLocation(import->location()) <<
+					errinfo_comment("Source not found: " + errorMessage);
+				m_errors.push_back(std::move(err));
+				continue;
+			}
+			else
+				newSources[path] = contents;
+		}
+	return newSources;
+}
+
 void CompilerStack::resolveImports()
 {
 	// topological sorting (depth first search) of the import graph, cutting potential cycles
@@ -369,15 +429,11 @@ void CompilerStack::resolveImports()
 		for (ASTPointer<ASTNode> const& node: _source->ast->nodes())
 			if (ImportDirective const* import = dynamic_cast<ImportDirective*>(node.get()))
 			{
-				string const& id = import->identifier();
-				if (!m_sources.count(id))
-					BOOST_THROW_EXCEPTION(
-						Error(Error::Type::ParserError)
-							<< errinfo_sourceLocation(import->location())
-							<< errinfo_comment("Source not found.")
-					);
-
-				toposort(&m_sources[id]);
+				string const& path = import->annotation().absolutePath;
+				polAssert(!path.empty(), "");
+				polAssert(m_sources.count(path), "");
+				import->annotation().sourceUnit = m_sources[path].ast.get();
+				toposort(&m_sources[path]);
 			}
 		sourceOrder.push_back(_source);
 	};
@@ -387,6 +443,54 @@ void CompilerStack::resolveImports()
 			toposort(&sourcePair.second);
 
 	swap(m_sourceOrder, sourceOrder);
+}
+
+bool CompilerStack::checkLibraryNameClashes()
+{
+	bool clashFound = false;
+	map<string, SourceLocation> libraries;
+	for (Source const* source: m_sourceOrder)
+		for (ASTPointer<ASTNode> const& node: source->ast->nodes())
+			if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
+				if (contract->isLibrary())
+				{
+					if (libraries.count(contract->name()))
+					{
+						auto err = make_shared<Error>(Error::Type::DeclarationError);
+						*err <<
+							errinfo_sourceLocation(contract->location()) <<
+							errinfo_comment(
+								"Library \"" + contract->name() + "\" declared twice "
+								"(will create ambiguities during linking)."
+							) <<
+							errinfo_secondarySourceLocation(SecondarySourceLocation().append(
+									"The other declaration is here:", libraries[contract->name()]
+							));
+
+						m_errors.push_back(err);
+						clashFound = true;
+					}
+					else
+						libraries[contract->name()] = contract->location();
+				}
+	return !clashFound;
+}
+
+string CompilerStack::absolutePath(string const& _path, string const& _reference) const
+{
+	// Anything that does not start with `.` is an absolute path.
+	if (_path.empty() || _path.front() != '.')
+		return _path;
+	using path = boost::filesystem::path;
+	path p(_path);
+	path result(_reference);
+	result.remove_filename();
+	for (path::iterator it = p.begin(); it != p.end(); ++it)
+		if (*it == "..")
+			result = result.parent_path();
+		else if (*it != ".")
+			result /= *it;
+	return result.string();
 }
 
 void CompilerStack::compileContract(
@@ -444,7 +548,4 @@ CompilerStack::Source const& CompilerStack::source(string const& _sourceName) co
 		BOOST_THROW_EXCEPTION(CompilerError() << errinfo_comment("Given source file not found."));
 
 	return it->second;
-}
-
-}
 }

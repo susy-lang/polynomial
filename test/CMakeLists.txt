@@ -44,7 +44,7 @@ file(GLOB HEADERS "*.h")
 set(EXECUTABLE poltest)
 add_executable(${EXECUTABLE} ${SRC_LIST} ${HEADERS})
 
-sof_use(${EXECUTABLE} REQUIRED Polynomial Sof::sophon)
+sof_use(${EXECUTABLE} REQUIRED Polynomial::polynomial Sof::sophon)
 
 include_directories(BEFORE ..)
 target_link_libraries(${EXECUTABLE} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARIES})

@@ -91,7 +91,7 @@ Json::Value const& ASTJsonConverter::json()
 
 bool ASTJsonConverter::visit(ImportDirective const& _node)
 {
-	addJsonNode("Import", { make_pair("file", _node.identifier())});
+	addJsonNode("Import", { make_pair("file", _node.path())});
 	return true;
 }
 
@@ -214,6 +214,12 @@ bool ASTJsonConverter::visit(VariableDeclarationStatement const&)
 bool ASTJsonConverter::visit(ExpressionStatement const&)
 {
 	addJsonNode("ExpressionStatement", {}, true);
+	return true;
+}
+
+bool ASTJsonConverter::visit(Conditional const&)
+{
+	addJsonNode("Conditional", {}, true);
 	return true;
 }
 
@@ -393,6 +399,11 @@ void ASTJsonConverter::endVisit(VariableDeclarationStatement const&)
 }
 
 void ASTJsonConverter::endVisit(ExpressionStatement const&)
+{
+	goUp();
+}
+
+void ASTJsonConverter::endVisit(Conditional const&)
 {
 	goUp();
 }

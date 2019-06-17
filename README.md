@@ -2,7 +2,7 @@
 [![Join the chat at https://gitter.im/susy-lang/polynomial](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/susy-lang/polynomial?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 ## Useful links
 
-To get started you can find a basic introduction to the language in [Polynomial Tutorial](https://sophon.github.io/polynomial/docs/home/).
+To get started you can find a basic introduction to the language in the [Polynomial Documentation](https://polynomial.readthedocs.org).
 
 You can start using [Polynomial in your browser](https://chrissof.github.io/browser-polynomial/) with no need to download or compile anything. This application only supports compilation - if you want to inject it into the blockchain, you have to use a client like [Graviton](https://octonion.institute/susy-go/susy-graviton/wiki) or [AlsofZero](https://octonion.institute/susy-cpp/alsofzero).
 

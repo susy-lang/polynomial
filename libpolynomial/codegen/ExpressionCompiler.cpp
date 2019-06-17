@@ -85,7 +85,7 @@ void ExpressionCompiler::appendStateVariableAccessor(VariableDeclaration const& 
 	CompilerContext::LocationSetter locationSetter(m_context, _varDecl);
 	FunctionType accessorType(_varDecl);
 
-	TypePointers const& paramTypes = accessorType.parameterTypes();
+	TypePointers paramTypes = accessorType.parameterTypes();
 
 	// retrieve the position of the variable
 	auto const& location = m_context.storageLocationOfVariable(_varDecl);
@@ -176,6 +176,22 @@ void ExpressionCompiler::appendStateVariableAccessor(VariableDeclaration const& 
 	m_context.appendJump(sof::AssemblyItem::JumpType::OutOfFunction);
 }
 
+bool ExpressionCompiler::visit(Conditional const& _condition)
+{
+	CompilerContext::LocationSetter locationSetter(m_context, _condition);
+	_condition.condition().accept(*this);
+	sof::AssemblyItem trueTag = m_context.appendConditionalJump();
+	_condition.falseExpression().accept(*this);
+	utils().convertType(*_condition.falseExpression().annotation().type, *_condition.annotation().type);
+	sof::AssemblyItem endTag = m_context.appendJumpToNew();
+	m_context << trueTag;
+	m_context.adjustStackOffset(-_condition.annotation().type->sizeOnStack());
+	_condition.trueExpression().accept(*this);
+	utils().convertType(*_condition.trueExpression().annotation().type, *_condition.annotation().type);
+	m_context << endTag;
+	return false;
+}
+
 bool ExpressionCompiler::visit(Assignment const& _assignment)
 {
 	CompilerContext::LocationSetter locationSetter(m_context, _assignment);
@@ -219,21 +235,47 @@ bool ExpressionCompiler::visit(Assignment const& _assignment)
 
 bool ExpressionCompiler::visit(TupleExpression const& _tuple)
 {
-	vector<unique_ptr<LValue>> lvalues;
-	for (auto const& component: _tuple.components())
-		if (component)
+	if (_tuple.isInlineArray())
+	{
+		ArrayType const& arrayType = dynamic_cast<ArrayType const&>(*_tuple.annotation().type);
+		
+		polAssert(!arrayType.isDynamicallySized(), "Cannot create dynamically sized inline array.");
+		m_context << max(u256(32u), arrayType.memorySize());
+		utils().allocateMemory();
+		m_context << sof::Instruction::DUP1;
+	
+		for (auto const& component: _tuple.components())
 		{
 			component->accept(*this);
-			if (_tuple.annotation().lValueRequested)
-			{
-				polAssert(!!m_currentLValue, "");
-				lvalues.push_back(move(m_currentLValue));
-			}
+			utils().convertType(*component->annotation().type, *arrayType.baseType(), true);
+			utils().storeInMemoryDynamic(*arrayType.baseType(), true);				
 		}
-		else if (_tuple.annotation().lValueRequested)
-			lvalues.push_back(unique_ptr<LValue>());
-	if (_tuple.annotation().lValueRequested)
-		m_currentLValue.reset(new TupleObject(m_context, move(lvalues)));
+		
+		m_context << sof::Instruction::POP;
+	}
+	else
+	{
+		vector<unique_ptr<LValue>> lvalues;
+		for (auto const& component: _tuple.components())
+			if (component)
+			{
+				component->accept(*this);
+				if (_tuple.annotation().lValueRequested)
+				{
+					polAssert(!!m_currentLValue, "");
+					lvalues.push_back(move(m_currentLValue));
+				}
+			}
+			else if (_tuple.annotation().lValueRequested)
+				lvalues.push_back(unique_ptr<LValue>());
+		if (_tuple.annotation().lValueRequested)
+		{
+			if (_tuple.components().size() == 1)
+				m_currentLValue = move(lvalues[0]);
+			else
+				m_currentLValue.reset(new TupleObject(m_context, move(lvalues)));
+		}
+	}
 	return false;
 }
 
@@ -380,7 +422,7 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 	else
 		functionType = dynamic_pointer_cast<FunctionType const>(_functionCall.expression().annotation().type);
 
-	TypePointers const& parameterTypes = functionType->parameterTypes();
+	TypePointers parameterTypes = functionType->parameterTypes();
 	vector<ASTPointer<Expression const>> const& callArguments = _functionCall.arguments();
 	vector<ASTPointer<ASTString>> const& callArgumentNames = _functionCall.names();
 	if (!functionType->takesArbitraryParameters())
@@ -769,7 +811,6 @@ bool ExpressionCompiler::visit(NewExpression const&)
 void ExpressionCompiler::endVisit(MemberAccess const& _memberAccess)
 {
 	CompilerContext::LocationSetter locationSetter(m_context, _memberAccess);
-
 	// Check whether the member is a bound function.
 	ASTString const& member = _memberAccess.memberName();
 	if (auto funType = dynamic_cast<FunctionType const*>(_memberAccess.annotation().type.get()))
@@ -782,7 +823,6 @@ void ExpressionCompiler::endVisit(MemberAccess const& _memberAccess)
 			);
 			auto contract = dynamic_cast<ContractDefinition const*>(funType->declaration().scope());
 			polAssert(contract && contract->isLibrary(), "");
-			//@TODO library name might not be unique
 			m_context.appendLibraryAddress(contract->name());
 			m_context << funType->externalIdentifier();
 			utils().moveIntoStack(funType->selfType()->sizeOnStack(), 2);
@@ -913,14 +953,16 @@ void ExpressionCompiler::endVisit(MemberAccess const& _memberAccess)
 
 		if (dynamic_cast<ContractType const*>(type.actualType().get()))
 		{
-			auto const& funType = dynamic_cast<FunctionType const&>(*_memberAccess.annotation().type);
-			if (funType.location() != FunctionType::Location::Internal)
-				m_context << funType.externalIdentifier();
-			else
+			if (auto funType = dynamic_cast<FunctionType const*>(_memberAccess.annotation().type.get()))
 			{
-				auto const* function = dynamic_cast<FunctionDefinition const*>(_memberAccess.annotation().referencedDeclaration);
-				polAssert(!!function, "Function not found in member access");
-				m_context << m_context.functionEntryLabel(*function).pushTag();
+				if (funType->location() != FunctionType::Location::Internal)
+					m_context << funType->externalIdentifier();
+				else
+				{
+					auto const* function = dynamic_cast<FunctionDefinition const*>(_memberAccess.annotation().referencedDeclaration);
+					polAssert(!!function, "Function not found in member access");
+					m_context << m_context.functionEntryLabel(*function).pushTag();
+				}
 			}
 		}
 		else if (auto enumType = dynamic_cast<EnumType const*>(type.actualType().get()))
@@ -1091,7 +1133,6 @@ void ExpressionCompiler::endVisit(Identifier const& _identifier)
 	else if (auto contract = dynamic_cast<ContractDefinition const*>(declaration))
 	{
 		if (contract->isLibrary())
-			//@todo name should be unique, change once we have module management
 			m_context.appendLibraryAddress(contract->name());
 	}
 	else if (dynamic_cast<EventDefinition const*>(declaration))
@@ -1116,6 +1157,7 @@ void ExpressionCompiler::endVisit(Literal const& _literal)
 {
 	CompilerContext::LocationSetter locationSetter(m_context, _literal);
 	TypePointer type = _literal.annotation().type;
+	
 	switch (type->category())
 	{
 	case Type::Category::IntegerConstant:

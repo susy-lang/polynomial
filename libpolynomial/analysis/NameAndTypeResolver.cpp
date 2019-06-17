@@ -38,16 +38,24 @@ NameAndTypeResolver::NameAndTypeResolver(
 ) :
 	m_errors(_errors)
 {
+	if (!m_scopes[nullptr])
+		m_scopes[nullptr].reset(new DeclarationContainer());
 	for (Declaration const* declaration: _globals)
-		m_scopes[nullptr].registerDeclaration(*declaration);
+		m_scopes[nullptr]->registerDeclaration(*declaration);
 }
 
 bool NameAndTypeResolver::registerDeclarations(SourceUnit& _sourceUnit)
 {
+	if (!m_scopes[&_sourceUnit])
+		// By importing, it is possible that the container already exists.
+		m_scopes[&_sourceUnit].reset(new DeclarationContainer(nullptr, m_scopes[nullptr].get()));
+	m_currentScope = m_scopes[&_sourceUnit].get();
+
 	// The helper registers all declarations in m_scopes as a side-effect of its construction.
 	try
 	{
 		DeclarationRegistrationHelper registrar(m_scopes, _sourceUnit, m_errors);
+		_sourceUnit.annotation().exportedSymbols = m_scopes[&_sourceUnit]->declarations();
 	}
 	catch (FatalError const&)
 	{
@@ -58,11 +66,78 @@ bool NameAndTypeResolver::registerDeclarations(SourceUnit& _sourceUnit)
 	return true;
 }
 
+bool NameAndTypeResolver::performImports(SourceUnit& _sourceUnit, map<string, SourceUnit const*> const& _sourceUnits)
+{
+	DeclarationContainer& target = *m_scopes.at(&_sourceUnit);
+	bool error = false;
+	for (auto const& node: _sourceUnit.nodes())
+		if (auto imp = dynamic_cast<ImportDirective const*>(node.get()))
+		{
+			string const& path = imp->annotation().absolutePath;
+			if (!_sourceUnits.count(path))
+			{
+				reportDeclarationError(
+					imp->location(),
+					"Import \"" + path + "\" (referenced as \"" + imp->path() + "\") not found."
+				);
+				error = true;
+				continue;
+			}
+			auto scope = m_scopes.find(_sourceUnits.at(path));
+			polAssert(scope != end(m_scopes), "");
+			if (!imp->symbolAliases().empty())
+				for (auto const& alias: imp->symbolAliases())
+				{
+					auto declarations = scope->second->resolveName(alias.first->name(), false);
+					if (declarations.empty())
+					{
+						reportDeclarationError(
+							imp->location(),
+							"Declaration \"" +
+							alias.first->name() +
+							"\" not found in \"" +
+							path +
+							"\" (referenced as \"" +
+							imp->path() +
+							"\")."
+						);
+						error = true;
+					}
+					else
+						for (Declaration const* declaration: declarations)
+						{
+							ASTString const* name = alias.second ? alias.second.get() : &declaration->name();
+							if (!target.registerDeclaration(*declaration, name))
+							{
+								reportDeclarationError(
+									imp->location(),
+									"Identifier \"" + *name + "\" already declared."
+								);
+								error = true;
+							}
+						}
+				}
+			else if (imp->name().empty())
+				for (auto const& nameAndDeclaration: scope->second->declarations())
+					for (auto const& declaration: nameAndDeclaration.second)
+						if (!target.registerDeclaration(*declaration, &nameAndDeclaration.first))
+						{
+							reportDeclarationError(
+								imp->location(),
+								"Identifier \"" + nameAndDeclaration.first + "\" already declared."
+							);
+							error = true;
+						}
+		}
+	return !error;
+}
+
 bool NameAndTypeResolver::resolveNamesAndTypes(ContractDefinition& _contract)
 {
 	try
 	{
-		m_currentScope = &m_scopes[nullptr];
+		m_currentScope = m_scopes[_contract.scope()].get();
+		polAssert(!!m_currentScope, "");
 
 		ReferencesResolver resolver(m_errors, *this, nullptr);
 		bool success = true;
@@ -70,12 +145,12 @@ bool NameAndTypeResolver::resolveNamesAndTypes(ContractDefinition& _contract)
 			if (!resolver.resolve(*baseContract))
 				success = false;
 
-		m_currentScope = &m_scopes[&_contract];
+		m_currentScope = m_scopes[&_contract].get();
 
 		if (success)
 		{
 			linearizeBaseContracts(_contract);
-			std::vector<ContractDefinition const*> properBases(
+			vector<ContractDefinition const*> properBases(
 				++_contract.annotation().linearizedBaseContracts.begin(),
 				_contract.annotation().linearizedBaseContracts.end()
 			);
@@ -87,7 +162,7 @@ bool NameAndTypeResolver::resolveNamesAndTypes(ContractDefinition& _contract)
 		// these can contain code, only resolve parameters for now
 		for (ASTPointer<ASTNode> const& node: _contract.subNodes())
 		{
-			m_currentScope = &m_scopes[m_scopes.count(node.get()) ? node.get() : &_contract];
+			m_currentScope = m_scopes[m_scopes.count(node.get()) ? node.get() : &_contract].get();
 			if (!resolver.resolve(*node))
 				success = false;
 		}
@@ -95,12 +170,12 @@ bool NameAndTypeResolver::resolveNamesAndTypes(ContractDefinition& _contract)
 		if (!success)
 			return false;
 
-		m_currentScope = &m_scopes[&_contract];
+		m_currentScope = m_scopes[&_contract].get();
 
 		// now resolve references inside the code
 		for (ModifierDefinition const* modifier: _contract.functionModifiers())
 		{
-			m_currentScope = &m_scopes[modifier];
+			m_currentScope = m_scopes[modifier].get();
 			ReferencesResolver resolver(m_errors, *this, nullptr, true);
 			if (!resolver.resolve(*modifier))
 				success = false;
@@ -108,7 +183,7 @@ bool NameAndTypeResolver::resolveNamesAndTypes(ContractDefinition& _contract)
 
 		for (FunctionDefinition const* function: _contract.definedFunctions())
 		{
-			m_currentScope = &m_scopes[function];
+			m_currentScope = m_scopes[function].get();
 			if (!ReferencesResolver(
 				m_errors,
 				*this,
@@ -133,7 +208,7 @@ bool NameAndTypeResolver::updateDeclaration(Declaration const& _declaration)
 {
 	try
 	{
-		m_scopes[nullptr].registerDeclaration(_declaration, false, true);
+		m_scopes[nullptr]->registerDeclaration(_declaration, nullptr, false, true);
 		polAssert(_declaration.scope() == nullptr, "Updated declaration outside global scope.");
 	}
 	catch (FatalError const&)
@@ -145,12 +220,12 @@ bool NameAndTypeResolver::updateDeclaration(Declaration const& _declaration)
 	return true;
 }
 
-vector<Declaration const*> NameAndTypeResolver::resolveName(ASTString const& _name, Declaration const* _scope) const
+vector<Declaration const*> NameAndTypeResolver::resolveName(ASTString const& _name, ASTNode const* _scope) const
 {
 	auto iterator = m_scopes.find(_scope);
 	if (iterator == end(m_scopes))
 		return vector<Declaration const*>({});
-	return iterator->second.resolveName(_name, false);
+	return iterator->second->resolveName(_name, false);
 }
 
 vector<Declaration const*> NameAndTypeResolver::nameFromCurrentScope(ASTString const& _name, bool _recursive) const
@@ -166,7 +241,7 @@ Declaration const* NameAndTypeResolver::pathFromCurrentScope(vector<ASTString> c
 	{
 		if (!m_scopes.count(candidates.front()))
 			return nullptr;
-		candidates = m_scopes.at(candidates.front()).resolveName(_path[i], false);
+		candidates = m_scopes.at(candidates.front())->resolveName(_path[i], false);
 	}
 	if (candidates.size() == 1)
 		return candidates.front();
@@ -210,7 +285,7 @@ void NameAndTypeResolver::importInheritedScope(ContractDefinition const& _base)
 {
 	auto iterator = m_scopes.find(&_base);
 	polAssert(iterator != end(m_scopes), "");
-	for (auto const& nameAndDeclaration: iterator->second.declarations())
+	for (auto const& nameAndDeclaration: iterator->second->declarations())
 		for (auto const& declaration: nameAndDeclaration.second)
 			// Import if it was declared in the base, is not the constructor and is visible in derived classes
 			if (declaration->scope() == &_base && declaration->isVisibleInDerivedContracts())
@@ -224,7 +299,7 @@ void NameAndTypeResolver::linearizeBaseContracts(ContractDefinition& _contract)
 	list<list<ContractDefinition const*>> input(1, {});
 	for (ASTPointer<InheritanceSpecifier> const& baseSpecifier: _contract.baseContracts())
 	{
-		Identifier const& baseName = baseSpecifier->name();
+		UserDefinedTypeName const& baseName = baseSpecifier->name();
 		auto base = dynamic_cast<ContractDefinition const*>(baseName.annotation().referencedDeclaration);
 		if (!base)
 			reportFatalTypeError(baseName.createTypeError("Contract expected."));
@@ -342,15 +417,27 @@ void NameAndTypeResolver::reportFatalTypeError(Error const& _e)
 }
 
 DeclarationRegistrationHelper::DeclarationRegistrationHelper(
-	map<ASTNode const*, DeclarationContainer>& _scopes,
+	map<ASTNode const*, shared_ptr<DeclarationContainer>>& _scopes,
 	ASTNode& _astRoot,
 	ErrorList& _errors
 ):
 	m_scopes(_scopes),
-	m_currentScope(nullptr),
+	m_currentScope(&_astRoot),
 	m_errors(_errors)
 {
+	polAssert(!!m_scopes.at(m_currentScope), "");
 	_astRoot.accept(*this);
+}
+
+bool DeclarationRegistrationHelper::visit(ImportDirective& _import)
+{
+	SourceUnit const* importee = _import.annotation().sourceUnit;
+	polAssert(!!importee, "");
+	if (!m_scopes[importee])
+		m_scopes[importee].reset(new DeclarationContainer(nullptr, m_scopes[nullptr].get()));
+	m_scopes[&_import] = m_scopes[importee];
+	registerDeclaration(_import, false);
+	return true;
 }
 
 bool DeclarationRegistrationHelper::visit(ContractDefinition& _contract)
@@ -450,9 +537,10 @@ void DeclarationRegistrationHelper::endVisit(EventDefinition&)
 
 void DeclarationRegistrationHelper::enterNewSubScope(Declaration const& _declaration)
 {
-	map<ASTNode const*, DeclarationContainer>::iterator iter;
+	map<ASTNode const*, shared_ptr<DeclarationContainer>>::iterator iter;
 	bool newlyAdded;
-	tie(iter, newlyAdded) = m_scopes.emplace(&_declaration, DeclarationContainer(m_currentScope, &m_scopes[m_currentScope]));
+	shared_ptr<DeclarationContainer> container(new DeclarationContainer(m_currentScope, m_scopes[m_currentScope].get()));
+	tie(iter, newlyAdded) = m_scopes.emplace(&_declaration, move(container));
 	polAssert(newlyAdded, "Unable to add new scope.");
 	m_currentScope = &_declaration;
 }
@@ -460,16 +548,16 @@ void DeclarationRegistrationHelper::enterNewSubScope(Declaration const& _declara
 void DeclarationRegistrationHelper::closeCurrentScope()
 {
 	polAssert(m_currentScope, "Closed non-existing scope.");
-	m_currentScope = m_scopes[m_currentScope].enclosingDeclaration();
+	m_currentScope = m_scopes[m_currentScope]->enclosingNode();
 }
 
 void DeclarationRegistrationHelper::registerDeclaration(Declaration& _declaration, bool _opensScope)
 {
-	if (!m_scopes[m_currentScope].registerDeclaration(_declaration, !_declaration.isVisibleInContract()))
+	if (!m_scopes[m_currentScope]->registerDeclaration(_declaration, nullptr, !_declaration.isVisibleInContract()))
 	{
 		SourceLocation firstDeclarationLocation;
 		SourceLocation secondDeclarationLocation;
-		Declaration const* conflictingDeclaration = m_scopes[m_currentScope].conflictingDeclaration(_declaration);
+		Declaration const* conflictingDeclaration = m_scopes[m_currentScope]->conflictingDeclaration(_declaration);
 		polAssert(conflictingDeclaration, "");
 
 		if (_declaration.location().start < conflictingDeclaration->location().start)
@@ -500,14 +588,17 @@ string DeclarationRegistrationHelper::currentCanonicalName() const
 {
 	string ret;
 	for (
-		Declaration const* scope = m_currentScope;
+		ASTNode const* scope = m_currentScope;
 		scope != nullptr;
-		scope = m_scopes[scope].enclosingDeclaration()
+		scope = m_scopes[scope]->enclosingNode()
 	)
 	{
-		if (!ret.empty())
-			ret = "." + ret;
-		ret = scope->name() + ret;
+		if (auto decl = dynamic_cast<Declaration const*>(scope))
+		{
+			if (!ret.empty())
+				ret = "." + ret;
+			ret = decl->name() + ret;
+		}
 	}
 	return ret;
 }

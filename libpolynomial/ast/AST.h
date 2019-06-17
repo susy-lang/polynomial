@@ -120,6 +120,7 @@ public:
 
 	virtual void accept(ASTVisitor& _visitor) override;
 	virtual void accept(ASTConstVisitor& _visitor) const override;
+	virtual SourceUnitAnnotation& annotation() const override;
 
 	std::vector<ASTPointer<ASTNode>> nodes() const { return m_nodes; }
 
@@ -128,27 +129,7 @@ private:
 };
 
 /**
- * Import directive for referencing other files / source objects.
- * Example: import "abc.pol"
- * Source objects are identified by a string which can be a file name but does not have to be.
- */
-class ImportDirective: public ASTNode
-{
-public:
-	ImportDirective(SourceLocation const& _location, ASTPointer<ASTString> const& _identifier):
-		ASTNode(_location), m_identifier(_identifier) {}
-
-	virtual void accept(ASTVisitor& _visitor) override;
-	virtual void accept(ASTConstVisitor& _visitor) const override;
-
-	ASTString const& identifier() const { return *m_identifier; }
-
-private:
-	ASTPointer<ASTString> m_identifier;
-};
-
-/**
- * Abstract AST class for a declaration (contract, function, struct, variable).
+ * Abstract AST class for a declaration (contract, function, struct, variable, import directive).
  */
 class Declaration: public ASTNode
 {
@@ -172,8 +153,8 @@ public:
 
 	/// @returns the scope this declaration resides in. Can be nullptr if it is the global scope.
 	/// Available only after name and type resolution step.
-	Declaration const* scope() const { return m_scope; }
-	void setScope(Declaration const* _scope) { m_scope = _scope; }
+	ASTNode const* scope() const { return m_scope; }
+	void setScope(ASTNode const* _scope) { m_scope = _scope; }
 
 	virtual bool isLValue() const { return false; }
 	virtual bool isPartOfExternalInterface() const { return false; }
@@ -190,7 +171,50 @@ protected:
 private:
 	ASTPointer<ASTString> m_name;
 	Visibility m_visibility;
-	Declaration const* m_scope;
+	ASTNode const* m_scope;
+};
+
+/**
+ * Import directive for referencing other files / source objects.
+ * Example: import "abc.pol" // imports all symbols of "abc.pol" into current scope
+ * Source objects are identified by a string which can be a file name but does not have to be.
+ * Other ways to use it:
+ * import "abc" as x; // creates symbol "x" that contains all symbols in "abc"
+ * import * as x from "abc"; // same as above
+ * import {a as b, c} from "abc"; // creates new symbols "b" and "c" referencing "a" and "c" in "abc", respectively.
+ */
+class ImportDirective: public Declaration
+{
+public:
+	ImportDirective(
+		SourceLocation const& _location,
+		ASTPointer<ASTString> const& _path,
+		ASTPointer<ASTString> const& _unitAlias,
+		std::vector<std::pair<ASTPointer<Identifier>, ASTPointer<ASTString>>>&& _symbolAliases
+	):
+		Declaration(_location, _unitAlias),
+		m_path(_path),
+		m_symbolAliases(_symbolAliases)
+	{ }
+
+	virtual void accept(ASTVisitor& _visitor) override;
+	virtual void accept(ASTConstVisitor& _visitor) const override;
+
+	ASTString const& path() const { return *m_path; }
+	std::vector<std::pair<ASTPointer<Identifier>, ASTPointer<ASTString>>> const& symbolAliases() const
+	{
+		return m_symbolAliases;
+	}
+	virtual ImportAnnotation& annotation() const override;
+
+	virtual TypePointer type() const override;
+
+private:
+	ASTPointer<ASTString> m_path;
+	/// The aliases for the specific symbols to import. If non-empty import the specific symbols.
+	/// If the second component is empty, import the identifier unchanged.
+	/// If both m_unitAlias and m_symbolAlias are empty, import all symbols into the current scope.
+	std::vector<std::pair<ASTPointer<Identifier>, ASTPointer<ASTString>>> m_symbolAliases;
 };
 
 /**
@@ -320,7 +344,7 @@ class InheritanceSpecifier: public ASTNode
 public:
 	InheritanceSpecifier(
 		SourceLocation const& _location,
-		ASTPointer<Identifier> const& _baseName,
+		ASTPointer<UserDefinedTypeName> const& _baseName,
 		std::vector<ASTPointer<Expression>> _arguments
 	):
 		ASTNode(_location), m_baseName(_baseName), m_arguments(_arguments) {}
@@ -328,11 +352,11 @@ public:
 	virtual void accept(ASTVisitor& _visitor) override;
 	virtual void accept(ASTConstVisitor& _visitor) const override;
 
-	Identifier const& name() const { return *m_baseName; }
+	UserDefinedTypeName const& name() const { return *m_baseName; }
 	std::vector<ASTPointer<Expression>> const& arguments() const { return m_arguments; }
 
 private:
-	ASTPointer<Identifier> m_baseName;
+	ASTPointer<UserDefinedTypeName> m_baseName;
 	std::vector<ASTPointer<Expression>> m_arguments;
 };
 
@@ -346,7 +370,7 @@ class UsingForDirective: public ASTNode
 public:
 	UsingForDirective(
 		SourceLocation const& _location,
-		ASTPointer<Identifier> const& _libraryName,
+		ASTPointer<UserDefinedTypeName> const& _libraryName,
 		ASTPointer<TypeName> const& _typeName
 	):
 		ASTNode(_location), m_libraryName(_libraryName), m_typeName(_typeName) {}
@@ -354,12 +378,12 @@ public:
 	virtual void accept(ASTVisitor& _visitor) override;
 	virtual void accept(ASTConstVisitor& _visitor) const override;
 
-	Identifier const& libraryName() const { return *m_libraryName; }
+	UserDefinedTypeName const& libraryName() const { return *m_libraryName; }
 	/// @returns the type name the library is attached to, null for `*`.
 	TypeName const* typeName() const { return m_typeName.get(); }
 
 private:
-	ASTPointer<Identifier> m_libraryName;
+	ASTPointer<UserDefinedTypeName> m_libraryName;
 	ASTPointer<TypeName> m_typeName;
 };
 
@@ -1095,6 +1119,33 @@ public:
 	ExpressionAnnotation& annotation() const override;
 };
 
+class Conditional: public Expression
+{
+public:
+	Conditional(
+		SourceLocation const& _location,
+		ASTPointer<Expression> const& _condition,
+		ASTPointer<Expression> const& _trueExpression,
+		ASTPointer<Expression> const& _falseExpression
+	):
+		Expression(_location),
+		m_condition(_condition),
+		m_trueExpression(_trueExpression),
+		m_falseExpression(_falseExpression)
+	{}
+	virtual void accept(ASTVisitor& _visitor) override;
+	virtual void accept(ASTConstVisitor& _visitor) const override;
+
+	Expression const& condition() const { return *m_condition; }
+	Expression const& trueExpression() const { return *m_trueExpression; }
+	Expression const& falseExpression() const { return *m_falseExpression; }
+
+private:
+	ASTPointer<Expression> m_condition;
+	ASTPointer<Expression> m_trueExpression;
+	ASTPointer<Expression> m_falseExpression;
+};
+
 /// Assignment, can also be a compound assignment.
 /// Examples: (a = 7 + 8) or (a *= 2)
 class Assignment: public Expression
@@ -1126,9 +1177,10 @@ private:
 	ASTPointer<Expression> m_rightHandSide;
 };
 
+
 /**
- * Tuple or just parenthesized expression.
- * Examples: (1, 2), (x,), (x), ()
+ * Tuple, parenthesized expression, or bracketed expression.
+ * Examples: (1, 2), (x,), (x), (), [1, 2], 
  * Individual components might be empty shared pointers (as in the second example).
  * The respective types in lvalue context are: 2-tuple, 2-tuple (with wildcard), type of x, 0-tuple
  * Not in lvalue context: 2-tuple, _1_-tuple, type of x, 0-tuple.
@@ -1138,16 +1190,21 @@ class TupleExpression: public Expression
 public:
 	TupleExpression(
 		SourceLocation const& _location,
-		std::vector<ASTPointer<Expression>> const& _components
+		std::vector<ASTPointer<Expression>> const& _components,
+		bool _isArray
 	):
-		Expression(_location), m_components(_components) {}
+		Expression(_location), 
+		m_components(_components), 
+		m_isArray(_isArray) {}
 	virtual void accept(ASTVisitor& _visitor) override;
 	virtual void accept(ASTConstVisitor& _visitor) const override;
 
 	std::vector<ASTPointer<Expression>> const& components() const { return m_components; }
+	bool isInlineArray() const { return m_isArray; }
 
 private:
 	std::vector<ASTPointer<Expression>> m_components;
+	bool m_isArray;
 };
 
 /**

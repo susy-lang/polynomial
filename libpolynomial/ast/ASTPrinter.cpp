@@ -49,7 +49,7 @@ void ASTPrinter::print(ostream& _stream)
 
 bool ASTPrinter::visit(ImportDirective const& _node)
 {
-	writeLine("ImportDirective \"" + _node.identifier() + "\"");
+	writeLine("ImportDirective \"" + _node.path() + "\"");
 	printSourcePart(_node);
 	return goDeeper();
 }
@@ -63,7 +63,7 @@ bool ASTPrinter::visit(ContractDefinition const& _node)
 
 bool ASTPrinter::visit(InheritanceSpecifier const& _node)
 {
-	writeLine("InheritanceSpecifier \"" + _node.name().name() + "\"");
+	writeLine("InheritanceSpecifier");
 	printSourcePart(_node);
 	return goDeeper();
 }
@@ -244,6 +244,14 @@ bool ASTPrinter::visit(VariableDeclarationStatement const& _node)
 bool ASTPrinter::visit(ExpressionStatement const& _node)
 {
 	writeLine("ExpressionStatement");
+	printSourcePart(_node);
+	return goDeeper();
+}
+
+bool ASTPrinter::visit(Conditional const& _node)
+{
+	writeLine("Conditional");
+	printType(_node);
 	printSourcePart(_node);
 	return goDeeper();
 }
@@ -476,6 +484,11 @@ void ASTPrinter::endVisit(VariableDeclarationStatement const&)
 }
 
 void ASTPrinter::endVisit(ExpressionStatement const&)
+{
+	m_indentation--;
+}
+
+void ASTPrinter::endVisit(Conditional const&)
 {
 	m_indentation--;
 }

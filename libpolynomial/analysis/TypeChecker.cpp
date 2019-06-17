@@ -292,17 +292,21 @@ void TypeChecker::checkContractExternalTypeClashes(ContractDefinition const& _co
 			if (f->isPartOfExternalInterface())
 			{
 				auto functionType = make_shared<FunctionType>(*f);
-				externalDeclarations[functionType->externalSignature()].push_back(
-					make_pair(f, functionType)
-				);
+				// under non error circumstances this should be true
+				if (functionType->interfaceFunctionType())
+					externalDeclarations[functionType->externalSignature()].push_back(
+						make_pair(f, functionType)
+					);
 			}
 		for (VariableDeclaration const* v: contract->stateVariables())
 			if (v->isPartOfExternalInterface())
 			{
 				auto functionType = make_shared<FunctionType>(*v);
-				externalDeclarations[functionType->externalSignature()].push_back(
-					make_pair(v, functionType)
-				);
+				// under non error circumstances this should be true
+				if (functionType->interfaceFunctionType())
+					externalDeclarations[functionType->externalSignature()].push_back(
+						make_pair(v, functionType)
+					);
 			}
 	}
 	for (auto const& it: externalDeclarations)
@@ -337,6 +341,7 @@ void TypeChecker::endVisit(InheritanceSpecifier const& _inheritance)
 	auto const& arguments = _inheritance.arguments();
 	TypePointers parameterTypes = ContractType(*base).constructorType()->parameterTypes();
 	if (!arguments.empty() && parameterTypes.size() != arguments.size())
+	{
 		typeError(
 			_inheritance.location(),
 			"Wrong argument count for constructor call: " +
@@ -345,6 +350,8 @@ void TypeChecker::endVisit(InheritanceSpecifier const& _inheritance)
 			toString(parameterTypes.size()) +
 			"."
 		);
+		return;
+	}
 
 	for (size_t i = 0; i < arguments.size(); ++i)
 		if (!type(*arguments[i])->isImplicitlyConvertibleTo(*parameterTypes[i]))
@@ -492,7 +499,10 @@ void TypeChecker::visitManually(
 				break;
 			}
 	if (!parameters)
+	{
 		typeError(_modifier.location(), "Referenced declaration is neither modifier nor base class.");
+		return;
+	}
 	if (parameters->size() != arguments.size())
 		typeError(
 			_modifier.location(),
@@ -734,6 +744,43 @@ void TypeChecker::endVisit(ExpressionStatement const& _statement)
 			typeError(_statement.expression().location(), "Invalid integer constant.");
 }
 
+bool TypeChecker::visit(Conditional const& _conditional)
+{
+	expectType(_conditional.condition(), BoolType());
+
+	_conditional.trueExpression().accept(*this);
+	_conditional.falseExpression().accept(*this);
+
+	TypePointer trueType = type(_conditional.trueExpression())->mobileType();
+	TypePointer falseType = type(_conditional.falseExpression())->mobileType();
+
+	TypePointer commonType = Type::commonType(trueType, falseType);
+	if (!commonType)
+	{
+		typeError(
+				_conditional.location(),
+				"True expression's type " +
+				trueType->toString() +
+				" doesn't match false expression's type " +
+				falseType->toString() +
+				"."
+		);
+		// even we can't find a common type, we have to set a type here,
+		// otherwise the upper statement will not be able to check the type.
+		commonType = trueType;
+	}
+
+	_conditional.annotation().type = commonType;
+
+	if (_conditional.annotation().lValueRequested)
+		typeError(
+				_conditional.location(),
+				"Conditional expression as left value is not supported yet."
+		);
+
+	return false;
+}
+
 bool TypeChecker::visit(Assignment const& _assignment)
 {
 	requireLValue(_assignment.leftHandSide());
@@ -778,8 +825,11 @@ bool TypeChecker::visit(TupleExpression const& _tuple)
 {
 	vector<ASTPointer<Expression>> const& components = _tuple.components();
 	TypePointers types;
+
 	if (_tuple.annotation().lValueRequested)
 	{
+		if (_tuple.isInlineArray())
+			fatalTypeError(_tuple.location(), "Inline array type cannot be declared as LValue.");
 		for (auto const& component: components)
 			if (component)
 			{
@@ -788,12 +838,16 @@ bool TypeChecker::visit(TupleExpression const& _tuple)
 			}
 			else
 				types.push_back(TypePointer());
-		_tuple.annotation().type = make_shared<TupleType>(types);
+		if (components.size() == 1)
+			_tuple.annotation().type = type(*components[0]);
+		else
+			_tuple.annotation().type = make_shared<TupleType>(types);
 		// If some of the components are not LValues, the error is reported above.
 		_tuple.annotation().isLValue = true;
 	}
 	else
 	{
+		TypePointer inlineArrayType;
 		for (size_t i = 0; i < components.size(); ++i)
 		{
 			// Outside of an lvalue-context, the only situation where a component can be empty is (x,).
@@ -803,18 +857,34 @@ bool TypeChecker::visit(TupleExpression const& _tuple)
 			{
 				components[i]->accept(*this);
 				types.push_back(type(*components[i]));
+				if (_tuple.isInlineArray())
+					polAssert(!!types[i], "Inline array cannot have empty components");
+				if (i == 0 && _tuple.isInlineArray())
+					inlineArrayType = types[i]->mobileType();
+				else if (_tuple.isInlineArray() && inlineArrayType)
+					inlineArrayType = Type::commonType(inlineArrayType, types[i]->mobileType());
 			}
 			else
 				types.push_back(TypePointer());
 		}
-		if (components.size() == 1)
-			_tuple.annotation().type = type(*components[0]);
+		if (_tuple.isInlineArray())
+		{
+			if (!inlineArrayType) 
+				fatalTypeError(_tuple.location(), "Unable to deduce common type for array elements.");
+			_tuple.annotation().type = make_shared<ArrayType>(DataLocation::Memory, inlineArrayType, types.size());
+		}
 		else
 		{
-			if (components.size() == 2 && !components[1])
-				types.pop_back();
-			_tuple.annotation().type = make_shared<TupleType>(types);
+			if (components.size() == 1)
+				_tuple.annotation().type = type(*components[0]);
+			else
+			{
+				if (components.size() == 2 && !components[1])
+					types.pop_back();
+				_tuple.annotation().type = make_shared<TupleType>(types);
+			}
 		}
+
 	}
 	return false;
 }
@@ -950,7 +1020,7 @@ bool TypeChecker::visit(FunctionCall const& _functionCall)
 	else
 		_functionCall.annotation().type = make_shared<TupleType>(functionType->returnParameterTypes());
 
-	TypePointers const& parameterTypes = functionType->parameterTypes();
+	TypePointers parameterTypes = functionType->parameterTypes();
 	if (!functionType->takesArbitraryParameters() && parameterTypes.size() != arguments.size())
 	{
 		string msg =
@@ -1079,7 +1149,7 @@ void TypeChecker::endVisit(NewExpression const& _newExpression)
 			);
 
 		auto contractType = make_shared<ContractType>(*contract);
-		TypePointers const& parameterTypes = contractType->constructorType()->parameterTypes();
+		TypePointers parameterTypes = contractType->constructorType()->parameterTypes();
 		_newExpression.annotation().type = make_shared<FunctionType>(
 			parameterTypes,
 			TypePointers{contractType},

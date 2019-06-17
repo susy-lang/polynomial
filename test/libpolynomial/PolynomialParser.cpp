@@ -1008,6 +1008,7 @@ BOOST_AUTO_TEST_CASE(tuples)
 				var (b,) = (1,);
 				var (c,d) = (1, 2 + a);
 				var (e,) = (1, 2, b);
+				(a) = 3;
 			}
 		}
 	)";
@@ -1041,6 +1042,136 @@ BOOST_AUTO_TEST_CASE(using_for)
 			using Library2 for *;
 			using Lib for s;
 			function f() {
+			}
+		}
+	)";
+	BOOST_CHECK(successParse(text));
+}
+
+BOOST_AUTO_TEST_CASE(complex_import)
+{
+	char const* text = R"(
+		import "abc" as x;
+		import * as x from "abc";
+		import {a as b, c as d, f} from "def";
+		contract x {}
+	)";
+	BOOST_CHECK(successParse(text));
+}
+
+BOOST_AUTO_TEST_CASE(from_is_not_keyword)
+{
+	// "from" is not a keyword although it is used as a keyword in import directives.
+	char const* text = R"(
+		contract from {
+		}
+	)";
+	BOOST_CHECK(successParse(text));
+}
+
+BOOST_AUTO_TEST_CASE(inline_array_declaration)
+{
+	char const* text = R"(
+		contract c {
+			uint[] a;
+			function f() returns (uint, uint) {
+				a = [1,2,3];
+				return (a[3], [2,3,4][0]);
+			}
+		}
+	)";
+	BOOST_CHECK(successParse(text));
+}
+
+
+BOOST_AUTO_TEST_CASE(inline_array_empty_cells_check_lvalue)
+{
+	char const* text = R"(
+		contract c {
+			uint[] a;
+			function f() returns (uint) {
+				a = [,2,3];
+				return (a[0]);
+			}
+		}
+	)";
+	BOOST_CHECK(!successParse(text));
+}
+
+BOOST_AUTO_TEST_CASE(inline_array_empty_cells_check_without_lvalue)
+{
+	char const* text = R"(
+		contract c {
+			uint[] a;
+			function f() returns (uint, uint) {
+				return ([3, ,4][0]);
+			}
+		}
+	)";
+	BOOST_CHECK(!successParse(text));
+}
+
+BOOST_AUTO_TEST_CASE(conditional_true_false_literal)
+{
+	char const* text = R"(
+		contract A {
+			function f() {
+				uint x = true ? 1 : 0;
+				uint y = false ? 0 : 1;
+			}
+		}
+	)";
+	BOOST_CHECK(successParse(text));
+}
+
+BOOST_AUTO_TEST_CASE(conditional_with_constants)
+{
+	char const* text = R"(
+		contract A {
+			function f() {
+				uint x = 3 > 0 ? 3 : 0;
+				uint y = (3 > 0) ? 3 : 0;
+			}
+		}
+	)";
+	BOOST_CHECK(successParse(text));
+}
+
+BOOST_AUTO_TEST_CASE(conditional_with_variables)
+{
+	char const* text = R"(
+		contract A {
+			function f() {
+				uint x = 3;
+				uint y = 1;
+				uint z = (x > y) ? x : y;
+				uint w = x > y ? x : y;
+			}
+		}
+	)";
+	BOOST_CHECK(successParse(text));
+}
+
+BOOST_AUTO_TEST_CASE(conditional_multiple)
+{
+	char const* text = R"(
+		contract A {
+			function f() {
+				uint x = 3 < 0 ? 2 > 1 ? 2 : 1 : 7 > 2 ? 7 : 6;
+			}
+		}
+	)";
+	BOOST_CHECK(successParse(text));
+}
+
+BOOST_AUTO_TEST_CASE(conditional_with_assignment)
+{
+	char const* text = R"(
+		contract A {
+			function f() {
+				uint y = 1;
+				uint x = 3 < 0 ? x = 3 : 6;
+				true ? x = 3 : 4;
 			}
 		}
 	)";
