@@ -21,7 +21,7 @@
  */
 
 #include "../TestHelper.h"
-#include <libpolynomial/CompilerStack.h>
+#include <libpolynomial/interface/CompilerStack.h>
 #include <json/json.h>
 #include <libdevcore/Exceptions.h>
 

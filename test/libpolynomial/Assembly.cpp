@@ -26,12 +26,12 @@
 #include <libdevcore/Log.h>
 #include <libsvmasm/SourceLocation.h>
 #include <libsvmasm/Assembly.h>
-#include <libpolynomial/Scanner.h>
-#include <libpolynomial/Parser.h>
-#include <libpolynomial/NameAndTypeResolver.h>
-#include <libpolynomial/Compiler.h>
-#include <libpolynomial/AST.h>
-#include <libpolynomial/TypeChecker.h>
+#include <libpolynomial/parsing/Scanner.h>
+#include <libpolynomial/parsing/Parser.h>
+#include <libpolynomial/analysis/NameAndTypeResolver.h>
+#include <libpolynomial/codegen/Compiler.h>
+#include <libpolynomial/ast/AST.h>
+#include <libpolynomial/analysis/TypeChecker.h>
 
 using namespace std;
 using namespace dev::sof;

@@ -21,8 +21,8 @@
  */
 
 #include "../TestHelper.h"
-#include <libpolynomial/CompilerStack.h>
-#include <libpolynomial/AST.h>
+#include <libpolynomial/interface/CompilerStack.h>
+#include <libpolynomial/ast/AST.h>
 
 using namespace std;
 

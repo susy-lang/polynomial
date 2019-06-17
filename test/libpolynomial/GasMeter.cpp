@@ -24,9 +24,9 @@
 #include <libsvmasm/GasMeter.h>
 #include <libsvmasm/KnownState.h>
 #include <libsvmasm/PathGasMeter.h>
-#include <libpolynomial/AST.h>
-#include <libpolynomial/GasEstimator.h>
-#include <libpolynomial/SourceReferenceFormatter.h>
+#include <libpolynomial/ast/AST.h>
+#include <libpolynomial/interface/GasEstimator.h>
+#include <libpolynomial/interface/SourceReferenceFormatter.h>
 
 using namespace std;
 using namespace dev::sof;

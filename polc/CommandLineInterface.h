@@ -21,7 +21,7 @@
  */
 #pragma once
 
-#include <libpolynomial/CompilerStack.h>
+#include <libpolynomial/interface/CompilerStack.h>
 #include <memory>
 #include <boost/program_options.hpp>
 
@@ -57,9 +57,9 @@ private:
 	void handleOpcode(std::string const& _contract);
 	void handleBytecode(std::string const& _contract);
 	void handleSignatureHashes(std::string const& _contract);
-	void handleMeta(DocumentationType _type,
-					std::string const& _contract);
+	void handleMeta(DocumentationType _type, std::string const& _contract);
 	void handleGasEstimation(std::string const& _contract);
+	void handleFormal();
 
 	/// Tries to read from the file @a _input or interprets _input literally if that fails.
 	/// It then tries to parse the contents and appends to m_libraries.

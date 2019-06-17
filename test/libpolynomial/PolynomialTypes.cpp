@@ -20,7 +20,7 @@
  * Unit tests for the type system of Polynomial.
  */
 
-#include <libpolynomial/Types.h>
+#include <libpolynomial/ast/Types.h>
 #include <boost/test/unit_test.hpp>
 
 using namespace std;

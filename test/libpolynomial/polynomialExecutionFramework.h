@@ -28,8 +28,8 @@
 #include <libsofcore/ABI.h>
 #include <libsophon/State.h>
 #include <libsophon/Executive.h>
-#include <libpolynomial/CompilerStack.h>
-#include <libpolynomial/Exceptions.h>
+#include <libpolynomial/interface/CompilerStack.h>
+#include <libpolynomial/interface/Exceptions.h>
 
 namespace dev
 {
@@ -65,28 +65,6 @@ public:
 		BOOST_REQUIRE(obj.linkReferences.empty());
 		sendMessage(obj.bytecode + _arguments, true, _value);
 		return m_output;
-	}
-
-	void compileRequireError(std::string const& _sourceCode, Error::Type _type)
-	{
-		m_compiler.reset(false, m_addStandardSources);
-		m_compiler.addSource("", _sourceCode);
-		bool foundError = false;
-		try
-		{
-			m_compiler.compile(m_optimize, m_optimizeRuns);
-			BOOST_REQUIRE(Error::containsErrorOfType(m_compiler.errors(), _type));
-		}
-		catch (Error const& _e)
-		{
-			BOOST_REQUIRE(_e.type() == _type);
-			foundError = true;
-		}
-		catch (Exception const& _exception)
-		{
-			BOOST_REQUIRE(false);
-		}
-		BOOST_REQUIRE(foundError);
 	}
 
 	bytes const& compileAndRun(

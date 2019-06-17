@@ -25,7 +25,7 @@
 #include <tuple>
 #include <boost/test/unit_test.hpp>
 #include <libdevcore/Hash.h>
-#include <libpolynomial/Exceptions.h>
+#include <libpolynomial/interface/Exceptions.h>
 #include <test/libpolynomial/polynomialExecutionFramework.h>
 
 using namespace std;
@@ -2484,6 +2484,41 @@ BOOST_AUTO_TEST_CASE(event_really_lots_of_data_from_storage)
 	BOOST_CHECK_EQUAL(m_logs[0].topics[0], dev::sha3(string("Deposit(uint256,bytes,uint256)")));
 }
 
+BOOST_AUTO_TEST_CASE(event_indexed_string)
+{
+	char const* sourceCode = R"(
+		contract C {
+			string x;
+			uint[4] y;
+			event E(string indexed r, uint[4] indexed t);
+			function deposit() {
+				bytes(x).length = 90;
+				for (uint i = 0; i < 90; i++)
+					bytes(x)[i] = byte(i);
+				y[0] = 4;
+				y[1] = 5;
+				y[2] = 6;
+				y[3] = 7;
+				E(x, y);
+			}
+		}
+	)";
+	compileAndRun(sourceCode);
+	callContractFunction("deposit()");
+	BOOST_REQUIRE_EQUAL(m_logs.size(), 1);
+	BOOST_CHECK_EQUAL(m_logs[0].address, m_contractAddress);
+	string dynx(90, 0);
+	for (size_t i = 0; i < dynx.size(); ++i)
+		dynx[i] = i;
+	BOOST_CHECK(m_logs[0].data == bytes());
+	BOOST_REQUIRE_EQUAL(m_logs[0].topics.size(), 3);
+	BOOST_CHECK_EQUAL(m_logs[0].topics[1], dev::sha3(dynx));
+	BOOST_CHECK_EQUAL(m_logs[0].topics[2], dev::sha3(
+		encodeArgs(u256(4), u256(5), u256(6), u256(7))
+	));
+	BOOST_CHECK_EQUAL(m_logs[0].topics[0], dev::sha3(string("E(string,uint256[4])")));
+}
+
 BOOST_AUTO_TEST_CASE(empty_name_input_parameter_with_named_one)
 {
 	char const* sourceCode = R"(
@@ -4735,32 +4770,6 @@ BOOST_AUTO_TEST_CASE(bytes_memory_index_access)
 	) == encodeArgs(u256(data.size()), string("d")));
 }
 
-BOOST_AUTO_TEST_CASE(dev_title_at_function_error)
-{
-	char const* sourceCode = " /// @author Lefteris\n"
-	" /// @title Just a test contract\n"
-	"contract test {\n"
-	"  /// @dev Mul function\n"
-	"  /// @title I really should not be here\n"
-	"  function mul(uint a, uint second) returns(uint d) { return a * 7 + second; }\n"
-	"}\n";
-
-	compileRequireError(sourceCode, Error::Type::DocstringParsingError);
-}
-
-BOOST_AUTO_TEST_CASE(dev_documenting_nonexistant_param)
-{
-	char const* sourceCode = "contract test {\n"
-	"  /// @dev Multiplies a number by 7 and adds second parameter\n"
-	"  /// @param a Documentation for the first parameter\n"
-	"  /// @param not_existing Documentation for the second parameter\n"
-	"  function mul(uint a, uint second) returns(uint d) { return a * 7 + second; }\n"
-	"}\n";
-
-	compileRequireError(sourceCode, Error::Type::DocstringParsingError);
-}
-
-
 BOOST_AUTO_TEST_CASE(storage_array_ref)
 {
 	char const* sourceCode = R"(
@@ -5708,6 +5717,26 @@ BOOST_AUTO_TEST_CASE(tuples)
 	BOOST_CHECK(callContractFunction("f()") == encodeArgs(u256(0)));
 }
 
+BOOST_AUTO_TEST_CASE(string_tuples)
+{
+	char const* sourceCode = R"(
+		contract C {
+			function f() returns (string, uint) {
+				return ("abc", 8);
+			}
+			function g() returns (string, string) {
+				return (h(), "def");
+			}
+			function h() returns (string) {
+				return ("abc",);
+			}
+		}
+	)";
+	compileAndRun(sourceCode);
+	BOOST_CHECK(callContractFunction("f()") == encodeArgs(u256(0x40), u256(8), u256(3), string("abc")));
+	BOOST_CHECK(callContractFunction("g()") == encodeArgs(u256(0x40), u256(0x80), u256(3), string("abc"), u256(3), string("def")));
+}
+
 BOOST_AUTO_TEST_CASE(destructuring_assignment)
 {
 	char const* sourceCode = R"(
@@ -5785,6 +5814,21 @@ BOOST_AUTO_TEST_CASE(lone_struct_array_type)
 	)";
 	compileAndRun(sourceCode);
 	BOOST_CHECK(callContractFunction("f()") == encodeArgs(u256(3)));
+}
+
+BOOST_AUTO_TEST_CASE(memory_overwrite)
+{
+	char const* sourceCode = R"(
+		contract C {
+			function f() returns (bytes x) {
+				x = "12345";
+				x[3] = 0x61;
+				x[0] = 0x62;
+			}
+		}
+	)";
+	compileAndRun(sourceCode);
+	BOOST_CHECK(callContractFunction("f()") == encodeDyn(string("b23a5")));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

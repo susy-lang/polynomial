@@ -23,13 +23,13 @@
 #include <string>
 
 #include <libdevcore/Log.h>
-#include <libpolynomial/Scanner.h>
-#include <libpolynomial/Parser.h>
-#include <libpolynomial/NameAndTypeResolver.h>
-#include <libpolynomial/CompilerContext.h>
-#include <libpolynomial/ExpressionCompiler.h>
-#include <libpolynomial/AST.h>
-#include <libpolynomial/TypeChecker.h>
+#include <libpolynomial/parsing/Scanner.h>
+#include <libpolynomial/parsing/Parser.h>
+#include <libpolynomial/analysis/NameAndTypeResolver.h>
+#include <libpolynomial/codegen/CompilerContext.h>
+#include <libpolynomial/codegen/ExpressionCompiler.h>
+#include <libpolynomial/ast/AST.h>
+#include <libpolynomial/analysis/TypeChecker.h>
 #include "../TestHelper.h"
 
 using namespace std;

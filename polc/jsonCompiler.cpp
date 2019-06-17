@@ -28,15 +28,15 @@
 #include <libdevcore/CommonIO.h>
 #include <libsvmcore/Instruction.h>
 #include <libsvmcore/Params.h>
-#include <libpolynomial/Scanner.h>
-#include <libpolynomial/Parser.h>
-#include <libpolynomial/ASTPrinter.h>
-#include <libpolynomial/NameAndTypeResolver.h>
-#include <libpolynomial/Exceptions.h>
-#include <libpolynomial/CompilerStack.h>
-#include <libpolynomial/SourceReferenceFormatter.h>
-#include <libpolynomial/ASTJsonConverter.h>
-#include <libpolynomial/Version.h>
+#include <libpolynomial/parsing/Scanner.h>
+#include <libpolynomial/parsing/Parser.h>
+#include <libpolynomial/ast/ASTPrinter.h>
+#include <libpolynomial/analysis/NameAndTypeResolver.h>
+#include <libpolynomial/interface/Exceptions.h>
+#include <libpolynomial/interface/CompilerStack.h>
+#include <libpolynomial/interface/SourceReferenceFormatter.h>
+#include <libpolynomial/ast/ASTJsonConverter.h>
+#include <libpolynomial/interface/Version.h>
 
 using namespace std;
 using namespace dev;

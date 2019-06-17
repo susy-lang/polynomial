@@ -23,9 +23,9 @@
 #include <string>
 #include <memory>
 #include <libdevcore/Log.h>
-#include <libpolynomial/Scanner.h>
-#include <libpolynomial/Parser.h>
-#include <libpolynomial/Exceptions.h>
+#include <libpolynomial/parsing/Scanner.h>
+#include <libpolynomial/parsing/Parser.h>
+#include <libpolynomial/interface/Exceptions.h>
 #include "../TestHelper.h"
 
 using namespace std;

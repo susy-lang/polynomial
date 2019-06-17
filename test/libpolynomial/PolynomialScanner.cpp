@@ -20,7 +20,7 @@
  * Unit tests for the polynomial scanner.
  */
 
-#include <libpolynomial/Scanner.h>
+#include <libpolynomial/parsing/Scanner.h>
 #include <boost/test/unit_test.hpp>
 
 namespace dev
