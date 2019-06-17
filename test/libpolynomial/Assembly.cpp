@@ -1,18 +1,18 @@
 /*
-	This file is part of cpp-sophon.
+	This file is part of polynomial.
 
-	cpp-sophon is free software: you can redistribute it and/or modify
+	polynomial is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
 
-	cpp-sophon is distributed in the hope that it will be useful,
+	polynomial is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MSRCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with cpp-sophon.  If not, see <http://www.gnu.org/licenses/>.
+	along with polynomial.  If not, see <http://www.gnu.org/licenses/>.
 */
 /**
  * @author Lefteris Karapetsas <lefteris@sofdev.com>
@@ -75,7 +75,7 @@ sof::AssemblyItems compileContract(const string& _sourceCode)
 		if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 		{
 			Compiler compiler;
-			compiler.compileContract(*contract, map<ContractDefinition const*, Assembly const*>{});
+			compiler.compileContract(*contract, map<ContractDefinition const*, Assembly const*>{}, bytes());
 
 			return compiler.runtimeAssemblyItems();
 		}
@@ -116,7 +116,7 @@ BOOST_AUTO_TEST_CASE(location_test)
 	shared_ptr<string const> n = make_shared<string>("");
 	AssemblyItems items = compileContract(sourceCode);
 	vector<SourceLocation> locations =
-		vector<SourceLocation>(16, SourceLocation(2, 75, n)) +
+		vector<SourceLocation>(18, SourceLocation(2, 75, n)) +
 		vector<SourceLocation>(27, SourceLocation(20, 72, n)) +
 		vector<SourceLocation>{SourceLocation(42, 51, n), SourceLocation(65, 67, n)} +
 		vector<SourceLocation>(2, SourceLocation(58, 67, n)) +

@@ -65,9 +65,14 @@ $SOF_PATH --test -d /tmp/test &
 # The node needs to get a little way into its startup sequence before the IPC
 # is available and is ready for the unit-tests to start talking to it.
 while [ ! -S /tmp/test/graviton.ipc ]; do sleep 2; done
+echo "--> IPC available."
 
-# And then run the Polynomial unit-tests, pointing to that IPC endpoint.
-"$REPO_ROOT"/build/test/poltest -- --ipcpath /tmp/test/graviton.ipc
+# And then run the Polynomial unit-tests (once without optimization, once with),
+# pointing to that IPC endpoint.
+echo "--> Running tests without optimizer..."
+  "$REPO_ROOT"/build/test/poltest -- --ipcpath /tmp/test/graviton.ipc && \
+  echo "--> Running tests WITH optimizer..." && \
+  "$REPO_ROOT"/build/test/poltest -- --optimize --ipcpath /tmp/test/graviton.ipc
 ERROR_CODE=$?
 pkill sof || true
 sleep 4

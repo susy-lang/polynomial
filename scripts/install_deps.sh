@@ -83,12 +83,6 @@ case $(uname -s) in
                 ;;
             10.12)
                 echo "Installing polynomial dependencies on macOS 10.12 Sierra."
-                echo ""
-                echo "NOTE - You are in unknown territory with this preview OS."
-                echo "Even Homebrew doesn't have official support yet, and there are"
-                echo "known issues (see https://octonion.institute/susy-cpp/webthree-umbrella/issues/614)."
-                echo "If you would like to partner with us to work through these issues, that"
-                echo "would be fantastic.  Please just comment on that issue.  Thanks!"
                 ;;
             *)
                 echo "Unsupported macOS version."

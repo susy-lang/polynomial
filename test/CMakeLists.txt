@@ -5,6 +5,7 @@ aux_source_directory(libdevcore SRC_LIST)
 aux_source_directory(libsvmasm SRC_LIST)
 aux_source_directory(libpolynomial SRC_LIST)
 aux_source_directory(contracts SRC_LIST)
+aux_source_directory(liblll SRC_LIST)
 
 get_filename_component(TESTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
 
@@ -28,7 +29,7 @@ file(GLOB HEADERS "*.h" "*/*.h")
 set(EXECUTABLE poltest)
 sof_simple_add_executable(${EXECUTABLE} ${SRC_LIST} ${HEADERS})
 
-sof_use(${EXECUTABLE} REQUIRED Polynomial::polynomial)
+sof_use(${EXECUTABLE} REQUIRED Polynomial::polynomial Polynomial::lll)
 
 include_directories(BEFORE ..)
 target_link_libraries(${EXECUTABLE} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARIES})

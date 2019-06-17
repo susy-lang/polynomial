@@ -95,4 +95,8 @@ emmake make -j 4
 cd ..
 cp build/polc/poljson.js ./
 
+OUTPUT_SIZE=`ls -la build/polc/poljson.js`
+
+echo "Emscripten output size: ${OUTPUT_SIZE}"
+
 echo -en 'travis_fold:end:compiling_polynomial\\r'

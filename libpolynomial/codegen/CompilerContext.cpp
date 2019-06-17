@@ -1,18 +1,18 @@
 /*
-	This file is part of cpp-sophon.
+	This file is part of polynomial.
 
-	cpp-sophon is free software: you can redistribute it and/or modify
+	polynomial is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
 
-	cpp-sophon is distributed in the hope that it will be useful,
+	polynomial is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MSRCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with cpp-sophon.  If not, see <http://www.gnu.org/licenses/>.
+	along with polynomial.  If not, see <http://www.gnu.org/licenses/>.
 */
 /**
  * @author Christian <c@sofdev.com>
@@ -202,6 +202,8 @@ void CompilerContext::appendInlineAssembly(
 			return false;
 		unsigned stackDepth = _localVariables.end() - it;
 		int stackDiff = _assembly.deposit() - startStackHeight + stackDepth;
+		if (_context == assembly::CodeGenerator::IdentifierContext::LValue)
+			stackDiff -= 1;
 		if (stackDiff < 1 || stackDiff > 16)
 			BOOST_THROW_EXCEPTION(
 				CompilerError() <<
@@ -217,14 +219,7 @@ void CompilerContext::appendInlineAssembly(
 		return true;
 	};
 
-	polAssert(assembly::InlineAssemblyStack().parseAndAssemble(*assembly, *m_asm, identifierAccess), "");
-}
-
-void CompilerContext::injectVersionStampIntoSub(size_t _subIndex)
-{
-	sof::Assembly& sub = m_asm->sub(_subIndex);
-	sub.injectStart(Instruction::POP);
-	sub.injectStart(fromBigEndian<u256>(binaryVersion()));
+	polAssert(assembly::InlineAssemblyStack().parseAndAssemble(*assembly, *m_asm, identifierAccess), "Failed to assemble inline assembly block.");
 }
 
 FunctionDefinition const& CompilerContext::resolveVirtualFunction(

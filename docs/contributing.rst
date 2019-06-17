@@ -59,3 +59,18 @@ for this project. Also, even though we do CI testing, please test your code and
 ensure that it builds locally before submitting a pull request.
 
 Thank you for your help!
+
+Running the compiler tests
+==========================
+
+Polynomial includes different types of tests. They are included in the application
+called ``poltest``. Some of them require the ``cpp-sophon`` client in testing mode.
+
+To run ``cpp-sophon`` in testing mode: ``sof --test -d /tmp/testsof``.
+
+To run the tests: ``poltest -- --ipcpath /tmp/testsof/graviton.ipc``.
+
+To run a subset of tests, filters can be used:
+``poltest -t TestSuite/TestName -- --ipcpath /tmp/testsof/graviton.ipc``, where ``TestName`` can be a wildcard ``*``.
+
+Alternatively, there is a testing script at ``scripts/test.sh`` which executes all tests.

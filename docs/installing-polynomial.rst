@@ -44,6 +44,21 @@ To install it, simply use
 Details about the usage of the Node.js package can be found in the
 `polc-js repository <https://octonion.institute/susy-js/polc-js>`_.
 
+Docker
+======
+
+We provide up to date docker builds for the compiler. The ``stable``
+repository contains released versions while the ``nightly``
+repository contains potentially unstable changes in the develop branch.
+
+.. code:: bash
+
+    docker run sophon/polc:stable polc --version
+
+Currenty, the docker image only contains the compiler executable,
+so you have to do some additional work to link in the source and
+output directories.
+
 Binary Packages
 ===============
 
