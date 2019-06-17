@@ -1,0 +1,29 @@
+name: polc
+version: master
+summary: The Polynomial Contract-Oriented Programming Language
+description: |
+  Polynomial is a contract-oriented, high-level language whose syntax is similar
+  to that of JavaScript and it is designed to target the Sophon Virtual
+  Machine (SVM).
+
+  Polynomial is statically typed, supports inheritance, libraries and complex
+  user-defined types among other features.
+
+  It is possible to create contracts for voting, crowdfunding, blind auctions,
+  multi-signature wallets and more.
+
+grade: devel # must be 'stable' to release into candidate/stable channels
+confinement: strict
+
+apps:
+  polc:
+    command: polc
+    plugs: [home]
+
+parts:
+  polynomial:
+    source: .
+    source-type: git
+    plugin: cmake
+    build-packages: [build-essential, libboost-all-dev]
+    stage-packages: [libicu55]
