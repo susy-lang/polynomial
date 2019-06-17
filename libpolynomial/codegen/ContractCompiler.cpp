@@ -520,93 +520,129 @@ bool ContractCompiler::visit(FunctionDefinition const& _function)
 bool ContractCompiler::visit(InlineAssembly const& _inlineAssembly)
 {
 	ErrorList errors;
-	assembly::CodeGenerator codeGen(_inlineAssembly.operations(), errors);
+	assembly::CodeGenerator codeGen(errors);
 	unsigned startStackHeight = m_context.stackHeight();
-	codeGen.assemble(
-		m_context.nonConstAssembly(),
-		[&](assembly::Identifier const& _identifier, sof::Assembly& _assembly, assembly::CodeGenerator::IdentifierContext _context) {
-			auto ref = _inlineAssembly.annotation().externalReferences.find(&_identifier);
-			if (ref == _inlineAssembly.annotation().externalReferences.end())
-				return false;
-			Declaration const* decl = ref->second;
-			polAssert(!!decl, "");
-			if (_context == assembly::CodeGenerator::IdentifierContext::RValue)
+	assembly::ExternalIdentifierAccess identifierAccess;
+	identifierAccess.resolve = [&](assembly::Identifier const& _identifier, assembly::IdentifierContext)
+	{
+		auto ref = _inlineAssembly.annotation().externalReferences.find(&_identifier);
+		if (ref == _inlineAssembly.annotation().externalReferences.end())
+			return size_t(-1);
+		return ref->second.valueSize;
+	};
+	identifierAccess.generateCode = [&](assembly::Identifier const& _identifier, assembly::IdentifierContext _context, sof::Assembly& _assembly)
+	{
+		auto ref = _inlineAssembly.annotation().externalReferences.find(&_identifier);
+		polAssert(ref != _inlineAssembly.annotation().externalReferences.end(), "");
+		Declaration const* decl = ref->second.declaration;
+		polAssert(!!decl, "");
+		if (_context == assembly::IdentifierContext::RValue)
+		{
+			int const depositBefore = _assembly.deposit();
+			polAssert(!!decl->type(), "Type of declaration required but not yet determined.");
+			if (FunctionDefinition const* functionDef = dynamic_cast<FunctionDefinition const*>(decl))
 			{
-				polAssert(!!decl->type(), "Type of declaration required but not yet determined.");
-				if (FunctionDefinition const* functionDef = dynamic_cast<FunctionDefinition const*>(decl))
+				polAssert(!ref->second.isOffset && !ref->second.isSlot, "");
+				functionDef = &m_context.resolveVirtualFunction(*functionDef);
+				_assembly.append(m_context.functionEntryLabel(*functionDef).pushTag());
+				// If there is a runtime context, we have to merge both labels into the same
+				// stack slot in case we store it in storage.
+				if (CompilerContext* rtc = m_context.runtimeContext())
 				{
-					functionDef = &m_context.resolveVirtualFunction(*functionDef);
-					_assembly.append(m_context.functionEntryLabel(*functionDef).pushTag());
-					// If there is a runtime context, we have to merge both labels into the same
-					// stack slot in case we store it in storage.
-					if (CompilerContext* rtc = m_context.runtimeContext())
-					{
-						_assembly.append(u256(1) << 32);
-						_assembly.append(Instruction::MUL);
-						_assembly.append(rtc->functionEntryLabel(*functionDef).toSubAssemblyTag(m_context.runtimeSub()));
-						_assembly.append(Instruction::OR);
-					}
+					_assembly.append(u256(1) << 32);
+					_assembly.append(Instruction::MUL);
+					_assembly.append(rtc->functionEntryLabel(*functionDef).toSubAssemblyTag(m_context.runtimeSub()));
+					_assembly.append(Instruction::OR);
 				}
-				else if (auto variable = dynamic_cast<VariableDeclaration const*>(decl))
+			}
+			else if (auto variable = dynamic_cast<VariableDeclaration const*>(decl))
+			{
+				polAssert(!variable->isConstant(), "");
+				if (m_context.isStateVariable(decl))
 				{
-					polAssert(!variable->isConstant(), "");
-					if (m_context.isLocalVariable(variable))
-					{
-						int stackDiff = _assembly.deposit() - m_context.baseStackOffsetOfVariable(*variable);
-						if (stackDiff < 1 || stackDiff > 16)
-							BOOST_THROW_EXCEPTION(
-								CompilerError() <<
-								errinfo_sourceLocation(_inlineAssembly.location()) <<
-								errinfo_comment("Stack too deep, try removing local variables.")
-							);
-						for (unsigned i = 0; i < variable->type()->sizeOnStack(); ++i)
-							_assembly.append(dupInstruction(stackDiff));
-					}
+					auto const& location = m_context.storageLocationOfVariable(*decl);
+					if (ref->second.isSlot)
+						m_context << location.first;
+					else if (ref->second.isOffset)
+						m_context << u256(location.second);
 					else
+						polAssert(false, "");
+				}
+				else if (m_context.isLocalVariable(decl))
+				{
+					int stackDiff = _assembly.deposit() - m_context.baseStackOffsetOfVariable(*variable);
+					if (ref->second.isSlot || ref->second.isOffset)
 					{
-						polAssert(m_context.isStateVariable(variable), "Invalid variable type.");
-						auto const& location = m_context.storageLocationOfVariable(*variable);
-						if (!variable->type()->isValueType())
+						polAssert(variable->type()->dataStoredIn(DataLocation::Storage), "");
+						unsigned size = variable->type()->sizeOnStack();
+						if (size == 2)
 						{
-							polAssert(location.second == 0, "Intra-slot offest assumed to be zero.");
-							_assembly.append(location.first);
+							// slot plus offset
+							if (ref->second.isOffset)
+								stackDiff--;
 						}
 						else
 						{
-							_assembly.append(location.first);
-							_assembly.append(u256(location.second));
+							polAssert(size == 1, "");
+							// only slot, offset is zero
+							if (ref->second.isOffset)
+							{
+								_assembly.append(u256(0));
+								return;
+							}
 						}
 					}
-				}
-				else if (auto contract = dynamic_cast<ContractDefinition const*>(decl))
-				{
-					polAssert(contract->isLibrary(), "");
-					_assembly.appendLibraryAddress(contract->fullyQualifiedName());
+					else
+						polAssert(variable->type()->sizeOnStack() == 1, "");
+					if (stackDiff < 1 || stackDiff > 16)
+						BOOST_THROW_EXCEPTION(
+							CompilerError() <<
+							errinfo_sourceLocation(_inlineAssembly.location()) <<
+							errinfo_comment("Stack too deep, try removing local variables.")
+						);
+					polAssert(variable->type()->sizeOnStack() == 1, "");
+					_assembly.append(dupInstruction(stackDiff));
 				}
 				else
-					polAssert(false, "Invalid declaration type.");
-			} else {
-				// lvalue context
-				auto variable = dynamic_cast<VariableDeclaration const*>(decl);
-				polAssert(
-					!!variable && m_context.isLocalVariable(variable),
-					"Can only assign to stack variables in inline assembly."
-				);
-				unsigned size = variable->type()->sizeOnStack();
-				int stackDiff = _assembly.deposit() - m_context.baseStackOffsetOfVariable(*variable) - size;
-				if (stackDiff > 16 || stackDiff < 1)
-					BOOST_THROW_EXCEPTION(
-						CompilerError() <<
-						errinfo_sourceLocation(_inlineAssembly.location()) <<
-						errinfo_comment("Stack too deep, try removing local variables.")
-					);
-				for (unsigned i = 0; i < size; ++i) {
-					_assembly.append(swapInstruction(stackDiff));
-					_assembly.append(Instruction::POP);
-				}
+					polAssert(false, "");
 			}
-			return true;
+			else if (auto contract = dynamic_cast<ContractDefinition const*>(decl))
+			{
+				polAssert(!ref->second.isOffset && !ref->second.isSlot, "");
+				polAssert(contract->isLibrary(), "");
+				_assembly.appendLibraryAddress(contract->fullyQualifiedName());
+			}
+			else
+				polAssert(false, "Invalid declaration type.");
+			polAssert(_assembly.deposit() - depositBefore == int(ref->second.valueSize), "");
 		}
+		else
+		{
+			// lvalue context
+			polAssert(!ref->second.isOffset && !ref->second.isSlot, "");
+			auto variable = dynamic_cast<VariableDeclaration const*>(decl);
+			polAssert(
+				!!variable && m_context.isLocalVariable(variable),
+				"Can only assign to stack variables in inline assembly."
+			);
+			polAssert(variable->type()->sizeOnStack() == 1, "");
+			int stackDiff = _assembly.deposit() - m_context.baseStackOffsetOfVariable(*variable) - 1;
+			if (stackDiff > 16 || stackDiff < 1)
+				BOOST_THROW_EXCEPTION(
+					CompilerError() <<
+					errinfo_sourceLocation(_inlineAssembly.location()) <<
+					errinfo_comment("Stack too deep, try removing local variables.")
+				);
+			_assembly.append(swapInstruction(stackDiff));
+			_assembly.append(Instruction::POP);
+		}
+	};
+	polAssert(_inlineAssembly.annotation().analysisInfo, "");
+	codeGen.assemble(
+		_inlineAssembly.operations(),
+		*_inlineAssembly.annotation().analysisInfo,
+		m_context.nonConstAssembly(),
+		identifierAccess
 	);
 	polAssert(Error::containsOnlyWarnings(errors), "Code generation for inline assembly with errors requested.");
 	m_context.setStackOffset(startStackHeight);

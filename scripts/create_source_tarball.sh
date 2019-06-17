@@ -15,7 +15,7 @@ REPO_ROOT="$(dirname "$0")"/..
     then
         versionstring="$version"
     else
-        versionstring="$version-develop-$commitdate-$commithash"
+        versionstring="$version-nightly-$commitdate-$commithash"
     fi
 
     TEMPDIR=$(mktemp -d)
@@ -29,6 +29,7 @@ REPO_ROOT="$(dirname "$0")"/..
     # Add dependencies
     mkdir -p "$POLDIR/deps/downloads/" 2>/dev/null || true
     wget -O "$POLDIR/deps/downloads/jsoncpp-1.7.7.tar.gz" https://github.com/open-source-parsers/jsoncpp/archive/1.7.7.tar.gz
-    tar czf "$REPO_ROOT/polynomial_$versionstring.tar.gz" -C "$TEMPDIR" "polynomial_$versionstring"
+    mkdir -p "$REPO_ROOT/upload"
+    tar czf "$REPO_ROOT/upload/polynomial_$versionstring.tar.gz" -C "$TEMPDIR" "polynomial_$versionstring"
     rm -r "$TEMPDIR"
 )

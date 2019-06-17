@@ -42,8 +42,16 @@ test "${output//[[:blank:]]/}" = "3"
 # instead.  This will go away soon.
 if [[ "$OSTYPE" == "darwin"* ]]; then
     SOF_PATH="$REPO_ROOT/sof"
-else
+elif [ -z $CI ]; then
     SOF_PATH="sof"
+else
+    mkdir -p /tmp/test
+    wget -O /tmp/test/sof https://octonion.institute/susy-cpp/cpp-sophon/releases/download/polynomialTester/sof
+    test "$(shasum /tmp/test/sof)" = "c132e8989229e4840831a4fb1a1d058b732a11d5  /tmp/test/sof"
+    sync
+    chmod +x /tmp/test/sof
+    sync # Otherwise we might get a "text file busy" error
+    SOF_PATH="/tmp/test/sof"
 fi
 
 # This trailing ampersand directs the shell to run the command in the background,

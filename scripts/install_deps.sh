@@ -96,7 +96,7 @@ case $(uname -s) in
         brew update
         brew install boost
         brew install cmake
-        if ["$CI" = true]; then
+        if [ "$CI" = true ]; then
             brew upgrade cmake
             brew tap sophon/sophon
             brew install cpp-sophon
@@ -314,12 +314,12 @@ case $(uname -s) in
                     libboost-all-dev
                 if [ "$CI" = true ]; then
                     # Install 'sof', for use in the Polynomial Tests-over-IPC.
+                    # We will not use this 'sof', but its dependencies
                     sudo add-apt-repository -y ppa:sophon/sophon
                     sudo add-apt-repository -y ppa:sophon/sophon-dev
                     sudo apt-get -y update
                     sudo apt-get -y install sof
                 fi
-
                 ;;
 
 #------------------------------------------------------------------------------

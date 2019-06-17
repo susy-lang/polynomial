@@ -42,7 +42,7 @@ public:
 
 	void checkInterface(std::string const& _code, std::string const& _expectedInterfaceString)
 	{
-		SOF_TEST_REQUIRE_NO_THROW(m_compilerStack.parse("pragma polynomial >=0.0;\n" + _code), "Parsing contract failed");
+		SOF_TEST_REQUIRE_NO_THROW(m_compilerStack.parseAndAnalyze("pragma polynomial >=0.0;\n" + _code), "Parsing contract failed");
 
 		Json::Value generatedInterface = m_compilerStack.metadata("", DocumentationType::ABIInterface);
 		Json::Value expectedInterface;

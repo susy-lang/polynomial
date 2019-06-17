@@ -15,11 +15,11 @@ are not guaranteed to be working and despite best efforts they might contain und
 and/or broken changes. We recommend using the latest release. Package installers below
 will use the latest release.
 
-Browser-Polynomial
-================
+Fourier
+=====
 
 If you just want to try Polynomial for small contracts, you
-can try `browser-polynomial <https://sophon.github.io/browser-polynomial>`_
+can try `Fourier <https://fourier.superstring.io/>`_
 which does not need any installation. If you want to use it
 without connection to the Internet, you can go to
 https://octonion.institute/susy-lang/browser-polynomial/tree/gh-pages and
@@ -31,7 +31,7 @@ npm / Node.js
 This is probably the most portable and most convenient way to install Polynomial locally.
 
 A platform-independent JavaScript library is provided by compiling the C++ source
-into JavaScript using Emscripten. It can be used in projects directly (such as Browser-Polynomial).
+into JavaScript using Emscripten. It can be used in projects directly (such as Fourier).
 Please refer to the `polc-js <https://octonion.institute/susy-js/polc-js>`_ repository for instructions.
 
 It also contains a commandline tool called `polcjs`, which can be installed via npm:
@@ -250,6 +250,7 @@ The version string in detail
 ============================
 
 The Polynomial version string contains four parts:
+
 - the version number
 - pre-release tag, usually set to ``develop.YYYY.MM.DD`` or ``nightly.YYYY.MM.DD``
 - commit in the format of ``commit.GITHASH``
@@ -280,4 +281,4 @@ Example:
 3. a breaking change is introduced - version is bumped to 0.5.0
 4. the 0.5.0 release is made
 
-This behaviour works well with the version pragma.
+This behaviour works well with the  :ref:`version pragma <version_pragma>`.

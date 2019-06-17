@@ -94,6 +94,8 @@ emmake make -j 4
 
 cd ..
 cp build/polc/poljson.js ./
+mkdir -p upload
+cp poljson.js upload/
 
 OUTPUT_SIZE=`ls -la build/polc/poljson.js`
 

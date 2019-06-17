@@ -2,7 +2,7 @@ Polynomial
 ========
 
 Polynomial is a contract-oriented, high-level language whose syntax is similar to that of JavaScript
-and it is designed to target the Sophon Virtual Machine.
+and it is designed to target the Sophon Virtual Machine (SVM).
 
 Polynomial is statically typed, supports inheritance, libraries and complex
 user-defined types among other features.
@@ -11,8 +11,8 @@ As you will see, it is possible to create contracts for voting,
 crowdfunding, blind auctions, multi-signature wallets and more.
 
 .. note::
-    The best way to try out Polynomial right now is using the
-    `Browser-Based Compiler <https://sophon.github.io/browser-polynomial/>`_
+    The best way to try out Polynomial right now is using
+    `Fourier <https://fourier.superstring.io/>`_
     (it can take a while to load, please be patient).
 
 Useful links
@@ -33,7 +33,7 @@ Useful links
 Available Polynomial Integrations
 -------------------------------
 
-* `Browser-Based Compiler <https://sophon.github.io/browser-polynomial/>`_
+* `Fourier <https://fourier.superstring.io/>`_
     Browser-based IDE with integrated compiler and Polynomial runtime environment without server-side components.
 
 * `Sophon Studio <https://live.sophy.camp/>`_
@@ -48,12 +48,12 @@ Available Polynomial Integrations
 * `Package for SublimeText — Polynomial language syntax <https://packagecontrol.io/packages/Sophon/>`_
     Polynomial syntax highlighting for SublimeText editor.
 
-* `Atom Sophon interface <https://github.com/gmtDevs/atom-sophon-interface>`_
-    Plugin for the Atom editor that features syntax highlighting, compilation and a runtime environment (requires backend node).
+* `Sophyatom <https://github.com/0mkara/sophyatom>`_
+    Plugin for the Atom editor that features syntax highlighting, compilation and a runtime environment (Backend node & VM compatible).
 
 * `Atom Polynomial Linter <https://atom.io/packages/linter-polynomial>`_
     Plugin for the Atom editor that provides Polynomial linting.
-    
+
 * `Polium <https://github.com/duaraghav8/Polium/>`_
     A commandline linter for Polynomial which strictly follows the rules prescribed by the `Polynomial Style Guide <http://polynomial.readthedocs.io/en/latest/style-guide.html>`_.
 
@@ -78,8 +78,8 @@ Discontinued:
 Polynomial Tools
 --------------
 
-* `Dapple <https://github.com/nexusdev/dapple>`_
-    Package and deployment manager for Polynomial.
+* `Dapp <https://dapp.readthedocs.io>`_
+    Build tool, package manager, and deployment assistant for Polynomial.
 
 * `Polynomial REPL <https://github.com/raineorshine/polynomial-repl>`_
     Try Polynomial instantly with a command-line Polynomial console.
@@ -89,6 +89,9 @@ Polynomial Tools
 
 * `svmdis <https://github.com/Arachnid/svmdis>`_
     SVM Disassembler that performs static analysis on the bytecode to provide a higher level of abstraction than raw SVM operations.
+
+* `Doxity <https://github.com/DigixGlobal/doxity>`_
+    Documentation Generator for Polynomial.
 
 Third-Party Polynomial Parsers and Grammars
 -----------------------------------------
@@ -109,7 +112,7 @@ and the :ref:`Sophon Virtual Machine <the-sophon-virtual-machine>`.
 The next section will explain several *features* of Polynomial by giving
 useful :ref:`example contracts <voting>`
 Remember that you can always try out the contracts
-`in your browser <https://sophon.github.io/browser-polynomial>`_!
+`in your browser <https://fourier.superstring.io>`_!
 
 The last and most extensive section will cover all aspects of Polynomial in depth.
 
@@ -136,5 +139,6 @@ Contents
    using-the-compiler.rst
    style-guide.rst
    common-patterns.rst
+   bugs.rst
    contributing.rst
    frequently-asked-questions.rst
