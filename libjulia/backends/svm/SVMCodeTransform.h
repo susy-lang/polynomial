@@ -20,8 +20,9 @@
 
 #include <libjulia/backends/svm/SVMAssembly.h>
 
+#include <libjulia/ASTDataForward.h>
+
 #include <libpolynomial/inlineasm/AsmScope.h>
-#include <libpolynomial/inlineasm/AsmDataForward.h>
 
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
@@ -95,38 +96,39 @@ protected:
 	{}
 
 public:
-	void operator()(polynomial::assembly::Instruction const& _instruction);
-	void operator()(polynomial::assembly::Literal const& _literal);
-	void operator()(polynomial::assembly::Identifier const& _identifier);
-	void operator()(polynomial::assembly::FunctionalInstruction const& _instr);
-	void operator()(polynomial::assembly::FunctionCall const&);
-	void operator()(polynomial::assembly::Label const& _label);
-	void operator()(polynomial::assembly::StackAssignment const& _assignment);
-	void operator()(polynomial::assembly::Assignment const& _assignment);
-	void operator()(polynomial::assembly::VariableDeclaration const& _varDecl);
-	void operator()(polynomial::assembly::If const& _if);
-	void operator()(polynomial::assembly::Switch const& _switch);
-	void operator()(polynomial::assembly::FunctionDefinition const&);
-	void operator()(polynomial::assembly::ForLoop const&);
-	void operator()(polynomial::assembly::Block const& _block);
+	void operator()(Instruction const& _instruction);
+	void operator()(Literal const& _literal);
+	void operator()(Identifier const& _identifier);
+	void operator()(FunctionalInstruction const& _instr);
+	void operator()(FunctionCall const&);
+	void operator()(ExpressionStatement const& _statement);
+	void operator()(Label const& _label);
+	void operator()(StackAssignment const& _assignment);
+	void operator()(Assignment const& _assignment);
+	void operator()(VariableDeclaration const& _varDecl);
+	void operator()(If const& _if);
+	void operator()(Switch const& _switch);
+	void operator()(FunctionDefinition const&);
+	void operator()(ForLoop const&);
+	void operator()(Block const& _block);
 
 private:
-	AbstractAssembly::LabelID labelFromIdentifier(polynomial::assembly::Identifier const& _identifier);
+	AbstractAssembly::LabelID labelFromIdentifier(Identifier const& _identifier);
 	/// @returns the label ID corresponding to the given label, allocating a new one if
 	/// necessary.
 	AbstractAssembly::LabelID labelID(polynomial::assembly::Scope::Label const& _label);
 	AbstractAssembly::LabelID functionEntryID(std::string const& _name, polynomial::assembly::Scope::Function const& _function);
 	/// Generates code for an expression that is supposed to return a single value.
-	void visitExpression(polynomial::assembly::Statement const& _expression);
+	void visitExpression(Expression const& _expression);
 
-	void visitStatements(std::vector<polynomial::assembly::Statement> const& _statements);
+	void visitStatements(std::vector<Statement> const& _statements);
 
 	/// Pops all variables declared in the block and checks that the stack height is equal
 	/// to @a _blackStartStackHeight.
-	void finalizeBlock(polynomial::assembly::Block const& _block, int _blockStartStackHeight);
+	void finalizeBlock(Block const& _block, int _blockStartStackHeight);
 
-	void generateMultiAssignment(std::vector<polynomial::assembly::Identifier> const& _variableNames);
-	void generateAssignment(polynomial::assembly::Identifier const& _variableName);
+	void generateMultiAssignment(std::vector<Identifier> const& _variableNames);
+	void generateAssignment(Identifier const& _variableName);
 
 	/// Determines the stack height difference to the given variables. Throws
 	/// if it is not yet in scope or the height difference is too large. Returns

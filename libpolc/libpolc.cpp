@@ -20,7 +20,7 @@
  * JSON interface for the polynomial compiler to be used from Javascript.
  */
 
-#include <polc/jsonCompiler.h>
+#include <libpolc/libpolc.h>
 #include <libdevcore/Common.h>
 #include <libdevcore/JSON.h>
 #include <libpolynomial/interface/StandardCompiler.h>

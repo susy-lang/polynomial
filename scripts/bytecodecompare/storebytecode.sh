@@ -40,7 +40,7 @@ TMPDIR=$(mktemp -d)
 
     if [[ "$POLC_EMSCRIPTEN" = "On" ]]
     then
-        cp "$REPO_ROOT/build/polc/poljson.js" .
+        cp "$REPO_ROOT/build/libpolc/poljson.js" .
         npm install polc
         cat > polc <<EOF
 #!/usr/bin/env node

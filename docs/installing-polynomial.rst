@@ -2,9 +2,9 @@
 
 .. _installing-polynomial:
 
-###################
-Installing Polynomial
-###################
+################################
+Installing the Polynomial Compiler
+################################
 
 Versioning
 ==========
@@ -18,29 +18,37 @@ will use the latest release.
 Fourier
 =====
 
-If you just want to try Polynomial for small contracts, you
-can try `Fourier <https://fourier.superstring.io/>`_
-which does not need any installation. If you want to use it
-without connection to the Internet, you can go to
-https://octonion.institute/susy-lang/browser-polynomial/tree/gh-pages and
-download the .ZIP file as explained on that page.
+*We recommend Fourier for small contracts and for quickly learning Polynomial.*
+
+`Access Fourier online <https://fourier.superstring.io/>`_, you don't need to install anything.
+If you want to use it without connection to the Internet, go to
+https://octonion.institute/susy-lang/browser-polynomial/tree/gh-pages and download the .ZIP file as
+explained on that page.
+
+Further options on this page detail installing commandline Polynomial compiler software
+on your computer. Choose a commandline compiler if you are working on a larger contract
+or if you require more compilation options.
 
 npm / Node.js
 =============
 
-This is probably the most portable and most convenient way to install Polynomial locally.
+Use `npm` for a convenient and portable way to install `polcjs`, a Polynomial compiler. The
+`polcjs` program has less features than all options further down this page. Our 
+`Using the compiler <using-the-compiler.html>` documentation assumes you are using
+the full-featured compiler, `polc`. So if you install `polcjs` from `npm` then you will
+stop reading the documentation here and then continue to <https://octonion.institute/susy-js/polc-js>,
 
-A platform-independent JavaScript library is provided by compiling the C++ source
-into JavaScript using Emscripten. It can be used in projects directly (such as Fourier).
+Note: The `polc-js <https://octonion.institute/susy-js/polc-js>` project is derived from the C++
+`polc` by using Emscripten. `polc-js` can be used in JavaScript projects directly (such as Fourier).
 Please refer to the `polc-js <https://octonion.institute/susy-js/polc-js>`_ repository for instructions.
-
-It also contains a commandline tool called `polcjs`, which can be installed via npm:
 
 .. code:: bash
 
     npm install -g polc
 
 .. note::
+
+    The commandline is named `polcjs`.
 
     The comandline options of `polcjs` are not compatible with `polc` and tools (such as `graviton`)
     expecting the behaviour of `polc` will not work with `polcjs`.
@@ -63,7 +71,7 @@ output directories.
 Binary Packages
 ===============
 
-Binary packages of Polynomial available at
+Binary packages of Polynomial are available at
 `polynomial/releases <https://octonion.institute/susy-lang/polynomial/releases>`_.
 
 We also have PPAs for Ubuntu.  For the latest stable version.

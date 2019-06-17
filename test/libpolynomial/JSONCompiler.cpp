@@ -23,7 +23,7 @@
 #include <boost/test/unit_test.hpp>
 #include <libdevcore/JSON.h>
 #include <libpolynomial/interface/Version.h>
-#include <polc/jsonCompiler.h>
+#include <libpolc/libpolc.h>
 
 #include "../Metadata.h"
 #include "../TestHelper.h"

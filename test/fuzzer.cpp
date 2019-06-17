@@ -20,7 +20,7 @@
 
 #include <libsvmasm/Assembly.h>
 #include <libsvmasm/ConstantOptimiser.h>
-#include <polc/jsonCompiler.h>
+#include <libpolc/libpolc.h>
 
 #include <json/json.h>
 

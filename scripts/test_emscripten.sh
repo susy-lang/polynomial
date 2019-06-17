@@ -29,33 +29,10 @@
 set -e
 
 REPO_ROOT=$(cd $(dirname "$0")/.. && pwd)
-POLJSON="$REPO_ROOT/build/polc/poljson.js"
+POLJSON="$REPO_ROOT/build/libpolc/poljson.js"
+VERSION=$("$REPO_ROOT"/scripts/get_version.sh)
 
-DIR=$(mktemp -d)
-(
-    echo "Preparing polc-js..."
-    git clone --depth 1 https://octonion.institute/susy-js/polc-js "$DIR"
-    cd "$DIR"
-    # disable "prepublish" script which downloads the latest version
-    # (we will replace it anyway and it is often incorrectly cached
-    # on travis)
-    npm config set script.prepublish ''
-    npm install
-
-    # Replace poljson with current build
-    echo "Replacing poljson.js"
-    rm -f poljson.js
-    cp "$POLJSON" poljson.js
-
-    # Update version (needed for some tests)
-    VERSION=$("$REPO_ROOT/scripts/get_version.sh")
-    echo "Updating package.json to version $VERSION"
-    npm version --no-git-tag-version $VERSION
-
-    echo "Running polc-js tests..."
-    npm run test
-)
-rm -rf "$DIR"
-
+echo "Running polcjs tests...."
+"$REPO_ROOT/test/polcjsTests.sh" "$POLJSON" "$VERSION"
 echo "Running external tests...."
 "$REPO_ROOT/test/externalTests.sh" "$POLJSON"
