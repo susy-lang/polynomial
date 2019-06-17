@@ -33,7 +33,7 @@ PolynomialExecutionFramework::PolynomialExecutionFramework():
 {
 }
 
-PolynomialExecutionFramework::PolynomialExecutionFramework(std::string const& _ipcPath):
-	ExecutionFramework(_ipcPath)
+PolynomialExecutionFramework::PolynomialExecutionFramework(std::string const& _ipcPath, langutil::SVMVersion _svmVersion):
+	ExecutionFramework(_ipcPath, _svmVersion)
 {
 }

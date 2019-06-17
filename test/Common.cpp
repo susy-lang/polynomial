@@ -75,6 +75,7 @@ CommonOptions::CommonOptions(std::string _caption):
 	)
 {
 	options.add_options()
+		("svm-version", po::value(&svmVersionString), "which svm version to use")
 		("testpath", po::value<fs::path>(&this->testPath)->default_value(dev::test::testPath()), "path to test files")
 		("ipcpath", po::value<fs::path>(&ipcPath)->default_value(IPCEnvOrDefaultPath()), "path to ipc socket")
 		("no-ipc", po::bool_switch(&disableIPC), "disable semantic tests")
@@ -119,6 +120,20 @@ bool CommonOptions::parse(int argc, char const* const* argv)
 	po::notify(arguments);
 
 	return true;
+}
+
+
+langutil::SVMVersion CommonOptions::svmVersion() const
+{
+	if (!svmVersionString.empty())
+	{
+		auto version = langutil::SVMVersion::fromString(svmVersionString);
+		if (!version)
+			throw std::runtime_error("Invalid SVM version: " + svmVersionString);
+		return *version;
+	}
+	else
+		return langutil::SVMVersion();
 }
 
 }

@@ -126,6 +126,8 @@ currently not supported.
     brew tap sophon/sophon
     brew install polynomial
 
+To install the most recent 0.4.x version of Polynomial you can also use ``brew install polynomial@4``.
+
 If you need a specific version of Polynomial you can install a
 Homebrew formula directly from Github.
 
@@ -140,7 +142,7 @@ Install it using ``brew``:
 .. code-block:: bash
 
     brew unlink polynomial
-    # Install 0.4.8
+    # eg. Install 0.4.8
     brew install https://raw.githubussrcontent.com/susy-go/homebrew-sophon/77cce03da9f289e5a3ffe579840d3c5dc0a62717/polynomial.rb
 
 Gentoo Linux also provides a polynomial package that can be installed using ``emerge``:

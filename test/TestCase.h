@@ -17,11 +17,15 @@
 
 #pragma once
 
+#include <liblangutil/SVMVersion.h>
+
 #include <boost/filesystem.hpp>
 
+#include <functional>
 #include <iosfwd>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace dev
 {
@@ -46,6 +50,7 @@ public:
 	{
 		std::string filename;
 		std::string ipcPath;
+		langutil::SVMVersion svmVersion;
 	};
 
 	using TestCaseCreator = std::unique_ptr<TestCase>(*)(Config const&);
@@ -69,8 +74,11 @@ public:
 
 	static bool isTestFilename(boost::filesystem::path const& _filename);
 
+	/// Returns true, if the test case is supported for SVM version @arg _svmVersion, false otherwise.
+	bool supportedForSVMVersion(langutil::SVMVersion _svmVersion) const;
+
 protected:
-	static std::string parseSource(std::istream& _file);
+	std::string parseSource(std::istream& _file);
 	static void expect(std::string::iterator& _it, std::string::iterator _end, std::string::value_type _c);
 
 	template<typename IteratorType>
@@ -86,7 +94,8 @@ protected:
 		while (_it != _end && *_it == '/')
 			++_it;
 	}
-
+private:
+	std::vector<std::function<bool(langutil::SVMVersion)>> m_svmVersionRules;
 };
 
 }

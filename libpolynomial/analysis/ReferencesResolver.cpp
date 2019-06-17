@@ -213,7 +213,7 @@ void ReferencesResolver::endVisit(FunctionTypeName const& _typeName)
 		for (auto const& t: _typeName.parameterTypes() + _typeName.returnParameterTypes())
 		{
 			polAssert(t->annotation().type, "Type not set for parameter.");
-			if (!t->annotation().type->canBeUsedExternally(false))
+			if (!t->annotation().type->interfaceType(false).get())
 			{
 				fatalTypeError(t->location(), "Internal type cannot be used for external function type.");
 				return;

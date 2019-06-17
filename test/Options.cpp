@@ -53,22 +53,7 @@ Options::Options()
 	options.add_options()
 		("optimize", po::bool_switch(&optimize), "enables optimization")
 		("abiencoderv2", po::bool_switch(&useABIEncoderV2), "enables abi encoder v2")
-		("svm-version", po::value(&svmVersionString), "which svm version to use")
 		("show-messages", po::bool_switch(&showMessages), "enables message output");
 
 	parse(suite.argc, suite.argv);
-}
-
-langutil::SVMVersion Options::svmVersion() const
-{
-	if (!svmVersionString.empty())
-	{
-		// We do this check as opposed to in the constructor because the BOOST_REQUIRE
-		// macros cannot yet be used in the constructor.
-		auto version = langutil::SVMVersion::fromString(svmVersionString);
-		BOOST_REQUIRE_MESSAGE(version, "Invalid SVM version: " + svmVersionString);
-		return *version;
-	}
-	else
-		return langutil::SVMVersion();
 }

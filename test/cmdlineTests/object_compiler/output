@@ -42,7 +42,6 @@ Text representation:
   0x00
     /* "object_compiler/input.pol":265:295   */
   return
-    /* "object_compiler/input.pol":29:299   */
   pop
 stop
 

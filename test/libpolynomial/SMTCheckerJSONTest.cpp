@@ -35,8 +35,8 @@ using namespace dev;
 using namespace std;
 using namespace boost::unit_test;
 
-SMTCheckerTest::SMTCheckerTest(string const& _filename)
-: SyntaxTest(_filename)
+SMTCheckerTest::SMTCheckerTest(string const& _filename, langutil::SVMVersion _svmVersion)
+: SyntaxTest(_filename, _svmVersion)
 {
 	if (!boost::algorithm::ends_with(_filename, ".pol"))
 		BOOST_THROW_EXCEPTION(runtime_error("Invalid test contract file name: \"" + _filename + "\"."));
@@ -49,7 +49,7 @@ SMTCheckerTest::SMTCheckerTest(string const& _filename)
 		BOOST_THROW_EXCEPTION(runtime_error("Invalid JSON file."));
 }
 
-bool SMTCheckerTest::run(ostream& _stream, string const& _linePrefix, bool const _formatted)
+bool SMTCheckerTest::run(ostream& _stream, string const& _linePrefix, bool _formatted)
 {
 	StandardCompiler compiler;
 

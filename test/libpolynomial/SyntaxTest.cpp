@@ -52,7 +52,7 @@ int parseUnsignedInteger(string::iterator& _it, string::iterator _end)
 
 }
 
-SyntaxTest::SyntaxTest(string const& _filename)
+SyntaxTest::SyntaxTest(string const& _filename, langutil::SVMVersion _svmVersion): m_svmVersion(_svmVersion)
 {
 	ifstream file(_filename);
 	if (!file)
@@ -63,12 +63,12 @@ SyntaxTest::SyntaxTest(string const& _filename)
 	m_expectations = parseExpectations(file);
 }
 
-bool SyntaxTest::run(ostream& _stream, string const& _linePrefix, bool const _formatted)
+bool SyntaxTest::run(ostream& _stream, string const& _linePrefix, bool _formatted)
 {
 	string const versionPragma = "pragma polynomial >=0.0;\n";
 	m_compiler.reset();
 	m_compiler.addSource("", versionPragma + m_source);
-	m_compiler.setSVMVersion(dev::test::Options::get().svmVersion());
+	m_compiler.setSVMVersion(m_svmVersion);
 
 	if (m_compiler.parse())
 		m_compiler.analyze();
@@ -95,7 +95,7 @@ bool SyntaxTest::run(ostream& _stream, string const& _linePrefix, bool const _fo
 	return printExpectationAndError(_stream, _linePrefix, _formatted);
 }
 
-bool SyntaxTest::printExpectationAndError(ostream& _stream, string const& _linePrefix, bool const _formatted)
+bool SyntaxTest::printExpectationAndError(ostream& _stream, string const& _linePrefix, bool _formatted)
 {
 	if (m_expectations != m_errorList)
 	{
@@ -109,7 +109,7 @@ bool SyntaxTest::printExpectationAndError(ostream& _stream, string const& _lineP
 	return true;
 }
 
-void SyntaxTest::printSource(ostream& _stream, string const& _linePrefix, bool const _formatted) const
+void SyntaxTest::printSource(ostream& _stream, string const& _linePrefix, bool _formatted) const
 {
 	if (_formatted)
 	{
@@ -162,7 +162,7 @@ void SyntaxTest::printErrorList(
 	ostream& _stream,
 	vector<SyntaxTestError> const& _errorList,
 	string const& _linePrefix,
-	bool const _formatted
+	bool _formatted
 )
 {
 	if (_errorList.empty())

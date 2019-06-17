@@ -17,6 +17,7 @@
 
 #include <test/TestCase.h>
 
+#include <boost/algorithm/cxx11/none_of.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -35,16 +36,57 @@ bool TestCase::isTestFilename(boost::filesystem::path const& _filename)
 		   !boost::starts_with(_filename.string(), ".");
 }
 
+bool TestCase::supportedForSVMVersion(langutil::SVMVersion _svmVersion) const
+{
+	return boost::algorithm::none_of(m_svmVersionRules, [&](auto const& rule) { return !rule(_svmVersion); });
+}
+
 string TestCase::parseSource(istream& _stream)
 {
 	string source;
 	string line;
-	string const delimiter("// ----");
+	static string const delimiter("// ----");
+	static string const svmVersion("// SVMVersion: ");
+	bool isTop = true;
 	while (getline(_stream, line))
 		if (boost::algorithm::starts_with(line, delimiter))
 			break;
 		else
+		{
+			if (isTop && boost::algorithm::starts_with(line, svmVersion))
+			{
+				string versionString = line.substr(svmVersion.size() + 1);
+				auto version = langutil::SVMVersion::fromString(versionString);
+				if (!version)
+					throw runtime_error("Invalid SVM version: \"" + versionString + "\"");
+				switch (line.at(svmVersion.size()))
+				{
+					case '>':
+						m_svmVersionRules.emplace_back([version](langutil::SVMVersion _version) {
+							return version < _version;
+						});
+						break;
+					case '<':
+						m_svmVersionRules.emplace_back([version](langutil::SVMVersion _version) {
+							return _version < version;
+						});
+						break;
+					case '=':
+						m_svmVersionRules.emplace_back([version](langutil::SVMVersion _version) {
+							return _version == version;
+						});
+						break;
+					case '!':
+						m_svmVersionRules.emplace_back([version](langutil::SVMVersion _version) {
+							return !(_version == version);
+						});
+						break;
+				}
+			}
+			else
+				isTop = false;
 			source += line + "\n";
+		}
 	return source;
 }
 

@@ -38,6 +38,7 @@ In this tutorial, we will sign messages in the browser using `susyweb.js <https:
 as it provides a number of other security benefits.
 
 ::
+
     /// Hashing first makes things easier
     var hash = susyweb.utils.sha3("message to sign");
     susyweb.sof.personal.sign(hash, susyweb.sof.defaultAccount, function () { console.log("Signed"); });

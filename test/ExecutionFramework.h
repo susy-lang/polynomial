@@ -25,6 +25,8 @@
 #include <test/Options.h>
 #include <test/RPCSession.h>
 
+#include <libpolynomial/interface/OptimiserSettings.h>
+
 #include <liblangutil/SVMVersion.h>
 
 #include <libdevcore/FixedHash.h>
@@ -53,7 +55,7 @@ class ExecutionFramework
 
 public:
 	ExecutionFramework();
-	explicit ExecutionFramework(std::string const& _ipcPath);
+	explicit ExecutionFramework(std::string const& _ipcPath, langutil::SVMVersion _svmVersion);
 	virtual ~ExecutionFramework() = default;
 
 	virtual bytes const& compileAndRunWithoutCheck(
@@ -265,8 +267,7 @@ protected:
 	};
 
 	langutil::SVMVersion m_svmVersion;
-	unsigned m_optimizeRuns = 200;
-	bool m_optimize = false;
+	polynomial::OptimiserSettings m_optimiserSettings = polynomial::OptimiserSettings::minimal();
 	bool m_showMessages = false;
 	bool m_transactionSuccessful = true;
 	Address m_sender;

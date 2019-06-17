@@ -107,9 +107,9 @@ Json::Value ABI::generate(ContractDefinition const& _contractDef)
 		for (auto const& p: it->parameters())
 		{
 			auto type = p->annotation().type->interfaceType(false);
-			polAssert(type, "");
+			polAssert(type.get(), "");
 			Json::Value input;
-			auto param = formatType(p->name(), *type, false);
+			auto param = formatType(p->name(), *type.get(), false);
 			param["indexed"] = p->isIndexed();
 			params.append(param);
 		}
@@ -173,8 +173,8 @@ Json::Value ABI::formatType(string const& _name, Type const& _type, bool _forLib
 		{
 			polAssert(member.type, "");
 			auto t = member.type->interfaceType(_forLibrary);
-			polAssert(t, "");
-			ret["components"].append(formatType(member.name, *t, _forLibrary));
+			polAssert(t.get(), "");
+			ret["components"].append(formatType(member.name, *t.get(), _forLibrary));
 		}
 	}
 	else

@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <liblangutil/SVMVersion.h>
+
 #include <test/Common.h>
 
 namespace dev

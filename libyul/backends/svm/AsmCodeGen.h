@@ -82,7 +82,7 @@ public:
 		langutil::SVMVersion _svmVersion,
 		ExternalIdentifierAccess const& _identifierAccess = ExternalIdentifierAccess(),
 		bool _useNamedLabelsForFunctions = false,
-		bool _optimize = false
+		bool _optimizeStackAllocation = false
 	);
 };
 

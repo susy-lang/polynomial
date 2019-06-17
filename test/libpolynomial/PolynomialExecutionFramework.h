@@ -43,7 +43,7 @@ class PolynomialExecutionFramework: public dev::test::ExecutionFramework
 
 public:
 	PolynomialExecutionFramework();
-	PolynomialExecutionFramework(std::string const& _ipcPath);
+	PolynomialExecutionFramework(std::string const& _ipcPath, langutil::SVMVersion _svmVersion);
 
 	virtual bytes const& compileAndRunWithoutCheck(
 		std::string const& _sourceCode,
@@ -73,7 +73,7 @@ public:
 		m_compiler.addSource("", sourceCode);
 		m_compiler.setLibraries(_libraryAddresses);
 		m_compiler.setSVMVersion(m_svmVersion);
-		m_compiler.setOptimiserSettings(m_optimize, m_optimizeRuns);
+		m_compiler.setOptimiserSettings(m_optimiserSettings);
 		if (!m_compiler.compile())
 		{
 			langutil::SourceReferenceFormatter formatter(std::cerr);

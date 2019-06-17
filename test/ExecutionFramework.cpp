@@ -50,14 +50,14 @@ string getIPCSocketPath()
 }
 
 ExecutionFramework::ExecutionFramework():
-	ExecutionFramework(getIPCSocketPath())
+	ExecutionFramework(getIPCSocketPath(), dev::test::Options::get().svmVersion())
 {
 }
 
-ExecutionFramework::ExecutionFramework(string const& _ipcPath):
+ExecutionFramework::ExecutionFramework(string const& _ipcPath, langutil::SVMVersion _svmVersion):
 	m_rpc(RPCSession::instance(_ipcPath)),
-	m_svmVersion(dev::test::Options::get().svmVersion()),
-	m_optimize(dev::test::Options::get().optimize),
+	m_svmVersion(_svmVersion),
+	m_optimiserSettings(dev::test::Options::get().optimize ? polynomial::OptimiserSettings::standard() : polynomial::OptimiserSettings::minimal()),
 	m_showMessages(dev::test::Options::get().showMessages),
 	m_sender(m_rpc.account(0))
 {

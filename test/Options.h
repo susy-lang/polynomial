@@ -37,13 +37,9 @@ struct Options: CommonOptions
 	bool showMessages = false;
 	bool useABIEncoderV2 = false;
 
-	langutil::SVMVersion svmVersion() const;
-
 	static Options const& get();
 
 private:
-	std::string svmVersionString;
-
 	Options();
 };
 
