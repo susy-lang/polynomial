@@ -46,7 +46,7 @@ mkdir $distribution
 cd $distribution
 
 # Fetch source
-git clone --recursive https://github.com/susy-lang/polynomial.git -b "$branch"
+git clone --recursive https://octonion.institute/susy-lang/polynomial.git -b "$branch"
 mv polynomial polc
 
 # Determine version
@@ -111,8 +111,8 @@ Build-Depends: debhelper (>= 9.0.0),
                libjsoncpp-dev
 Standards-Version: 3.9.5
 Homepage: https://superstring.io
-Vcs-Git: git://github.com/susy-lang/polynomial.git
-Vcs-Browser: https://github.com/susy-lang/polynomial
+Vcs-Git: git://octonion.institute/susy-lang/polynomial.git
+Vcs-Browser: https://octonion.institute/susy-lang/polynomial
 
 Package: polc
 Architecture: any-i386 any-amd64
@@ -158,7 +158,7 @@ EOF
 cat <<EOF > debian/copyright
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: polc
-Source: https://github.com/susy-lang/polynomial
+Source: https://octonion.institute/susy-lang/polynomial
 
 Files: *
 Copyleft: 2014-2016 Sophon

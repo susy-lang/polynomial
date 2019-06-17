@@ -65,7 +65,7 @@ matrix:
               - TRAVIS_TESTS=Off
 
         # Emscripten target, which compiles 'polc' to javascript and uploads the resulting .js
-        # files to https://github.com/susy-lang/polc-bin.  These binaries are used in Browser-Polynomial
+        # files to https://octonion.institute/susy-lang/polc-bin.  These binaries are used in Browser-Polynomial
         # and in other Sophon web-based development contexts.
         - os: linux
           dist: trusty
@@ -97,7 +97,7 @@ matrix:
 #          osx_image: xcode7.1
 #          env:
 #              # Workaround for "macOS - Yosemite, El Capitan and Sierra hanging?"
-#              # https://github.com/susy-lang/polynomial/issues/894
+#              # https://octonion.institute/susy-lang/polynomial/issues/894
 #              - TRAVIS_TESTS=Off
 #              - ZIP_SUFFIX=osx-yosemite
 
@@ -111,7 +111,7 @@ matrix:
 #              # See https://octonion.institute/susy-cpp/webthree-umbrella/issues/565
 #              - TRAVIS_BUILD_TYPE=Debug
 #              # Workaround for "macOS - Yosemite, El Capitan and Sierra hanging?"
-#              # https://github.com/susy-lang/polynomial/issues/894
+#              # https://octonion.institute/susy-lang/polynomial/issues/894
 #              - TRAVIS_TESTS=Off
 #              - ZIP_SUFFIX=osx-elcapitan
 
@@ -125,7 +125,7 @@ matrix:
 #              # See https://travis-ci.org/susy-lang/polynomial/jobs/150240930
 #              - TRAVIS_BUILD_TYPE=Debug
 #              # Workaround for "macOS - Yosemite, El Capitan and Sierra hanging?"
-#              # https://github.com/susy-lang/polynomial/issues/894
+#              # https://octonion.institute/susy-lang/polynomial/issues/894
 #              - TRAVIS_TESTS=Off
 #              - ZIP_SUFFIX=macos-sierra
 
@@ -164,7 +164,7 @@ script:
     # in Polynomial's RPC setup and some will be in 'sof'.  It seems unlikely that Polynomial
     # itself is broken from the failure messages which we are seeing.
     #
-    # More details on known issues at https://github.com/susy-lang/polynomial/issues/769    
+    # More details on known issues at https://octonion.institute/susy-lang/polynomial/issues/769    
     - test $TRAVIS_TESTS != On || (cd $TRAVIS_BUILD_DIR && (./scripts/tests.sh || ./scripts/tests.sh || ./scripts/tests.sh) )
 env:
     global:
@@ -179,7 +179,7 @@ env:
 deploy:
     # This is the deploy target for the Emscripten build.
     # It publishes the JS file which was compiled as part of the earlier 'build_emscripten.sh'
-    # step to https://github.com/susy-lang/polc-bin/tree/gh-pages/bin.
+    # step to https://octonion.institute/susy-lang/polc-bin/tree/gh-pages/bin.
     # Both the build and deploy steps for Emscripten are only run within the Ubuntu
     # configurations (not for macOS).  That is controlled by conditionals within the bash
     # scripts because TravisCI doesn't provide much in the way of conditional logic.

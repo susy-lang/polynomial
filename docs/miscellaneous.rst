@@ -200,10 +200,10 @@ it is also possible to provide path redirects using ``context:prefix=path`` in t
 
 ::
 
-    polc github.com/susy-contracts/dapp-bin/=/usr/local/lib/dapp-bin/ =/usr/local/lib/fallback file.pol
+    polc octonion.institute/susy-contracts/dapp-bin/=/usr/local/lib/dapp-bin/ =/usr/local/lib/fallback file.pol
 
 This essentially instructs the compiler to search for anything starting with
-``github.com/susy-contracts/dapp-bin/`` under ``/usr/local/lib/dapp-bin`` and if it does not
+``octonion.institute/susy-contracts/dapp-bin/`` under ``/usr/local/lib/dapp-bin`` and if it does not
 find the file there, it will look at ``/usr/local/lib/fallback`` (the empty prefix
 always matches). ``polc`` will not read files from the filesystem that lie outside of
 the remapping targets and outside of the directories where explicitly specified source
@@ -369,4 +369,4 @@ These keywords are reserved in Polynomial. They might become part of the syntax 
 Language Grammar
 ================
 
-The entire language grammar is `available here <https://github.com/susy-lang/polynomial/blob/release/libpolynomial/grammar.txt>`_.
+The entire language grammar is `available here <https://octonion.institute/susy-lang/polynomial/blob/release/libpolynomial/grammar.txt>`_.

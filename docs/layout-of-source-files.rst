@@ -95,7 +95,7 @@ Use in Actual Compilers
 
 When the compiler is invoked, it is not only possible to specify how to
 discover the first element of a path, but it is possible to specify path prefix
-remappings so that e.g. ``github.com/susy-contracts/dapp-bin/library`` is remapped to
+remappings so that e.g. ``octonion.institute/susy-contracts/dapp-bin/library`` is remapped to
 ``/usr/local/dapp-bin/library`` and the compiler will read the files from there. If
 remapping keys are prefixes of each other, the longest is tried first. This
 allows for a "fallback-remapping" with e.g. ``""`` maps to
@@ -115,18 +115,18 @@ in files in or below the directory ``context`` that import a file that
 starts with ``prefix`` are redirected by replacing ``prefix`` by ``target``.
 
 So as an example, if you clone
-``github.com/susy-contracts/dapp-bin/`` locally to ``/usr/local/dapp-bin``, you can use
+``octonion.institute/susy-contracts/dapp-bin/`` locally to ``/usr/local/dapp-bin``, you can use
 the following in your source file:
 
 ::
 
-  import "github.com/susy-contracts/dapp-bin/library/iterable_mapping.pol" as it_mapping;
+  import "octonion.institute/susy-contracts/dapp-bin/library/iterable_mapping.pol" as it_mapping;
 
 and then run the compiler as
 
 .. code-block:: bash
 
-  polc github.com/susy-contracts/dapp-bin/=/usr/local/dapp-bin/ source.pol
+  polc octonion.institute/susy-contracts/dapp-bin/=/usr/local/dapp-bin/ source.pol
 
 As a more complex example, suppose you rely on some module that uses a
 very old version of dapp-bin. That old version of dapp-bin is checked
@@ -134,8 +134,8 @@ out at ``/usr/local/dapp-bin_old``, then you can use
 
 .. code-block:: bash
 
-  polc module1:github.com/susy-contracts/dapp-bin/=/usr/local/dapp-bin/ \
-       module2:github.com/susy-contracts/dapp-bin/=/usr/local/dapp-bin_old/ \
+  polc module1:octonion.institute/susy-contracts/dapp-bin/=/usr/local/dapp-bin/ \
+       module2:octonion.institute/susy-contracts/dapp-bin/=/usr/local/dapp-bin_old/ \
        source.pol
 
 so that all imports in ``module2`` point to the old version but imports
@@ -156,7 +156,7 @@ The `browser-based compiler <https://sophon.github.io/browser-polynomial>`_
 provides an automatic remapping for github and will also automatically retrieve
 the file over the network:
 You can import the iterable mapping by e.g.
-``import "github.com/susy-contracts/dapp-bin/library/iterable_mapping.pol" as it_mapping;``.
+``import "octonion.institute/susy-contracts/dapp-bin/library/iterable_mapping.pol" as it_mapping;``.
 
 Other source code providers may be added in the future.
 

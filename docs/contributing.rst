@@ -15,15 +15,15 @@ In particular, we need help in the following areas:
   <http://sophon.stackexchange.com/>`_ and the `Polynomial Gitter
   <https://gitter.im/susy-lang/polynomial>`_
 * Fixing and responding to `Polynomial's GitHub issues
-  <https://github.com/susy-lang/polynomial/issues>`_, especially those tagged as
-  `up-for-grabs <https://github.com/susy-lang/polynomial/issues?q=is%3Aopen+is%3Aissue+label%3Aup-for-grabs>`_ which are
+  <https://octonion.institute/susy-lang/polynomial/issues>`_, especially those tagged as
+  `up-for-grabs <https://octonion.institute/susy-lang/polynomial/issues?q=is%3Aopen+is%3Aissue+label%3Aup-for-grabs>`_ which are
   meant as introductory issues for external contributors.
 
 How to Report Issues
 ====================
 
 To report an issue, please use the
-`GitHub issues tracker <https://github.com/susy-lang/polynomial/issues>`_. When
+`GitHub issues tracker <https://octonion.institute/susy-lang/polynomial/issues>`_. When
 reporting issues, please mention the following details:
 
 * Which version of Polynomial you are using

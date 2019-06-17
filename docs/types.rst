@@ -648,7 +648,7 @@ for each ``_KeyType``, recursively.
 
 .. note::
   Mappings are not iterable, but it is possible to implement a data structure on top of them.
-  For an example, see `iterable mapping <https://github.com/susy-contracts/dapp-bin/blob/master/library/iterable_mapping.pol>`_.
+  For an example, see `iterable mapping <https://octonion.institute/susy-contracts/dapp-bin/blob/master/library/iterable_mapping.pol>`_.
 
 .. index:: assignment, ! delete, lvalue
 

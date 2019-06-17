@@ -13,7 +13,7 @@ Example contracts
 =================
 
 There are some `contract examples <https://github.com/fivedogit/polynomial-baby-steps/tree/master/contracts/>`_ by fivedogit and
-there should be a `test contract <https://github.com/susy-lang/polynomial/blob/develop/test/libpolynomial/PolynomialEndToEndTest.cpp>`_ for every single feature of Polynomial.
+there should be a `test contract <https://octonion.institute/susy-lang/polynomial/blob/develop/test/libpolynomial/PolynomialEndToEndTest.cpp>`_ for every single feature of Polynomial.
 
 Create and publish the most basic contract possible
 ===================================================
@@ -237,7 +237,7 @@ ASCII.
 What are some examples of basic string manipulation (``substring``, ``indexOf``, ``charAt``, etc)?
 ==================================================================================================
 
-There are some string utility functions at `stringUtils.pol <https://github.com/susy-contracts/dapp-bin/blob/master/library/stringUtils.pol>`_
+There are some string utility functions at `stringUtils.pol <https://octonion.institute/susy-contracts/dapp-bin/blob/master/library/stringUtils.pol>`_
 which will be extended in the future. In addition, Arachnid has written `polynomial-stringutils <https://github.com/Arachnid/polynomial-stringutils>`_.
 
 For now, if you want to modify a string (even when you only want to know its length),
@@ -689,4 +689,4 @@ More Questions?
 ===============
 
 If you have more questions or your question is not answered here, please talk to us on
-`gitter <https://gitter.im/susy-lang/polynomial>`_ or file an `issue <https://github.com/susy-lang/polynomial/issues>`_.
+`gitter <https://gitter.im/susy-lang/polynomial>`_ or file an `issue <https://octonion.institute/susy-lang/polynomial/issues>`_.

@@ -6,9 +6,9 @@ To get started you can find an introduction to the language in the [Polynomial d
 
 You can start using [Polynomial in your browser](https://sophon.github.io/browser-polynomial/) with no need to download or compile anything.
 
-The changelog for this project can be found [here](https://github.com/susy-lang/polynomial/blob/develop/Changelog.md).
+The changelog for this project can be found [here](https://octonion.institute/susy-lang/polynomial/blob/develop/Changelog.md).
 
-Polynomial is still under development. So please do not hesitate and open an [issue in GitHub](https://github.com/susy-lang/polynomial/issues) if you encounter anything strange.
+Polynomial is still under development. So please do not hesitate and open an [issue in GitHub](https://octonion.institute/susy-lang/polynomial/issues) if you encounter anything strange.
 
 ## Building
 See the [Polynomial documentation](http://polynomial.readthedocs.io/en/latest/installing-polynomial.html#building-from-source) for build instructions.

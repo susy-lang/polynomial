@@ -12,7 +12,7 @@ Versioning
 Polynomial versions follow `semantic versioning <https://semver.org>`_ and in addition to
 releases, **nightly development builds** are also made available.  The nightly builds
 are not guaranteed to be working and despite best efforts they might contain undocumented
-and/or broken changes. We recommend to use the latest release. Package installers below
+and/or broken changes. We recommend using the latest release. Package installers below
 will use the latest release.
 
 Browser-Polynomial
@@ -22,7 +22,7 @@ If you just want to try Polynomial for small contracts, you
 can try `browser-polynomial <https://sophon.github.io/browser-polynomial>`_
 which does not need any installation. If you want to use it
 without connection to the Internet, you can go to
-https://github.com/susy-lang/browser-polynomial/tree/gh-pages and
+https://octonion.institute/susy-lang/browser-polynomial/tree/gh-pages and
 download the .ZIP file as explained on that page.
 
 
@@ -48,7 +48,7 @@ Binary Packages
 ===============
 
 Binary packages of Polynomial available at
-`polynomial/releases <https://github.com/susy-lang/polynomial/releases>`_.
+`polynomial/releases <https://octonion.institute/susy-lang/polynomial/releases>`_.
 
 We also have PPAs for Ubuntu.  For the latest stable version.
 
@@ -93,7 +93,7 @@ To clone the source code, execute the following command:
 
 .. code:: bash
 
-    git clone --recursive https://github.com/susy-lang/polynomial.git
+    git clone --recursive https://octonion.institute/susy-lang/polynomial.git
     cd polynomial
 
 If you want to help developing Polynomial,

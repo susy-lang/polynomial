@@ -3,7 +3,7 @@
 #------------------------------------------------------------------------------
 # Bash script for publishing Polynomial Emscripten binaries to Github.
 #
-# The results are committed to https://github.com/susy-lang/polc-bin.
+# The results are committed to https://octonion.institute/susy-lang/polc-bin.
 #
 # The documentation for polynomial is hosted at:
 #

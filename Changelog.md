@@ -1,3 +1,9 @@
+### 0.4.4 (2016-10-31)
+
+Bugfixes:
+ * Type checker: forbid signed exponential that led to an incorrect use of EXP opcode.
+ * Code generator: properly clean higher order bytes before storing in storage.
+
 ### 0.4.3 (2016-10-25)
 
 Features:
@@ -73,7 +79,7 @@ Breaking Changes:
  * Removed ``--interface`` (Polynomial interface) output option
  * JSON AST: General cleanup, renamed many nodes to match their C++ names.
  * JSON output: ``srcmap-runtime`` renamed to ``srcmapRuntime``.
- * Moved (and reworked) standard library contracts from inside the compiler to github.com/susy-lang/polynomial/std
+ * Moved (and reworked) standard library contracts from inside the compiler to octonion.institute/susy-lang/polynomial/std
    (``import "std";`` or ``import owned;`` do not work anymore).
  * Confusing and undocumented keyword ``after`` was removed.
  * New reserved words: ``abstract``, ``hex``, ``interface``, ``payable``, ``pure``, ``static``, ``view``.

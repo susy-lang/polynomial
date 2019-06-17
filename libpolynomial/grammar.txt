@@ -57,7 +57,7 @@ Return = 'return' Expression?
 Throw = 'throw'
 VariableDefinition = VariableDeclaration ( '=' Expression )?
 
-// Precedence by order (see github.com/susy-lang/polynomial/pull/732)
+// Precedence by order (see octonion.institute/susy-lang/polynomial/pull/732)
 Expression =
   ( Expression ('++' | '--') | FunctionCall | IndexAccess | MemberAccess | '(' Expression ')' )
   | ('!' | '~' | 'delete' | '++' | '--' | '+' | '-') Expression
