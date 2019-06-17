@@ -173,7 +173,7 @@ before_script:
       && scripts/create_source_tarball.sh)
 
 script:
-    - test $POLC_EMSCRIPTEN != On || (scripts/test_emscripten.sh)
+    - test $POLC_EMSCRIPTEN != On -o $POLC_TESTS != On || (scripts/test_emscripten.sh)
     - test $POLC_TESTS != On || (cd $TRAVIS_BUILD_DIR && scripts/tests.sh)
     - test $POLC_STOREBYTECODE != On || (cd $TRAVIS_BUILD_DIR && scripts/bytecodecompare/storebytecode.sh)
 

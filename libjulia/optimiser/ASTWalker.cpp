@@ -22,8 +22,6 @@
 
 #include <libpolynomial/inlineasm/AsmData.h>
 
-#include <libpolynomial/interface/Exceptions.h>
-
 #include <boost/range/adaptor/reversed.hpp>
 
 using namespace std;

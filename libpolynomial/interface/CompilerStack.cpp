@@ -29,6 +29,8 @@
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/parsing/Scanner.h>
 #include <libpolynomial/parsing/Parser.h>
+#include <libpolynomial/analysis/ControlFlowAnalyzer.h>
+#include <libpolynomial/analysis/ControlFlowGraph.h>
 #include <libpolynomial/analysis/GlobalContext.h>
 #include <libpolynomial/analysis/NameAndTypeResolver.h>
 #include <libpolynomial/analysis/TypeChecker.h>
@@ -220,6 +222,22 @@ bool CompilerStack::analyze()
 			for (Source const* source: m_sourceOrder)
 				if (!postTypeChecker.check(*source->ast))
 					noErrors = false;
+		}
+
+		if (noErrors)
+		{
+			CFG cfg(m_errorReporter);
+			for (Source const* source: m_sourceOrder)
+				if (!cfg.constructFlow(*source->ast))
+					noErrors = false;
+
+			if (noErrors)
+			{
+				ControlFlowAnalyzer controlFlowAnalyzer(cfg, m_errorReporter);
+				for (Source const* source: m_sourceOrder)
+					if (!controlFlowAnalyzer.analyze(*source->ast))
+						noErrors = false;
+			}
 		}
 
 		if (noErrors)

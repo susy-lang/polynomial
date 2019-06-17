@@ -23,8 +23,6 @@
 
 #include <libpolynomial/inlineasm/AsmData.h>
 
-#include <libpolynomial/interface/Exceptions.h>
-
 #include <boost/range/algorithm_ext/erase.hpp>
 
 using namespace std;

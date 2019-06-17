@@ -23,8 +23,6 @@
 #include <libjulia/ASTDataForward.h>
 #include <libjulia/optimiser/ASTWalker.h>
 
-#include <libpolynomial/interface/Exceptions.h>
-
 #include <set>
 
 namespace dev

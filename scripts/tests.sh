@@ -30,6 +30,17 @@ set -e
 
 REPO_ROOT="$(dirname "$0")"/..
 
+IPC_ENABLED=true
+if [[ "$OSTYPE" == "darwin"* ]]
+then
+    SMT_FLAGS="--no-smt"
+    if [ "$CIRCLECI" ]
+    then
+        IPC_ENABLED=false
+        IPC_FLAGS="--no-ipc"
+    fi
+fi
+
 if [ "$1" = --junit_report ]
 then
     if [ -z "$2" ]
@@ -98,8 +109,11 @@ function run_sof()
     sleep 2
 }
 
-download_sof
-SOF_PID=$(run_sof /tmp/test)
+if [ "$IPC_ENABLED" = true ];
+then
+    download_sof
+    SOF_PID=$(run_sof /tmp/test)
+fi
 
 progress="--show-progress"
 if [ "$CIRCLECI" ]
@@ -131,7 +145,7 @@ do
         log=--logger=JUNIT,test_suite,$log_directory/noopt_$vm.xml $testargs_no_opt
       fi
     fi
-    "$REPO_ROOT"/build/test/poltest $progress $log -- --testpath "$REPO_ROOT"/test "$optimize" --svm-version "$vm" --ipcpath /tmp/test/graviton.ipc
+    "$REPO_ROOT"/build/test/poltest $progress $log -- --testpath "$REPO_ROOT"/test "$optimize" --svm-version "$vm" $SMT_FLAGS $IPC_FLAGS  --ipcpath /tmp/test/graviton.ipc
   done
 done
 
@@ -141,6 +155,9 @@ then
     exit 1
 fi
 
-pkill "$SOF_PID" || true
-sleep 4
-pgrep "$SOF_PID" && pkill -9 "$SOF_PID" || true
+if [ "$IPC_ENABLED" = true ]
+then
+    pkill "$SOF_PID" || true
+    sleep 4
+    pgrep "$SOF_PID" && pkill -9 "$SOF_PID" || true
+fi

@@ -25,8 +25,6 @@
 
 #include <libpolynomial/inlineasm/AsmData.h>
 
-#include <libpolynomial/interface/Exceptions.h>
-
 #include <libdevcore/CommonData.h>
 
 using namespace std;

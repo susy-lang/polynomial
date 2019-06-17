@@ -20,8 +20,9 @@
 
 #include <libjulia/optimiser/SyntacticalEquality.h>
 
+#include <libjulia/Exceptions.h>
+
 #include <libpolynomial/inlineasm/AsmData.h>
-#include <libpolynomial/interface/Exceptions.h>
 
 #include <libdevcore/CommonData.h>
 
@@ -62,7 +63,7 @@ bool SyntacticalEqualityChecker::equal(Expression const& _e1, Expression const& 
 	}
 	else
 	{
-		polAssert(false, "Invlid expression");
+		assertThrow(false, OptimizerException, "Invalid expression");
 	}
 	return false;
 }

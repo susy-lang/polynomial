@@ -23,6 +23,7 @@
 #include <libjulia/ASTDataForward.h>
 
 #include <libjulia/optimiser/ASTCopier.h>
+#include <libjulia/optimiser/NameDispenser.h>
 
 #include <libpolynomial/inlineasm/AsmAnalysisInfo.h>
 
@@ -60,7 +61,7 @@ protected:
 
 	std::vector<polynomial::assembly::Scope*> m_scopes;
 	std::map<void const*, std::string> m_translations;
-	std::set<std::string> m_usedNames;
+	NameDispenser m_nameDispenser;
 };
 
 }

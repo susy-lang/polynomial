@@ -23,8 +23,6 @@
 
 #include <libjulia/ASTDataForward.h>
 
-#include <libpolynomial/interface/Exceptions.h>
-
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
 

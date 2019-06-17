@@ -22,7 +22,8 @@ import re
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
 def setup(sphinx):
-    sys.path.insert(0, os.path.abspath('./utils'))
+    thisdir = os.path.dirname(os.path.realpath(__file__))
+    sys.path.insert(0, thisdir + '/utils')
     from PolynomialLexer import PolynomialLexer
     sphinx.add_lexer('Polynomial', PolynomialLexer())
 
@@ -50,7 +51,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Polynomial'
-copyright = '2016-2017, Sophon'
+copyright = '2016-2018, Sophon'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

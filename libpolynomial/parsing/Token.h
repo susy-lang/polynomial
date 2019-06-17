@@ -304,6 +304,17 @@ public:
 		return m_string[tok];
 	}
 
+	static std::string friendlyName(Value tok)
+	{
+		char const* ret = toString(tok);
+		if (ret == nullptr)
+		{
+			ret = name(tok);
+			polAssert(ret != nullptr, "");
+		}
+		return std::string(ret);
+	}
+
 	// @returns the precedence > 0 for binary and compare
 	// operators; returns 0 otherwise.
 	static int precedence(Value tok)

@@ -55,7 +55,8 @@ public:
 	explicit CompilerContext(SVMVersion _svmVersion = SVMVersion{}, CompilerContext* _runtimeContext = nullptr):
 		m_asm(std::make_shared<sof::Assembly>()),
 		m_svmVersion(_svmVersion),
-		m_runtimeContext(_runtimeContext)
+		m_runtimeContext(_runtimeContext),
+		m_abiFunctions(m_svmVersion)
 	{
 		if (m_runtimeContext)
 			m_runtimeSub = size_t(m_asm->newSub(m_runtimeContext->m_asm).data());

@@ -20,9 +20,9 @@
 
 #include <libjulia/optimiser/InlinableExpressionFunctionFinder.h>
 
-#include <libpolynomial/inlineasm/AsmData.h>
+#include <libjulia/optimiser/Utilities.h>
 
-#include <libpolynomial/interface/Exceptions.h>
+#include <libpolynomial/inlineasm/AsmData.h>
 
 using namespace std;
 using namespace dev;
@@ -56,7 +56,7 @@ void InlinableExpressionFunctionFinder::operator()(FunctionDefinition const& _fu
 				// We cannot overwrite previous settings, because this function definition
 				// would not be valid here if we were searching inside a functionally inlinable
 				// function body.
-				polAssert(m_disallowedIdentifiers.empty() && !m_foundDisallowedIdentifier, "");
+				assertThrow(m_disallowedIdentifiers.empty() && !m_foundDisallowedIdentifier, OptimizerException, "");
 				m_disallowedIdentifiers = set<string>{retVariable, _function.name};
 				boost::apply_visitor(*this, *assignment.value);
 				if (!m_foundDisallowedIdentifier)

@@ -28,7 +28,7 @@ else()
 endif()
 
 add_library(polynomial ${sources} ${headers})
-target_link_libraries(polynomial PUBLIC svmasm devcore)
+target_link_libraries(polynomial PUBLIC svmasm devcore ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
 
 if (${Z3_FOUND})
   target_link_libraries(polynomial PUBLIC ${Z3_LIBRARY})
