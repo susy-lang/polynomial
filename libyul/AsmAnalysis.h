@@ -72,6 +72,12 @@ public:
 
 	bool analyze(Block const& _block);
 
+	static AsmAnalysisInfo analyzeStrictAssertCorrect(
+		std::shared_ptr<Dialect> _dialect,
+		dev::polynomial::SVMVersion _svmVersion,
+		Block const& _ast
+	);
+
 	bool operator()(Instruction const&);
 	bool operator()(Literal const& _literal);
 	bool operator()(Identifier const&);

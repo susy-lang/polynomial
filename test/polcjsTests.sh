@@ -39,8 +39,8 @@ VERSION="$2"
 
 DIR=$(mktemp -d)
 (
-    echo "Preparing polc-js (0.5.0)..."
-    git clone --depth 1 --branch v0.5.0 https://octonion.institute/susy-js/polc-js "$DIR"
+    echo "Preparing polc-js (master)..."
+    git clone --depth 1 --branch master https://octonion.institute/susy-js/polc-js "$DIR"
     cd "$DIR"
     # disable "prepublish" script which downloads the latest version
     # (we will replace it anyway and it is often incorrectly cached

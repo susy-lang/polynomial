@@ -3,6 +3,7 @@ macro(configure_project)
 
 	# features
 	sof_default_option(COVERAGE OFF)
+	sof_default_option(OSSFUZZ OFF)
 
 	# components
 	sof_default_option(TESTS ON)

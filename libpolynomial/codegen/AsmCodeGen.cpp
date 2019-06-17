@@ -184,14 +184,28 @@ void CodeGenerator::assemble(
 )
 {
 	SofAssemblyAdapter assemblyAdapter(_assembly);
-	CodeTransform(
+	shared_ptr<SVMDialect> dialect = SVMDialect::strictAssemblyForSVM();
+	CodeTransform transform(
 		assemblyAdapter,
 		_analysisInfo,
 		_parsedData,
-		*SVMDialect::strictAssemblyForSVM(),
+		*dialect,
 		_optimize,
 		false,
 		_identifierAccess,
 		_useNamedLabelsForFunctions
-	)(_parsedData);
+	);
+	try
+	{
+		transform(_parsedData);
+	}
+	catch (StackTooDeepError const& _e)
+	{
+		BOOST_THROW_EXCEPTION(
+			InternalCompilerError() << errinfo_comment(
+				"Stack too deep when compiling inline assembly" +
+				(_e.comment() ? ": " + *_e.comment() : ".")
+			));
+	}
+	polAssert(transform.stackErrors().empty(), "Stack errors present but not thrown.");
 }

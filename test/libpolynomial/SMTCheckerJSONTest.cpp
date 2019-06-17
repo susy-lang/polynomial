@@ -28,10 +28,10 @@
 #include <stdexcept>
 #include <sstream>
 
-using namespace dev;
-using namespace polynomial;
 using namespace dev::polynomial::test;
-using namespace dev::polynomial::test::formatting;
+using namespace dev::polynomial;
+using namespace dev::formatting;
+using namespace dev;
 using namespace std;
 using namespace boost::unit_test;
 

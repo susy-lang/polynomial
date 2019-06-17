@@ -109,6 +109,8 @@ private:
 	std::unique_ptr<dev::polynomial::CompilerStack> m_compiler;
 	/// SVM version to use
 	SVMVersion m_svmVersion;
+	/// whether or not to colorize diagnostics output.
+	bool m_coloredOutput = true;
 };
 
 }

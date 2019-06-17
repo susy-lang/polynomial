@@ -18,9 +18,9 @@
 #pragma once
 
 #include <test/libpolynomial/AnalysisFramework.h>
-#include <test/libpolynomial/FormattedScope.h>
 #include <test/TestCase.h>
 #include <liblangutil/Exceptions.h>
+#include <libdevcore/AnsiColorized.h>
 
 #include <iosfwd>
 #include <string>

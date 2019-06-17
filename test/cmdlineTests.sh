@@ -332,13 +332,12 @@ printTask "Testing assemble, yul, strict-assembly and optimize..."
     # Test options above in conjunction with --optimize.
     # Using both, --assemble and --optimize should fail.
     ! echo '{}' | "$POLC" - --assemble --optimize &>/dev/null
+    ! echo '{}' | "$POLC" - --yul --optimize &>/dev/null
 
     # Test yul and strict assembly output
     # Non-empty code results in non-empty binary representation with optimizations turned off,
     # while it results in empty binary representation with optimizations turned on.
     test_polc_assembly_output "{ let x:u256 := 0:u256 }" "{ let x:u256 := 0:u256 }" "--yul"
-    test_polc_assembly_output "{ let x:u256 := 0:u256 }" "{ }" "--yul --optimize"
-
     test_polc_assembly_output "{ let x := 0 }" "{ let x := 0 }" "--strict-assembly"
     test_polc_assembly_output "{ let x := 0 }" "{ }" "--strict-assembly --optimize"
 )

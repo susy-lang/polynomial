@@ -55,6 +55,26 @@ bool AsmAnalyzer::analyze(Block const& _block)
 	return (*this)(_block);
 }
 
+AsmAnalysisInfo AsmAnalyzer::analyzeStrictAssertCorrect(
+	shared_ptr<Dialect> _dialect,
+	SVMVersion _svmVersion,
+	Block const& _ast
+)
+{
+	ErrorList errorList;
+	langutil::ErrorReporter errors(errorList);
+	yul::AsmAnalysisInfo analysisInfo;
+	bool success = yul::AsmAnalyzer(
+		analysisInfo,
+		errors,
+		_svmVersion,
+		Error::Type::SyntaxError,
+		_dialect
+	).analyze(_ast);
+	polAssert(success && errorList.empty(), "Invalid assembly/yul code.");
+	return analysisInfo;
+}
+
 bool AsmAnalyzer::operator()(Label const& _label)
 {
 	polAssert(!_label.name.empty(), "");

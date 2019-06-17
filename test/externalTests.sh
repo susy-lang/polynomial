@@ -59,10 +59,13 @@ function test_susyknot
       for d in node_modules node_modules/susyknot/node_modules
       do
       (
-        cd $d
-        rm -rf polc
-        git clone --depth 1 -b v0.5.0 https://octonion.institute/susy-js/polc-js.git polc
-        cp "$POLJSON" polc/
+        if [ -d "$d" ]
+        then
+          cd $d
+          rm -rf polc
+          git clone --depth 1 -b v0.5.0 https://octonion.institute/susy-js/polc-js.git polc
+          cp "$POLJSON" polc/
+        fi
       )
       done
       if [ "$name" == "Zeppelin" -o "$name" == "Gnosis" ]; then
@@ -85,8 +88,8 @@ function test_susyknot
     rm -rf "$DIR"
 }
 
-# Using our temporary fork here. Hopefully to be merged into upstream after the 0.5.0 release.
-test_susyknot Zeppelin https://github.com/axic/openzeppelin-polynomial.git polynomial-050
+# Since Zeppelin 2.1.1 it supports Polynomial 0.5.0.
+test_susyknot Zeppelin https://github.com/OpenZeppelin/openzeppelin-polynomial.git master
 
 # Disabled temporarily as it needs to be updated to latest Susyknot first.
 #test_susyknot Gnosis https://github.com/axic/pm-contracts.git polynomial-050

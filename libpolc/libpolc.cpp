@@ -98,4 +98,8 @@ extern char const* polynomial_compile(char const* _input, CStyleReadFileCallback
 	s_outputBuffer = compile(_input, _readCallback);
 	return s_outputBuffer.c_str();
 }
+extern void polynomial_free() noexcept
+{
+	s_outputBuffer.clear();
+}
 }

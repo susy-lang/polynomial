@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <test/libpolynomial/FormattedScope.h>
+#include <libdevcore/AnsiColorized.h>
 #include <test/TestCase.h>
 
 #include <iosfwd>

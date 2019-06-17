@@ -34,13 +34,31 @@
 extern "C" {
 #endif
 
-/// Callback used to retrieve additional source files. "Returns" two pointers that should be
-/// heap-allocated and are free'd by the caller.
+/// Callback used to retrieve additional source files.
+///
+/// "Returns" two pointers that should be heap-allocated and are free'd by the caller.
 typedef void (*CStyleReadFileCallback)(char const* _path, char** o_contents, char** o_error);
 
+/// Returns the complete license document.
+///
+/// The pointer returned must not be freed by the caller.
 char const* polynomial_license() POLC_NOEXCEPT;
+
+/// Returns the compiler version.
+///
+/// The pointer returned must not be freed by the caller.
 char const* polynomial_version() POLC_NOEXCEPT;
+
+/// Takes a "Standard Input JSON" and an optional callback (can be set to null). Returns
+/// a "Standard Output JSON". Both are to be UTF-8 encoded.
+///
+/// The pointer returned must not be freed by the caller.
 char const* polynomial_compile(char const* _input, CStyleReadFileCallback _readCallback) POLC_NOEXCEPT;
+
+/// Frees up any allocated memory.
+///
+/// NOTE: the pointer returned by polynomial_compile is invalid after calling this!
+void polynomial_free() POLC_NOEXCEPT;
 
 #ifdef __cplusplus
 }

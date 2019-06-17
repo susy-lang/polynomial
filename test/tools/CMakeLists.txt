@@ -1,4 +1,8 @@
-add_executable(polfuzzer fuzzer.cpp)
+if (OSSFUZZ)
+    add_subdirectory(ossfuzz)
+endif()
+
+add_executable(polfuzzer afl_fuzzer.cpp fuzzer_common.cpp)
 target_link_libraries(polfuzzer PRIVATE libpolc svmasm ${Boost_PROGRAM_OPTIONS_LIBRARIES} ${Boost_SYSTEM_LIBRARIES})
 
 add_executable(yulopti yulopti.cpp)
