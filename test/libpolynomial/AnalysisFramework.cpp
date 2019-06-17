@@ -23,11 +23,11 @@
 #include <test/Options.h>
 
 #include <libpolynomial/interface/CompilerStack.h>
-#include <libpolynomial/interface/SourceReferenceFormatter.h>
+#include <liblangutil/SourceReferenceFormatter.h>
 
 #include <libpolynomial/ast/AST.h>
 
-#include <libpolynomial/parsing/Scanner.h>
+#include <liblangutil/Scanner.h>
 
 #include <libdevcore/Keccak256.h>
 
@@ -35,6 +35,7 @@
 
 using namespace std;
 using namespace dev;
+using namespace langutil;
 using namespace dev::polynomial;
 using namespace dev::polynomial::test;
 
@@ -127,7 +128,7 @@ string AnalysisFramework::formatError(Error const& _error) const
 	return SourceReferenceFormatter::formatExceptionInformation(
 			_error,
 			(_error.type() == Error::Type::Warning) ? "Warning" : "Error",
-			[&](std::string const& _sourceName) -> polynomial::Scanner const& { return m_compiler.scanner(_sourceName); }
+			[&](std::string const& _sourceName) -> Scanner const& { return m_compiler.scanner(_sourceName); }
 		);
 }
 

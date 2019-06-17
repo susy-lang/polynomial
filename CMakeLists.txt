@@ -8,12 +8,13 @@ include(SofPolicy)
 sof_policy()
 
 # project name and version should be set after cmake_policy CMP0048
-set(PROJECT_VERSION "0.5.0")
+set(PROJECT_VERSION "0.5.1")
 project(polynomial VERSION ${PROJECT_VERSION})
 
+option(LLL "Build LLL" OFF)
 option(POLC_LINK_STATIC "Link polc executable statically on supported platforms" OFF)
 option(LLLC_LINK_STATIC "Link lllc executable statically on supported platforms" OFF)
-option(INSTALL_LLLC "Include lllc executable in installation" OFF)
+option(INSTALL_LLLC "Include lllc executable in installation" ${LLL})
 
 # Setup cccache.
 include(SofCcache)
@@ -44,14 +45,18 @@ include(SofOptions)
 configure_project(TESTS)
 
 add_subdirectory(libdevcore)
+add_subdirectory(liblangutil)
 add_subdirectory(libsvmasm)
+add_subdirectory(libyul)
 add_subdirectory(libpolynomial)
 add_subdirectory(libpolc)
 
 if (NOT EMSCRIPTEN)
 	add_subdirectory(polc)
-	add_subdirectory(liblll)
-	add_subdirectory(lllc)
+	if (LLL)
+		add_subdirectory(liblll)
+		add_subdirectory(lllc)
+	endif()
 endif()
 
 if (TESTS AND NOT EMSCRIPTEN)

@@ -22,7 +22,7 @@
 
 #include <libpolynomial/analysis/ConstantEvaluator.h>
 #include <libpolynomial/ast/AST.h>
-#include <libpolynomial/interface/ErrorReporter.h>
+#include <liblangutil/ErrorReporter.h>
 
 using namespace std;
 using namespace dev;

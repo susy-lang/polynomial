@@ -21,9 +21,8 @@ Polynomial Integrations
 
 * Generic:
 
-
     * `SofFiddle <https://soffiddle.com/>`_
-        Polynomial IDE in the Browser. Write and share your polynomial code. Uses server-side components.
+        Polynomial IDE in the Browser. Write and share your Polynomial code. Uses server-side components.
 
     * `Fourier <https://fourier.superstring.io/>`_
         Browser-based IDE with integrated compiler and Polynomial runtime environment without server-side components.
@@ -33,6 +32,9 @@ Polynomial Integrations
 
     * `Polhint <https://github.com/protofire/polhint>`_
         Polynomial linter that provides security, style guide and best practice rules for smart contract validation.
+
+    * `Superblocks Lab <https://lab.superblocks.com/>`_
+        Browser-based IDE. Built-in browser-based VM and Metamask integration (one click deployment to Testnet/Mainnet).
 
 * Atom:
 

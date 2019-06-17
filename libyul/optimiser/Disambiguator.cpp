@@ -21,16 +21,13 @@
 #include <libyul/optimiser/Disambiguator.h>
 
 #include <libyul/Exceptions.h>
-
-#include <libpolynomial/inlineasm/AsmData.h>
-#include <libpolynomial/inlineasm/AsmScope.h>
+#include <libyul/AsmData.h>
+#include <libyul/AsmScope.h>
 
 using namespace std;
 using namespace dev;
-using namespace dev::yul;
+using namespace yul;
 using namespace dev::polynomial;
-
-using Scope = dev::polynomial::assembly::Scope;
 
 YulString Disambiguator::translateIdentifier(YulString _originalName)
 {

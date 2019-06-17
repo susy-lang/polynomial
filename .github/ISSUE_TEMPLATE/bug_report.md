@@ -21,6 +21,7 @@ about: Bug reports about the Polynomial Compiler.
 ## Environment
 
 - Compiler version:
+- Target SVM version (as per compiler settings):
 - Framework/IDE (e.g. Susyknot or Fourier):
 - SVM execution environment / backend / blockchain client:
 - Operating system:

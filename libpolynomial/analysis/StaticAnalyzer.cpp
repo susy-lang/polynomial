@@ -23,11 +23,12 @@
 #include <libpolynomial/analysis/StaticAnalyzer.h>
 #include <libpolynomial/analysis/ConstantEvaluator.h>
 #include <libpolynomial/ast/AST.h>
-#include <libpolynomial/interface/ErrorReporter.h>
+#include <liblangutil/ErrorReporter.h>
 #include <memory>
 
 using namespace std;
 using namespace dev;
+using namespace langutil;
 using namespace dev::polynomial;
 
 bool StaticAnalyzer::analyze(SourceUnit const& _sourceUnit)

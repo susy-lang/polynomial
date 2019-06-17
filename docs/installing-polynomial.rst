@@ -115,7 +115,7 @@ Arch Linux also has packages, albeit limited to the latest development version:
 
     pacman -S polynomial
 
-We distribute the Polynomial compiler through Homebrow
+We distribute the Polynomial compiler through Homebrew
 as a build-from-source version. Pre-built bottles are
 currently not supported.
 

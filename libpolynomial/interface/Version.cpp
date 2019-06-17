@@ -24,7 +24,7 @@
 #include <string>
 #include <libdevcore/CommonData.h>
 #include <libdevcore/Common.h>
-#include <libpolynomial/interface/Exceptions.h>
+#include <liblangutil/Exceptions.h>
 #include <polynomial/BuildInfo.h>
 
 using namespace dev;

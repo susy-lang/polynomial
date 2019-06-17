@@ -22,13 +22,14 @@
 
 #include <string>
 #include <memory>
-#include <libpolynomial/parsing/Scanner.h>
+#include <liblangutil/Scanner.h>
 #include <libpolynomial/parsing/Parser.h>
-#include <libpolynomial/interface/ErrorReporter.h>
+#include <liblangutil/ErrorReporter.h>
 #include <test/Options.h>
 #include <test/libpolynomial/ErrorCheck.h>
 
 using namespace std;
+using namespace langutil;
 
 namespace dev
 {
@@ -42,7 +43,7 @@ namespace
 ASTPointer<ContractDefinition> parseText(std::string const& _source, ErrorList& _errors)
 {
 	ErrorReporter errorReporter(_errors);
-	ASTPointer<SourceUnit> sourceUnit = Parser(errorReporter).parse(std::make_shared<Scanner>(CharStream(_source)));
+	ASTPointer<SourceUnit> sourceUnit = Parser(errorReporter).parse(std::make_shared<Scanner>(CharStream(_source, "")));
 	if (!sourceUnit)
 		return ASTPointer<ContractDefinition>();
 	for (ASTPointer<ASTNode> const& node: sourceUnit->nodes())

@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <libpolynomial/interface/SVMVersion.h>
+#include <liblangutil/SVMVersion.h>
 
 #include <boost/test/unit_test.hpp>
 #include <boost/filesystem.hpp>

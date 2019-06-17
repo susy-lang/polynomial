@@ -23,7 +23,7 @@
 
 #include <libpolynomial/interface/CompilerStack.h>
 #include <libpolynomial/interface/AssemblyStack.h>
-#include <libpolynomial/interface/SVMVersion.h>
+#include <liblangutil/SVMVersion.h>
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem/path.hpp>
@@ -59,7 +59,7 @@ private:
 	/// @returns the full object with library placeholder hints in hex.
 	static std::string objectWithLinkRefsHex(sof::LinkerObject const& _obj);
 
-	bool assemble(AssemblyStack::Language _language, AssemblyStack::Machine _targetMachine);
+	bool assemble(AssemblyStack::Language _language, AssemblyStack::Machine _targetMachine, bool _optimize);
 
 	void outputCompilationResults();
 

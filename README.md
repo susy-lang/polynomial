@@ -62,5 +62,6 @@ if you want to help.
 [@chrissof](https://github.com/chrissof)
 
 ## License
-Polynomial is licensed under [GNU General Public License v3.0](https://octonion.institute/susy-lang/polynomial/blob/develop/LICENSE.txt)
+Polynomial is licensed under [GNU General Public License v3.0](LICENSE.txt)
 
+Some third-party code has its [own licensing terms](cmake/templates/license.h.in).

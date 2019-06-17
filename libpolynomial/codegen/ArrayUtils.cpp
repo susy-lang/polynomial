@@ -25,11 +25,12 @@
 #include <libpolynomial/codegen/CompilerContext.h>
 #include <libpolynomial/codegen/CompilerUtils.h>
 #include <libpolynomial/ast/Types.h>
-#include <libpolynomial/interface/Exceptions.h>
+#include <liblangutil/Exceptions.h>
 #include <libpolynomial/codegen/LValue.h>
 
 using namespace std;
 using namespace dev;
+using namespace langutil;
 using namespace polynomial;
 
 void ArrayUtils::copyArrayToStorage(ArrayType const& _targetType, ArrayType const& _sourceType) const

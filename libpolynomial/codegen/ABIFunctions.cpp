@@ -558,7 +558,7 @@ string ABIFunctions::abiEncodingFunction(
 			// special case: convert storage reference type to value type - this is only
 			// possible for library calls where we just forward the storage reference
 			polAssert(_encodeAsLibraryTypes, "");
-			polAssert(to == IntegerType(256), "");
+			polAssert(to == IntegerType::uint256(), "");
 			templ("cleanupConvert", "value");
 		}
 		else

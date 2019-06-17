@@ -25,14 +25,14 @@
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/codegen/Compiler.h>
 #include <libpolynomial/interface/Version.h>
-#include <libpolynomial/interface/ErrorReporter.h>
-#include <libpolynomial/interface/SourceReferenceFormatter.h>
-#include <libpolynomial/parsing/Scanner.h>
-#include <libpolynomial/inlineasm/AsmParser.h>
-#include <libpolynomial/inlineasm/AsmCodeGen.h>
-#include <libpolynomial/inlineasm/AsmAnalysis.h>
-#include <libpolynomial/inlineasm/AsmAnalysisInfo.h>
+#include <liblangutil/SourceReferenceFormatter.h>
+#include <libyul/AsmParser.h>
+#include <libyul/AsmCodeGen.h>
+#include <libyul/AsmAnalysis.h>
+#include <libyul/AsmAnalysisInfo.h>
 #include <libyul/YulString.h>
+#include <liblangutil/ErrorReporter.h>
+#include <liblangutil/Scanner.h>
 
 #include <boost/algorithm/string/replace.hpp>
 
@@ -42,11 +42,12 @@
 // Change to "define" to output all intermediate code
 #undef POL_OUTPUT_ASM
 #ifdef POL_OUTPUT_ASM
-#include <libpolynomial/inlineasm/AsmPrinter.h>
+#include <libyul/AsmPrinter.h>
 #endif
 
 
 using namespace std;
+using namespace langutil;
 
 namespace dev
 {
@@ -322,7 +323,7 @@ void CompilerContext::appendInlineAssembly(
 
 	yul::ExternalIdentifierAccess identifierAccess;
 	identifierAccess.resolve = [&](
-		assembly::Identifier const& _identifier,
+		yul::Identifier const& _identifier,
 		yul::IdentifierContext,
 		bool
 	)
@@ -331,7 +332,7 @@ void CompilerContext::appendInlineAssembly(
 		return it == _localVariables.end() ? size_t(-1) : 1;
 	};
 	identifierAccess.generateCode = [&](
-		assembly::Identifier const& _identifier,
+		yul::Identifier const& _identifier,
 		yul::IdentifierContext _context,
 		yul::AbstractAssembly& _assembly
 	)
@@ -359,20 +360,20 @@ void CompilerContext::appendInlineAssembly(
 
 	ErrorList errors;
 	ErrorReporter errorReporter(errors);
-	auto scanner = make_shared<Scanner>(CharStream(_assembly), "--CODEGEN--");
-	auto parserResult = assembly::Parser(errorReporter, assembly::AsmFlavour::Strict).parse(scanner, false);
+	auto scanner = make_shared<langutil::Scanner>(langutil::CharStream(_assembly, "--CODEGEN--"));
+	auto parserResult = yul::Parser(errorReporter, yul::AsmFlavour::Strict).parse(scanner, false);
 #ifdef POL_OUTPUT_ASM
-	cout << assembly::AsmPrinter()(*parserResult) << endl;
+	cout << yul::AsmPrinter()(*parserResult) << endl;
 #endif
-	assembly::AsmAnalysisInfo analysisInfo;
+	yul::AsmAnalysisInfo analysisInfo;
 	bool analyzerResult = false;
 	if (parserResult)
-		analyzerResult = assembly::AsmAnalyzer(
+		analyzerResult = yul::AsmAnalyzer(
 			analysisInfo,
 			errorReporter,
 			m_svmVersion,
 			boost::none,
-			assembly::AsmFlavour::Strict,
+			yul::AsmFlavour::Strict,
 			identifierAccess.resolve
 		).analyze(*parserResult);
 	if (!parserResult || !errorReporter.errors().empty() || !analyzerResult)
@@ -394,7 +395,7 @@ void CompilerContext::appendInlineAssembly(
 	}
 
 	polAssert(errorReporter.errors().empty(), "Failed to analyze inline assembly block.");
-	assembly::CodeGenerator::assemble(*parserResult, analysisInfo, *m_asm, identifierAccess, _system);
+	yul::CodeGenerator::assemble(*parserResult, analysisInfo, *m_asm, identifierAccess, _system);
 
 	// Reset the source location to the one of the node (instead of the CODEGEN source location)
 	updateSourceLocation();
@@ -413,7 +414,7 @@ FunctionDefinition const& CompilerContext::resolveVirtualFunction(
 			if (
 				function->name() == name &&
 				!function->isConstructor() &&
-				FunctionType(*function).hasEqualParameterTypes(functionType)
+				FunctionType(*function).asCallableFunction(false)->hasEqualParameterTypes(functionType)
 			)
 				return *function;
 	polAssert(false, "Super function " + name + " not found.");

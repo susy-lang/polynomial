@@ -23,11 +23,12 @@
 
 #include <libpolynomial/analysis/DocStringAnalyser.h>
 #include <libpolynomial/ast/AST.h>
-#include <libpolynomial/interface/ErrorReporter.h>
+#include <liblangutil/ErrorReporter.h>
 #include <libpolynomial/parsing/DocStringParser.h>
 
 using namespace std;
 using namespace dev;
+using namespace langutil;
 using namespace dev::polynomial;
 
 bool DocStringAnalyser::analyseDocStrings(SourceUnit const& _sourceUnit)

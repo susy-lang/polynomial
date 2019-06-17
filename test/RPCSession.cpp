@@ -23,7 +23,7 @@
 
 #include <test/Options.h>
 
-#include <libpolynomial/interface/SVMVersion.h>
+#include <liblangutil/SVMVersion.h>
 
 #include <libdevcore/CommonData.h>
 

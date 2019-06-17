@@ -22,8 +22,9 @@
 
 #pragma once
 
-#include <vector>
 #include <libpolynomial/parsing/Token.h>
+#include <string>
+#include <vector>
 
 namespace dev
 {

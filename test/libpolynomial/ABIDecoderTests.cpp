@@ -22,7 +22,7 @@
 #include <string>
 #include <tuple>
 #include <boost/test/unit_test.hpp>
-#include <libpolynomial/interface/Exceptions.h>
+#include <liblangutil/Exceptions.h>
 #include <test/libpolynomial/PolynomialExecutionFramework.h>
 
 #include <test/libpolynomial/ABITestsCommon.h>

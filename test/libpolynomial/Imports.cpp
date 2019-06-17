@@ -23,7 +23,7 @@
 #include <test/libpolynomial/ErrorCheck.h>
 #include <test/Options.h>
 
-#include <libpolynomial/interface/Exceptions.h>
+#include <liblangutil/Exceptions.h>
 #include <libpolynomial/interface/CompilerStack.h>
 
 #include <boost/test/unit_test.hpp>

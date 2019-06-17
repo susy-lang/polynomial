@@ -21,6 +21,7 @@
 #include <test/libpolynomial/AnalysisFramework.h>
 #include <test/libpolynomial/SyntaxTest.h>
 #include <test/libpolynomial/ASTJSONTest.h>
+#include <test/libpolynomial/SMTCheckerJSONTest.h>
 #include <test/libyul/YulOptimizerTest.h>
 
 #include <boost/algorithm/string.hpp>
@@ -407,6 +408,17 @@ Allowed options)",
 			testPath / "libpolynomial",
 			"smtCheckerTests",
 			SyntaxTest::create,
+			formatted
+		))
+			global_stats += *stats;
+		else
+			return 1;
+
+		if (auto stats = runTestSuite(
+			"SMT Checker JSON",
+			testPath / "libpolynomial",
+			"smtCheckerTestsJSON",
+			SMTCheckerTest::create,
 			formatted
 		))
 			global_stats += *stats;

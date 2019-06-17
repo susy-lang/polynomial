@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include <libpolynomial/interface/Exceptions.h>
+#include <liblangutil/Exceptions.h>
 
 #include <string>
 

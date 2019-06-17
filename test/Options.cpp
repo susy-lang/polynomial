@@ -23,8 +23,8 @@
 
 #include <test/Common.h>
 
-#include <libpolynomial/interface/SVMVersion.h>
-#include <libpolynomial/interface/Exceptions.h>
+#include <liblangutil/SVMVersion.h>
+#include <liblangutil/Exceptions.h>
 
 #include <boost/test/framework.hpp>
 #include <boost/filesystem.hpp>

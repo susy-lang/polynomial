@@ -22,17 +22,18 @@
 
 #include <string>
 
-#include <libpolynomial/parsing/Scanner.h>
+#include <liblangutil/Scanner.h>
 #include <libpolynomial/parsing/Parser.h>
 #include <libpolynomial/analysis/NameAndTypeResolver.h>
 #include <libpolynomial/codegen/CompilerContext.h>
 #include <libpolynomial/codegen/ExpressionCompiler.h>
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/analysis/TypeChecker.h>
-#include <libpolynomial/interface/ErrorReporter.h>
+#include <liblangutil/ErrorReporter.h>
 #include <test/Options.h>
 
 using namespace std;
+using namespace langutil;
 
 namespace dev
 {
@@ -100,7 +101,7 @@ bytes compileFirstExpression(
 	{
 		ErrorList errors;
 		ErrorReporter errorReporter(errors);
-		sourceUnit = Parser(errorReporter).parse(make_shared<Scanner>(CharStream(_sourceCode)));
+		sourceUnit = Parser(errorReporter).parse(make_shared<Scanner>(CharStream(_sourceCode, "")));
 		if (!sourceUnit)
 			return bytes();
 	}

@@ -30,6 +30,7 @@
 using namespace std;
 using namespace dev;
 using namespace dev::sof;
+using namespace langutil;
 
 vector<AssemblyItem> CommonSubexpressionEliminator::getOptimizedItems()
 {

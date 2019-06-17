@@ -124,7 +124,7 @@ test_polc_file_input_failures() {
     set -e
 
     sed -i -e '/^Warning: This is a pre-release compiler version, please do not use it in production./d' "$stderr_path"
-    sed -i -e 's/ \?Consider adding "pragma .*$//' "$stderr_path"
+    sed -i -e 's/ Consider adding "pragma .*$//' "$stderr_path"
 
     if [[ $exitCode -eq 0 ]]; then
         printError "Incorrect exit code. Expected failure (non-zero) but got success (0)."
@@ -262,10 +262,45 @@ POLTMPDIR=$(mktemp -d)
 )
 rm -rf "$POLTMPDIR"
 
-printTask "Testing assemble, yul, strict-assembly..."
-echo '{}' | "$POLC" - --assemble &>/dev/null
-echo '{}' | "$POLC" - --yul &>/dev/null
-echo '{}' | "$POLC" - --strict-assembly &>/dev/null
+test_polc_assembly_output() {
+    local input="${1}"
+    local expected="${2}"
+    local polc_args="${3}"
+
+    local expected_object="object \"object\" { code "${expected}" }"
+
+    output=$(echo "${input}" | "$POLC" - ${polc_args} 2>/dev/null)
+    empty=$(echo $output | sed -ne '/'"${expected_object}"'/p')
+    if [ -z "$empty" ]
+    then
+        printError "Incorrect assembly output. Expected: "
+        echo -e ${expected}
+        printError "with arguments ${polc_args}, but got:"
+        echo "${output}"
+        exit 1
+    fi
+}
+
+printTask "Testing assemble, yul, strict-assembly and optimize..."
+(
+    echo '{}' | "$POLC" - --assemble &>/dev/null
+    echo '{}' | "$POLC" - --yul &>/dev/null
+    echo '{}' | "$POLC" - --strict-assembly &>/dev/null
+
+    # Test options above in conjunction with --optimize.
+    # Using both, --assemble and --optimize should fail.
+    ! echo '{}' | "$POLC" - --assemble --optimize &>/dev/null
+
+    # Test yul and strict assembly output
+    # Non-empty code results in non-empty binary representation with optimizations turned off,
+    # while it results in empty binary representation with optimizations turned on.
+    test_polc_assembly_output "{ let x:u256 := 0:u256 }" "{ let x:u256 := 0:u256 }" "--yul"
+    test_polc_assembly_output "{ let x:u256 := 0:u256 }" "{ }" "--yul --optimize"
+
+    test_polc_assembly_output "{ let x := 0 }" "{ let x := 0 }" "--strict-assembly"
+    test_polc_assembly_output "{ let x := 0 }" "{ }" "--strict-assembly --optimize"
+)
+
 
 printTask "Testing standard input..."
 POLTMPDIR=$(mktemp -d)

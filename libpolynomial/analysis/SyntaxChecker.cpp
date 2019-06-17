@@ -20,7 +20,7 @@
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/ast/ExperimentalFeatures.h>
 #include <libpolynomial/analysis/SemVerHandler.h>
-#include <libpolynomial/interface/ErrorReporter.h>
+#include <liblangutil/ErrorReporter.h>
 #include <libpolynomial/interface/Version.h>
 #include <boost/algorithm/cxx11/all_of.hpp>
 
@@ -29,6 +29,7 @@
 
 using namespace std;
 using namespace dev;
+using namespace langutil;
 using namespace dev::polynomial;
 
 

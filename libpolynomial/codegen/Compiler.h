@@ -23,7 +23,7 @@
 #pragma once
 
 #include <libpolynomial/codegen/CompilerContext.h>
-#include <libpolynomial/interface/SVMVersion.h>
+#include <liblangutil/SVMVersion.h>
 
 #include <libsvmasm/Assembly.h>
 

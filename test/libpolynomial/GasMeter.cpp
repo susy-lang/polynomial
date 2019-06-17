@@ -26,9 +26,10 @@
 #include <libsvmasm/PathGasMeter.h>
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/interface/GasEstimator.h>
-#include <libpolynomial/interface/SourceReferenceFormatter.h>
+#include <liblangutil/SourceReferenceFormatter.h>
 
 using namespace std;
+using namespace langutil;
 using namespace dev::sof;
 using namespace dev::polynomial;
 using namespace dev::test;

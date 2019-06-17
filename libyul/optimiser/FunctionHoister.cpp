@@ -22,14 +22,13 @@
 
 #include <libyul/optimiser/FunctionHoister.h>
 #include <libyul/optimiser/Utilities.h>
-
-#include <libpolynomial/inlineasm/AsmData.h>
+#include <libyul/AsmData.h>
 
 #include <libdevcore/CommonData.h>
 
 using namespace std;
 using namespace dev;
-using namespace dev::yul;
+using namespace yul;
 using namespace dev::polynomial;
 
 void FunctionHoister::operator()(Block& _block)

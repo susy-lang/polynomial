@@ -24,7 +24,7 @@
 
 #include <libpolynomial/codegen/ABIFunctions.h>
 
-#include <libpolynomial/interface/SVMVersion.h>
+#include <liblangutil/SVMVersion.h>
 
 #include <libpolynomial/ast/ASTForward.h>
 #include <libpolynomial/ast/Types.h>
@@ -167,7 +167,10 @@ public:
 	/// the data.
 	CompilerContext& appendConditionalRevert(bool _forwardReturnData = false);
 	/// Appends a JUMP to a specific tag
-	CompilerContext& appendJumpTo(sof::AssemblyItem const& _tag) { m_asm->appendJump(_tag); return *this; }
+	CompilerContext& appendJumpTo(
+		sof::AssemblyItem const& _tag,
+		sof::AssemblyItem::JumpType _jumpType = sof::AssemblyItem::JumpType::Ordinary
+	) { *m_asm << _tag.pushTag(); return appendJump(_jumpType); }
 	/// Appends pushing of a new tag and @returns the new tag.
 	sof::AssemblyItem pushNewTag() { return m_asm->append(m_asm->newPushTag()).tag(); }
 	/// @returns a new tag without pushing any opcodes or data

@@ -35,6 +35,7 @@
 using namespace std;
 using namespace dev;
 using namespace dev::sof;
+using namespace langutil;
 using namespace dev::polynomial;
 
 GasEstimator::ASTGasConsumptionSelfAccumulated GasEstimator::structuralEstimation(

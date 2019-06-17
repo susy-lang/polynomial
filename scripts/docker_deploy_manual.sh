@@ -7,6 +7,7 @@ then
     echo "Usage: $0 <tag/branch>"
     exit 1
 fi
+image="sophon/polc"
 branch="$1"
 
 #docker login
@@ -27,21 +28,27 @@ else
     date -u +"nightly.%Y.%-m.%-d" > prerelease.txt
 fi
 
+tag_and_push()
+{
+    docker tag "$image:$1" "$image:$2"
+    docker push "$image:$2"
+}
+
 rm -rf .git
-docker build -t sophon/polc:build -f scripts/Dockerfile .
-tmp_container=$(docker create sophon/polc:build sh)
+docker build -t "$image":build -f scripts/Dockerfile .
+tmp_container=$(docker create "$image":build sh)
 if [ "$branch" = "develop" ]
 then
-    docker tag sophon/polc:build sophon/polc:nightly;
-    docker tag sophon/polc:build sophon/polc:nightly-"$version"-"$commithash"
-    docker push sophon/polc:nightly-"$version"-"$commithash";
-    docker push sophon/polc:nightly;
+    tag_and_push build nightly
+    tag_and_push build nightly-"$version"-"$commithash"
+    tag_and_push build-alpine nightly-alpine
+    tag_and_push build-alpine nightly-alpine-"$version"-"$commithash"
 elif [ "$branch" = v"$version" ]
 then
-    docker tag sophon/polc:build sophon/polc:stable;
-    docker tag sophon/polc:build sophon/polc:"$version";
-    docker push sophon/polc:stable;
-    docker push sophon/polc:"$version";
+    tag_and_push build stable
+    tag_and_push build "$version"
+    tag_and_push build-alpine stable-alpine
+    tag_and_push build-alpine "$version"-alpine
 else
     echo "Not publishing docker image from branch or tag $branch"
 fi

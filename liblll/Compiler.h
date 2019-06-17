@@ -23,7 +23,7 @@
 
 #include <libdevcore/Common.h>
 
-#include <libpolynomial/interface/SVMVersion.h>
+#include <liblangutil/SVMVersion.h>
 
 #include <string>
 #include <vector>

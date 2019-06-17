@@ -23,7 +23,7 @@
 
 #include <libsvmasm/GasMeter.h>
 
-#include <libpolynomial/interface/SVMVersion.h>
+#include <liblangutil/SVMVersion.h>
 
 #include <set>
 #include <vector>

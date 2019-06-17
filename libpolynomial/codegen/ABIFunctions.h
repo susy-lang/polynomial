@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include <libpolynomial/interface/SVMVersion.h>
+#include <liblangutil/SVMVersion.h>
 
 #include <libpolynomial/ast/ASTForward.h>
 

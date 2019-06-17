@@ -24,7 +24,7 @@
 #include <libsvmasm/ExpressionClasses.h>
 #include <libsvmasm/AssemblyItem.h>
 
-#include <libpolynomial/interface/SVMVersion.h>
+#include <liblangutil/SVMVersion.h>
 
 #include <ostream>
 #include <tuple>

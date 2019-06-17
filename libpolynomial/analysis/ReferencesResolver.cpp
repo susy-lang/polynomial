@@ -23,12 +23,12 @@
 #include <libpolynomial/analysis/ReferencesResolver.h>
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/analysis/NameAndTypeResolver.h>
-#include <libpolynomial/interface/Exceptions.h>
 #include <libpolynomial/analysis/ConstantEvaluator.h>
-#include <libpolynomial/inlineasm/AsmAnalysis.h>
-#include <libpolynomial/inlineasm/AsmAnalysisInfo.h>
-#include <libpolynomial/inlineasm/AsmData.h>
-#include <libpolynomial/interface/ErrorReporter.h>
+#include <libyul/AsmAnalysis.h>
+#include <libyul/AsmAnalysisInfo.h>
+#include <libyul/AsmData.h>
+#include <liblangutil/ErrorReporter.h>
+#include <liblangutil/Exceptions.h>
 
 #include <libdevcore/StringUtils.h>
 
@@ -36,9 +36,12 @@
 #include <boost/range/adaptor/transformed.hpp>
 
 using namespace std;
-using namespace dev;
-using namespace dev::polynomial;
+using namespace langutil;
 
+namespace dev
+{
+namespace polynomial
+{
 
 bool ReferencesResolver::resolve(ASTNode const& _root)
 {
@@ -270,7 +273,7 @@ bool ReferencesResolver::visit(InlineAssembly const& _inlineAssembly)
 	ErrorList errors;
 	ErrorReporter errorsIgnored(errors);
 	yul::ExternalIdentifierAccess::Resolver resolver =
-	[&](assembly::Identifier const& _identifier, yul::IdentifierContext, bool _crossesFunctionBoundary) {
+	[&](yul::Identifier const& _identifier, yul::IdentifierContext, bool _crossesFunctionBoundary) {
 		auto declarations = m_resolver.nameFromCurrentScope(_identifier.name.str());
 		bool isSlot = boost::algorithm::ends_with(_identifier.name.str(), "_slot");
 		bool isOffset = boost::algorithm::ends_with(_identifier.name.str(), "_offset");
@@ -311,9 +314,9 @@ bool ReferencesResolver::visit(InlineAssembly const& _inlineAssembly)
 
 	// Will be re-generated later with correct information
 	// We use the latest SVM version because we will re-run it anyway.
-	assembly::AsmAnalysisInfo analysisInfo;
+	yul::AsmAnalysisInfo analysisInfo;
 	boost::optional<Error::Type> errorTypeForLoose = Error::Type::SyntaxError;
-	assembly::AsmAnalyzer(analysisInfo, errorsIgnored, SVMVersion(), errorTypeForLoose, assembly::AsmFlavour::Loose, resolver).analyze(_inlineAssembly.operations());
+	yul::AsmAnalyzer(analysisInfo, errorsIgnored, SVMVersion(), errorTypeForLoose, yul::AsmFlavour::Loose, resolver).analyze(_inlineAssembly.operations());
 	return false;
 }
 
@@ -453,4 +456,7 @@ void ReferencesResolver::fatalDeclarationError(SourceLocation const& _location, 
 {
 	m_errorOccurred = true;
 	m_errorReporter.fatalDeclarationError(_location, _description);
+}
+
+}
 }

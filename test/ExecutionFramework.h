@@ -25,7 +25,7 @@
 #include <test/Options.h>
 #include <test/RPCSession.h>
 
-#include <libpolynomial/interface/SVMVersion.h>
+#include <liblangutil/SVMVersion.h>
 
 #include <libdevcore/FixedHash.h>
 #include <libdevcore/Keccak256.h>

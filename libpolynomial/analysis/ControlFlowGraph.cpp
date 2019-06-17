@@ -23,6 +23,7 @@
 #include <algorithm>
 
 using namespace std;
+using namespace langutil;
 using namespace dev::polynomial;
 
 bool CFG::constructFlow(ASTNode const& _astRoot)

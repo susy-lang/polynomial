@@ -22,37 +22,40 @@
 
 #include <libpolynomial/interface/AssemblyStack.h>
 
-#include <libpolynomial/parsing/Scanner.h>
-#include <libpolynomial/inlineasm/AsmPrinter.h>
-#include <libpolynomial/inlineasm/AsmParser.h>
-#include <libpolynomial/inlineasm/AsmAnalysis.h>
-#include <libpolynomial/inlineasm/AsmAnalysisInfo.h>
-#include <libpolynomial/inlineasm/AsmCodeGen.h>
+#include <liblangutil/Scanner.h>
+#include <libyul/AsmPrinter.h>
+#include <libyul/AsmParser.h>
+#include <libyul/AsmAnalysis.h>
+#include <libyul/AsmAnalysisInfo.h>
+#include <libyul/AsmCodeGen.h>
+#include <libyul/backends/svm/SVMCodeTransform.h>
+#include <libyul/backends/svm/SVMAssembly.h>
+#include <libyul/ObjectParser.h>
 
 #include <libsvmasm/Assembly.h>
 
-#include <libyul/backends/svm/SVMCodeTransform.h>
-#include <libyul/backends/svm/SVMAssembly.h>
+#include <libyul/optimiser/Suite.h>
 
 using namespace std;
 using namespace dev;
+using namespace langutil;
 using namespace dev::polynomial;
 
 namespace
 {
-assembly::AsmFlavour languageToAsmFlavour(AssemblyStack::Language _language)
+yul::AsmFlavour languageToAsmFlavour(AssemblyStack::Language _language)
 {
 	switch (_language)
 	{
 	case AssemblyStack::Language::Assembly:
-		return assembly::AsmFlavour::Loose;
+		return yul::AsmFlavour::Loose;
 	case AssemblyStack::Language::StrictAssembly:
-		return assembly::AsmFlavour::Strict;
+		return yul::AsmFlavour::Strict;
 	case AssemblyStack::Language::Yul:
-		return assembly::AsmFlavour::Yul;
+		return yul::AsmFlavour::Yul;
 	}
 	polAssert(false, "");
-	return assembly::AsmFlavour::Yul;
+	return yul::AsmFlavour::Yul;
 }
 
 }
@@ -68,31 +71,30 @@ bool AssemblyStack::parseAndAnalyze(std::string const& _sourceName, std::string 
 {
 	m_errors.clear();
 	m_analysisSuccessful = false;
-	m_scanner = make_shared<Scanner>(CharStream(_source), _sourceName);
-	m_parserResult = assembly::Parser(m_errorReporter, languageToAsmFlavour(m_language)).parse(m_scanner, false);
+	m_scanner = make_shared<Scanner>(CharStream(_source, _sourceName));
+	m_parserResult = yul::ObjectParser(m_errorReporter, languageToAsmFlavour(m_language)).parse(m_scanner, false);
 	if (!m_errorReporter.errors().empty())
 		return false;
 	polAssert(m_parserResult, "");
+	polAssert(m_parserResult->code, "");
 
 	return analyzeParsed();
 }
 
-bool AssemblyStack::analyze(assembly::Block const& _block, Scanner const* _scanner)
+void AssemblyStack::optimize()
 {
-	m_errors.clear();
-	m_analysisSuccessful = false;
-	if (_scanner)
-		m_scanner = make_shared<Scanner>(*_scanner);
-	m_parserResult = make_shared<assembly::Block>(_block);
-
-	return analyzeParsed();
+	polAssert(m_language != Language::Assembly, "Optimization requested for loose assembly.");
+	yul::OptimiserSuite::run(*m_parserResult->code, *m_parserResult->analysisInfo);
+	polAssert(analyzeParsed(), "Invalid source code after optimization.");
 }
 
 bool AssemblyStack::analyzeParsed()
 {
-	m_analysisInfo = make_shared<assembly::AsmAnalysisInfo>();
-	assembly::AsmAnalyzer analyzer(*m_analysisInfo, m_errorReporter, m_svmVersion, boost::none, languageToAsmFlavour(m_language));
-	m_analysisSuccessful = analyzer.analyze(*m_parserResult);
+	polAssert(m_parserResult, "");
+	polAssert(m_parserResult->code, "");
+	m_parserResult->analysisInfo = make_shared<yul::AsmAnalysisInfo>();
+	yul::AsmAnalyzer analyzer(*m_parserResult->analysisInfo, m_errorReporter, m_svmVersion, boost::none, languageToAsmFlavour(m_language));
+	m_analysisSuccessful = analyzer.analyze(*m_parserResult->code);
 	return m_analysisSuccessful;
 }
 
@@ -100,7 +102,8 @@ MachineAssemblyObject AssemblyStack::assemble(Machine _machine) const
 {
 	polAssert(m_analysisSuccessful, "");
 	polAssert(m_parserResult, "");
-	polAssert(m_analysisInfo, "");
+	polAssert(m_parserResult->code, "");
+	polAssert(m_parserResult->analysisInfo, "");
 
 	switch (_machine)
 	{
@@ -108,7 +111,7 @@ MachineAssemblyObject AssemblyStack::assemble(Machine _machine) const
 	{
 		MachineAssemblyObject object;
 		sof::Assembly assembly;
-		assembly::CodeGenerator::assemble(*m_parserResult, *m_analysisInfo, assembly);
+		yul::CodeGenerator::assemble(*m_parserResult->code, *m_parserResult->analysisInfo, assembly);
 		object.bytecode = make_shared<sof::LinkerObject>(assembly.assemble());
 		object.assembly = assembly.assemblyString();
 		return object;
@@ -117,7 +120,7 @@ MachineAssemblyObject AssemblyStack::assemble(Machine _machine) const
 	{
 		MachineAssemblyObject object;
 		yul::SVMAssembly assembly(true);
-		yul::CodeTransform(assembly, *m_analysisInfo, m_language == Language::Yul, true)(*m_parserResult);
+		yul::CodeTransform(assembly, *m_parserResult->analysisInfo, m_language == Language::Yul, true)(*m_parserResult->code);
 		object.bytecode = make_shared<sof::LinkerObject>(assembly.finalize());
 		/// TODO: fill out text representation
 		return object;
@@ -132,5 +135,6 @@ MachineAssemblyObject AssemblyStack::assemble(Machine _machine) const
 string AssemblyStack::print() const
 {
 	polAssert(m_parserResult, "");
-	return assembly::AsmPrinter(m_language == Language::Yul)(*m_parserResult);
+	polAssert(m_parserResult->code, "");
+	return m_parserResult->toString(m_language == Language::Yul) + "\n";
 }

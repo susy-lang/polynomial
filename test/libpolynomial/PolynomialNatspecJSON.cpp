@@ -24,8 +24,10 @@
 #include <string>
 #include <libdevcore/JSON.h>
 #include <libpolynomial/interface/CompilerStack.h>
-#include <libpolynomial/interface/Exceptions.h>
+#include <liblangutil/Exceptions.h>
 #include <libdevcore/Exceptions.h>
+
+using namespace langutil;
 
 namespace dev
 {

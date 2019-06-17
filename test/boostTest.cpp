@@ -38,6 +38,7 @@
 #include <test/Options.h>
 #include <test/libpolynomial/ASTJSONTest.h>
 #include <test/libpolynomial/SyntaxTest.h>
+#include <test/libpolynomial/SMTCheckerJSONTest.h>
 #include <test/libyul/YulOptimizerTest.h>
 
 #include <boost/algorithm/string.hpp>
@@ -143,15 +144,24 @@ test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] )
 		master,
 		dev::test::Options::get().testPath / "libyul",
 		"yulOptimizerTests",
-		dev::yul::test::YulOptimizerTest::create
+		yul::test::YulOptimizerTest::create
 	) > 0, "no Yul Optimizer tests found");
 	if (!dev::test::Options::get().disableSMT)
+	{
 		polAssert(registerTests(
 			master,
 			dev::test::Options::get().testPath / "libpolynomial",
 			"smtCheckerTests",
 			SyntaxTest::create
 		) > 0, "no SMT checker tests found");
+
+		polAssert(registerTests(
+			master,
+			dev::test::Options::get().testPath / "libpolynomial",
+			"smtCheckerTestsJSON",
+			SMTCheckerTest::create
+		) > 0, "no SMT checker JSON tests found");
+	}
 	if (dev::test::Options::get().disableIPC)
 	{
 		for (auto suite: {
@@ -160,9 +170,11 @@ test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] )
 			"PolynomialAuctionRegistrar",
 			"PolynomialFixedFeeRegistrar",
 			"PolynomialWallet",
+#if HAVE_LLL
 			"LLLSRC20",
 			"LLLENS",
 			"LLLEndToEndTest",
+#endif
 			"GasMeterTests",
 			"PolynomialEndToEndTest",
 			"PolynomialOptimizer"

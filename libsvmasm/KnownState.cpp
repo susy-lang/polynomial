@@ -29,6 +29,7 @@
 using namespace std;
 using namespace dev;
 using namespace dev::sof;
+using namespace langutil;
 
 ostream& KnownState::stream(ostream& _out) const
 {

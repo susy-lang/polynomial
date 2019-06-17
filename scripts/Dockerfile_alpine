@@ -1,0 +1,5 @@
+FROM alpine
+MAINTAINER chrissof <chris@ethereum.org>
+
+COPY upload/polc-static-linux /usr/local/bin/polc
+ENTRYPOINT ["/usr/local/bin/polc"]

@@ -16,8 +16,10 @@
 */
 
 #include <libpolynomial/analysis/ControlFlowAnalyzer.h>
+#include <liblangutil/SourceLocation.h>
 
 using namespace std;
+using namespace langutil;
 using namespace dev::polynomial;
 
 bool ControlFlowAnalyzer::analyze(ASTNode const& _astRoot)
