@@ -34,7 +34,8 @@
 #include <libdevcore/Common.h>
 #include <libdevcore/CommonData.h>
 #include <libdevcore/CommonIO.h>
-#include <libsvmcore/Instruction.h>
+#include <libsvmasm/Instruction.h>
+#include <libsvmasm/GasMeter.h>
 #include <libpolynomial/interface/Version.h>
 #include <libpolynomial/parsing/Scanner.h>
 #include <libpolynomial/parsing/Parser.h>
@@ -161,11 +162,11 @@ void CommandLineInterface::handleBinary(string const& _contract)
 void CommandLineInterface::handleOpcode(string const& _contract)
 {
 	if (m_args.count("output-dir"))
-		createFile(_contract + ".opcode", sof::disassemble(m_compiler->object(_contract).bytecode));
+		createFile(_contract + ".opcode", polynomial::disassemble(m_compiler->object(_contract).bytecode));
 	else
 	{
 		cout << "Opcodes: " << endl;
-		cout << sof::disassemble(m_compiler->object(_contract).bytecode);
+		cout << polynomial::disassemble(m_compiler->object(_contract).bytecode);
 		cout << endl;
 	}
 }
@@ -240,7 +241,6 @@ void CommandLineInterface::handleMeta(DocumentationType _type, string const& _co
 
 void CommandLineInterface::handleGasEstimation(string const& _contract)
 {
-	sof::SVMSchedule schedule;	// TODO: make it relevant to the SealEngine/EnvInfo.
 	using Gas = GasEstimator::GasConsumption;
 	if (!m_compiler->assemblyItems(_contract) && !m_compiler->runtimeAssemblyItems(_contract))
 		return;
@@ -250,8 +250,8 @@ void CommandLineInterface::handleGasEstimation(string const& _contract)
 		Gas gas = GasEstimator::functionalEstimation(*items);
 		u256 bytecodeSize(m_compiler->runtimeObject(_contract).bytecode.size());
 		cout << "construction:" << endl;
-		cout << "   " << gas << " + " << (bytecodeSize * schedule.createDataGas) << " = ";
-		gas += bytecodeSize * schedule.createDataGas;
+		cout << "   " << gas << " + " << (bytecodeSize * sof::GasCosts::createDataGas) << " = ";
+		gas += bytecodeSize * sof::GasCosts::createDataGas;
 		cout << gas << endl;
 	}
 	if (sof::AssemblyItems const* items = m_compiler->runtimeAssemblyItems(_contract))
@@ -674,7 +674,7 @@ void CommandLineInterface::handleCombinedJSON()
 		if (requests.count("clone-bin"))
 			contractData["clone-bin"] = m_compiler->cloneObject(contractName).toHex();
 		if (requests.count("opcodes"))
-			contractData["opcodes"] = sof::disassemble(m_compiler->object(contractName).bytecode);
+			contractData["opcodes"] = polynomial::disassemble(m_compiler->object(contractName).bytecode);
 		if (requests.count("asm"))
 		{
 			ostringstream unused;

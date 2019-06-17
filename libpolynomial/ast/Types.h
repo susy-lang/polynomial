@@ -27,6 +27,7 @@
 #include <map>
 #include <boost/noncopyable.hpp>
 #include <libdevcore/Common.h>
+#include <libdevcore/CommonIO.h>
 #include <libpolynomial/interface/Exceptions.h>
 #include <libpolynomial/ast/ASTForward.h>
 #include <libpolynomial/parsing/Token.h>

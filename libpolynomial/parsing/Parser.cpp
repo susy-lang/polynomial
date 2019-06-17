@@ -22,7 +22,6 @@
 
 #include <ctype.h>
 #include <vector>
-#include <libdevcore/Log.h>
 #include <libsvmasm/SourceLocation.h>
 #include <libpolynomial/parsing/Parser.h>
 #include <libpolynomial/parsing/Scanner.h>

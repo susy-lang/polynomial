@@ -53,7 +53,6 @@
 #pragma once
 
 #include <libdevcore/Common.h>
-#include <libdevcore/Log.h>
 #include <libdevcore/CommonData.h>
 #include <libsvmasm/SourceLocation.h>
 #include <libpolynomial/parsing/Token.h>
@@ -118,6 +117,13 @@ public:
 	Token::Value currentToken()
 	{
 		return m_currentToken.token;
+	}
+	ElementaryTypeNameToken currentElementaryTypeNameToken()
+	{
+		unsigned firstSize;
+		unsigned secondSize;
+		std::tie(firstSize, secondSize) = m_currentToken.extendedTokenInfo;
+		return ElementaryTypeNameToken(m_currentToken.token, firstSize, secondSize);
 	}
 
 	SourceLocation currentLocation() const { return m_currentToken.location; }

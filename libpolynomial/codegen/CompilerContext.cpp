@@ -166,7 +166,7 @@ pair<u256, unsigned> CompilerContext::storageLocationOfVariable(const Declaratio
 
 CompilerContext& CompilerContext::appendJump(sof::AssemblyItem::JumpType _jumpType)
 {
-	sof::AssemblyItem item(sof::Instruction::JUMP);
+	sof::AssemblyItem item(Instruction::JUMP);
 	item.setJumpType(_jumpType);
 	return *this << item;
 }
@@ -182,7 +182,7 @@ void CompilerContext::resetVisitedNodes(ASTNode const* _node)
 void CompilerContext::injectVersionStampIntoSub(size_t _subIndex)
 {
 	sof::Assembly& sub = m_asm.sub(_subIndex);
-	sub.injectStart(sof::Instruction::POP);
+	sub.injectStart(Instruction::POP);
 	sub.injectStart(fromBigEndian<u256>(binaryVersion()));
 }
 

@@ -23,7 +23,6 @@
 #include <libpolynomial/inlineasm/AsmParser.h>
 #include <ctype.h>
 #include <algorithm>
-#include <libsvmcore/Instruction.h>
 #include <libpolynomial/parsing/Scanner.h>
 
 using namespace std;
@@ -73,6 +72,7 @@ assembly::Statement Parser::parseStatement()
 		return assembly::Assignment{assembly::Identifier{name}};
 	}
 	case Token::Return: // opcode
+	case Token::Byte: // opcode
 	default:
 		break;
 	}
@@ -121,17 +121,17 @@ assembly::Statement Parser::parseExpression()
 assembly::Statement Parser::parseElementaryOperation(bool _onlySinglePusher)
 {
 	// Allowed instructions, lowercase names.
-	static map<string, sof::Instruction> s_instructions;
+	static map<string, dev::polynomial::Instruction> s_instructions;
 	if (s_instructions.empty())
-		for (auto const& instruction: sof::c_instructions)
+		for (auto const& instruction: polynomial::c_instructions)
 		{
 			if (
-				instruction.second == sof::Instruction::JUMPDEST ||
-				(sof::Instruction::PUSH1 <= instruction.second && instruction.second <= sof::Instruction::PUSH32)
+				instruction.second == polynomial::Instruction::JUMPDEST ||
+				(polynomial::Instruction::PUSH1 <= instruction.second && instruction.second <= polynomial::Instruction::PUSH32)
 			)
 				continue;
 			string name = instruction.first;
-			if (instruction.second == sof::Instruction::SUICIDE)
+			if (instruction.second == polynomial::Instruction::SUICIDE)
 				name = "selfdestruct";
 			transform(name.begin(), name.end(), name.begin(), [](unsigned char _c) { return tolower(_c); });
 			s_instructions[name] = instruction.second;
@@ -143,19 +143,22 @@ assembly::Statement Parser::parseElementaryOperation(bool _onlySinglePusher)
 	{
 	case Token::Identifier:
 	case Token::Return:
+	case Token::Byte:
 	{
 		string literal;
 		if (m_scanner->currentToken() == Token::Return)
 			literal = "return";
+		else if (m_scanner->currentToken() == Token::Byte)
+			literal = "byte";
 		else
 			literal = m_scanner->currentLiteral();
 		// first search the set of instructions.
 		if (s_instructions.count(literal))
 		{
-			sof::Instruction const& instr = s_instructions[literal];
+			dev::polynomial::Instruction const& instr = s_instructions[literal];
 			if (_onlySinglePusher)
 			{
-				sof::InstructionInfo info = sof::instructionInfo(instr);
+				InstructionInfo info = dev::polynomial::instructionInfo(instr);
 				if (info.ret != 1)
 					fatalParserError("Instruction " + info.name + " not allowed in this context.");
 			}
@@ -200,11 +203,11 @@ FunctionalInstruction Parser::parseFunctionalInstruction(assembly::Statement con
 {
 	if (_instruction.type() != typeid(Instruction))
 		fatalParserError("Assembly instruction required in front of \"(\")");
-	sof::Instruction instr = boost::get<Instruction>(_instruction).instruction;
-	sof::InstructionInfo instrInfo = sof::instructionInfo(instr);
-	if (sof::Instruction::DUP1 <= instr && instr <= sof::Instruction::DUP16)
+	polynomial::Instruction instr = boost::get<polynomial::assembly::Instruction>(_instruction).instruction;
+	InstructionInfo instrInfo = instructionInfo(instr);
+	if (polynomial::Instruction::DUP1 <= instr && instr <= polynomial::Instruction::DUP16)
 		fatalParserError("DUPi instructions not allowed for functional notation");
-	if (sof::Instruction::SWAP1 <= instr && instr <= sof::Instruction::SWAP16)
+	if (polynomial::Instruction::SWAP1 <= instr && instr <= polynomial::Instruction::SWAP16)
 		fatalParserError("SWAPi instructions not allowed for functional notation");
 
 	expectToken(Token::LParen);

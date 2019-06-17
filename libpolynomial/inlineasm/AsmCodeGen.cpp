@@ -25,6 +25,7 @@
 #include <functional>
 #include <libsvmasm/Assembly.h>
 #include <libsvmasm/SourceLocation.h>
+#include <libsvmasm/Instruction.h>
 #include <libpolynomial/inlineasm/AsmParser.h>
 #include <libpolynomial/inlineasm/AsmData.h>
 
@@ -116,7 +117,7 @@ public:
 			m_identifierAccess = [](assembly::Identifier const&, sof::Assembly&, CodeGenerator::IdentifierContext) { return false; };
 	}
 
-	void operator()(Instruction const& _instruction)
+	void operator()(dev::polynomial::assembly::Instruction const& _instruction)
 	{
 		m_state.assembly.append(_instruction.instruction);
 	}
@@ -145,7 +146,7 @@ public:
 					"Variable inaccessible, too deep inside stack (" + boost::lexical_cast<string>(heightDiff) + ")"
 				);
 			else
-				m_state.assembly.append(sof::dupInstruction(heightDiff));
+				m_state.assembly.append(polynomial::dupInstruction(heightDiff));
 			return;
 		}
 		else if (sof::AssemblyItem const* label = m_state.findLabel(_identifier.name))
@@ -196,7 +197,7 @@ public:
 		//@TODO check height before and after
 		while (m_state.variables.size() > numVariables)
 		{
-			m_state.assembly.append(sof::Instruction::POP);
+			m_state.assembly.append(polynomial::Instruction::POP);
 			m_state.variables.pop_back();
 		}
 	}
@@ -215,8 +216,8 @@ private:
 				);
 			else
 			{
-				m_state.assembly.append(sof::swapInstruction(heightDiff));
-				m_state.assembly.append(sof::Instruction::POP);
+				m_state.assembly.append(polynomial::swapInstruction(heightDiff));
+				m_state.assembly.append(polynomial::Instruction::POP);
 			}
 			return;
 		}

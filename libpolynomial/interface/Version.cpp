@@ -24,7 +24,6 @@
 #include <string>
 #include <libdevcore/CommonData.h>
 #include <libdevcore/Common.h>
-#include <libsvmasm/Version.h>
 #include <libpolynomial/interface/Utils.h>
 #include <polynomial/BuildInfo.h>
 
@@ -39,8 +38,7 @@ string const dev::polynomial::VersionString =
 	"-" +
 	string(DEV_QUOTED(SOF_COMMIT_HASH)).substr(0, 8) +
 	(SOF_CLEAN_REPO ? "" : "*") +
-	"/" DEV_QUOTED(SOF_BUILD_TYPE) "-" DEV_QUOTED(SOF_BUILD_PLATFORM)
-	" linked to libsophon-" + sof::VersionStringLibSvmAsm;
+	"/" DEV_QUOTED(SOF_BUILD_TYPE) "-" DEV_QUOTED(SOF_BUILD_PLATFORM);
 
 
 bytes dev::polynomial::binaryVersion()

@@ -23,7 +23,6 @@
 #include <string>
 #include <iostream>
 #include <boost/test/unit_test.hpp>
-#include <libdevcore/Log.h>
 #include <libsvmasm/SourceLocation.h>
 #include <libsvmasm/Assembly.h>
 #include <libpolynomial/parsing/Scanner.h>

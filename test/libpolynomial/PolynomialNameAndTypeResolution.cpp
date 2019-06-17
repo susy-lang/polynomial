@@ -22,7 +22,6 @@
 
 #include <string>
 
-#include <libdevcore/Log.h>
 #include <libdevcore/SHA3.h>
 #include <libpolynomial/parsing/Scanner.h>
 #include <libpolynomial/parsing/Parser.h>
@@ -3252,6 +3251,18 @@ BOOST_AUTO_TEST_CASE(library_functions_do_not_have_value)
 		contract test {
 			function f() {
 				L.l.value;
+			}
+		}
+	)";
+	BOOST_CHECK(!success(text));
+}
+
+BOOST_AUTO_TEST_CASE(invalid_fixed_type_long)
+{
+	char const* text = R"(
+		contract test {
+			function f() {
+				fixed8x888888888888888888888888888888888888888888888888888 b;
 			}
 		}
 	)";

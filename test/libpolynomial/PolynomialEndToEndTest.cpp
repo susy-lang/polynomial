@@ -2000,6 +2000,26 @@ BOOST_AUTO_TEST_CASE(constructor_with_long_arguments)
 	BOOST_CHECK(callContractFunction("b()") == encodeDyn(b));
 }
 
+BOOST_AUTO_TEST_CASE(constructor_static_array_argument)
+{
+	char const* sourceCode = R"(
+		contract C {
+			uint public a;
+			uint[3] public b;
+
+			function C(uint _a, uint[3] _b) {
+				a = _a;
+				b = _b;
+			}
+		}
+	)";
+	compileAndRun(sourceCode, 0, "C", encodeArgs(u256(1), u256(2), u256(3), u256(4)));
+	BOOST_CHECK(callContractFunction("a()") == encodeArgs(u256(1)));
+	BOOST_CHECK(callContractFunction("b(uint256)", u256(0)) == encodeArgs(u256(2)));
+	BOOST_CHECK(callContractFunction("b(uint256)", u256(1)) == encodeArgs(u256(3)));
+	BOOST_CHECK(callContractFunction("b(uint256)", u256(2)) == encodeArgs(u256(4)));
+}
+
 BOOST_AUTO_TEST_CASE(functions_called_by_constructor)
 {
 	char const* sourceCode = R"(
@@ -6589,6 +6609,28 @@ BOOST_AUTO_TEST_CASE(index_access_with_type_conversion)
 	// neither of the two should throw due to out-of-bounds access
 	BOOST_CHECK(callContractFunction("f(uint256)", u256(0x01)).size() == 256 * 32);
 	BOOST_CHECK(callContractFunction("f(uint256)", u256(0x101)).size() == 256 * 32);
+}
+
+BOOST_AUTO_TEST_CASE(delete_on_array_of_structs)
+{
+	// Test for a bug where we did not increment the counter properly while deleting a dynamic array.
+	char const* sourceCode = R"(
+		contract C {
+			struct S { uint x; uint[] y; }
+			S[] data;
+			function f() returns (bool) {
+				data.length = 2;
+				data[0].x = 2**200;
+				data[1].x = 2**200;
+				delete data;
+				return true;
+			}
+		}
+	)";
+	compileAndRun(sourceCode, 0, "C");
+	// This code interprets x as an array length and thus will go out of gas.
+	// neither of the two should throw due to out-of-bounds access
+	BOOST_CHECK(callContractFunction("f()") == encodeArgs(true));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

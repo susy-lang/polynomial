@@ -22,7 +22,6 @@
 
 #include <string>
 #include <memory>
-#include <libdevcore/Log.h>
 #include <libpolynomial/parsing/Scanner.h>
 #include <libpolynomial/parsing/Parser.h>
 #include <libpolynomial/interface/Exceptions.h>

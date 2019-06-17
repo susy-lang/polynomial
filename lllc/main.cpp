@@ -25,10 +25,10 @@
 #include <liblll/Compiler.h>
 #include <libdevcore/CommonIO.h>
 #include <libdevcore/CommonData.h>
-#include <libsvmcore/Instruction.h>
-#include "sophon/BuildInfo.h"
+#include <libsvmasm/Instruction.h>
 using namespace std;
 using namespace dev;
+using namespace dev::polynomial;
 using namespace dev::sof;
 
 void help()
@@ -47,9 +47,8 @@ void help()
 
 void version()
 {
-	cout << "LLLC, the Lovely Little Language Compiler " << dev::Version << endl;
+	cout << "LLLC, the Lovely Little Language Compiler " << endl;
 	cout << "  By Gav Wood, (c) 2014." << endl;
-	cout << "Build: " << DEV_QUOTED(SOF_BUILD_PLATFORM) << "/" << DEV_QUOTED(SOF_BUILD_TYPE) << endl;
 	exit(0);
 }
 

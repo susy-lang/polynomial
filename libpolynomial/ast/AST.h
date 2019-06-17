@@ -28,7 +28,7 @@
 #include <memory>
 #include <boost/noncopyable.hpp>
 #include <libsvmasm/SourceLocation.h>
-#include <libsvmcore/Instruction.h>
+#include <libsvmasm/Instruction.h>
 #include <libpolynomial/interface/Utils.h>
 #include <libpolynomial/ast/ASTForward.h>
 #include <libpolynomial/parsing/Token.h>

@@ -22,7 +22,6 @@
 
 #include <string>
 #include <memory>
-#include <libdevcore/Log.h>
 #include <libsvmasm/Assembly.h>
 #include <libpolynomial/parsing/Scanner.h>
 #include <libpolynomial/inlineasm/AsmStack.h>
@@ -86,6 +85,11 @@ BOOST_AUTO_TEST_CASE(smoke_test)
 BOOST_AUTO_TEST_CASE(simple_instructions)
 {
 	BOOST_CHECK(successParse("{ dup1 dup1 mul dup1 sub }"));
+}
+
+BOOST_AUTO_TEST_CASE(keywords)
+{
+	BOOST_CHECK(successParse("{ byte return }"));
 }
 
 BOOST_AUTO_TEST_CASE(constants)

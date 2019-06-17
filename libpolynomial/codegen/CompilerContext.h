@@ -25,7 +25,7 @@
 #include <ostream>
 #include <stack>
 #include <utility>
-#include <libsvmcore/Instruction.h>
+#include <libsvmasm/Instruction.h>
 #include <libsvmasm/Assembly.h>
 #include <libpolynomial/ast/ASTForward.h>
 #include <libpolynomial/ast/Types.h>
@@ -126,7 +126,7 @@ public:
 
 	/// Append elements to the current instruction list and adjust @a m_stackOffset.
 	CompilerContext& operator<<(sof::AssemblyItem const& _item) { m_asm.append(_item); return *this; }
-	CompilerContext& operator<<(sof::Instruction _instruction) { m_asm.append(_instruction); return *this; }
+	CompilerContext& operator<<(Instruction _instruction) { m_asm.append(_instruction); return *this; }
 	CompilerContext& operator<<(u256 const& _value) { m_asm.append(_value); return *this; }
 	CompilerContext& operator<<(bytes const& _data) { m_asm.append(_data); return *this; }
 

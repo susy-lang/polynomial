@@ -32,6 +32,8 @@
 #include <libsophon/ChainParams.h>
 #include <libpolynomial/interface/CompilerStack.h>
 #include <libpolynomial/interface/Exceptions.h>
+#include <libsofcore/BasicAuthority.h>
+#include <libsofcore/SealEngine.h>
 
 namespace dev
 {
@@ -45,9 +47,10 @@ class ExecutionFramework
 {
 public:
 	ExecutionFramework():
-		m_sealEngine(sof::ChainParams().createSealEngine()),
 		m_state(0)
 	{
+		sof::NoProof::init();
+		m_sealEngine.reset(sof::ChainParams().createSealEngine());
 		if (g_logVerbosity != -1)
 			g_logVerbosity = 0;
 		//m_state.resetCurrent();

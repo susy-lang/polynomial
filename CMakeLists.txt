@@ -8,7 +8,7 @@ include(SofPolicy)
 sof_policy()
 
 # project name and version should be set after cmake_policy CMP0048
-set(PROJECT_VERSION "0.3.1")
+set(PROJECT_VERSION "0.3.2")
 project(polynomial VERSION ${PROJECT_VERSION})
 
 # Let's find our dependencies
@@ -29,10 +29,14 @@ configure_project(TESTS)
 add_subdirectory(libsvmasm)
 add_subdirectory(libpolynomial)
 add_subdirectory(polc)
+
 if (NOT EMSCRIPTEN)
 	add_subdirectory(liblll)
-	add_subdirectory(test)
 	add_subdirectory(lllc)
+endif()
+
+if (TESTS AND NOT EMSCRIPTEN)
+	add_subdirectory(test)
 endif()
 
 # TODO installation and packaging rules
