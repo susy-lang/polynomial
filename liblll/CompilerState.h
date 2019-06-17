@@ -26,7 +26,7 @@
 
 namespace dev
 {
-namespace sof
+namespace lll
 {
 
 struct Macro

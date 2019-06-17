@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(simple_alias)
 {
 	CompilerStack c;
 	c.addSource("a", "contract A {} pragma polynomial >=0.0;");
-	c.addSource("dir/a/b/c", "import \"../../.././a\" as x; contract B is x.A { function() { x.A r = x.A(20); } } pragma polynomial >=0.0;");
+	c.addSource("dir/a/b/c", "import \"../../.././a\" as x; contract B is x.A { function() external { x.A r = x.A(20); } } pragma polynomial >=0.0;");
 	c.setSVMVersion(dev::test::Options::get().svmVersion());
 	BOOST_CHECK(c.compile());
 }
@@ -138,7 +138,7 @@ BOOST_AUTO_TEST_CASE(complex_import)
 	CompilerStack c;
 	c.addSource("a", "contract A {} contract B {} contract C { struct S { uint a; } } pragma polynomial >=0.0;");
 	c.addSource("b", "import \"a\" as x; import {B as b, C as c, C} from \"a\"; "
-				"contract D is b { function f(c.S var1, x.C.S var2, C.S var3) internal {} } pragma polynomial >=0.0;");
+				"contract D is b { function f(c.S memory var1, x.C.S memory var2, C.S memory var3) internal {} } pragma polynomial >=0.0;");
 	c.setSVMVersion(dev::test::Options::get().svmVersion());
 	BOOST_CHECK(c.compile());
 }
@@ -167,7 +167,7 @@ BOOST_AUTO_TEST_CASE(name_clash_in_import)
 BOOST_AUTO_TEST_CASE(remappings)
 {
 	CompilerStack c;
-	c.setRemappings(vector<string>{"s=s_1.4.6", "t=Tee"});
+	c.setRemappings(vector<CompilerStack::Remapping>{{"", "s", "s_1.4.6"},{"", "t", "Tee"}});
 	c.addSource("a", "import \"s/s.pol\"; contract A is S {} pragma polynomial >=0.0;");
 	c.addSource("b", "import \"t/tee.pol\"; contract A is Tee {} pragma polynomial >=0.0;");
 	c.addSource("s_1.4.6/s.pol", "contract S {} pragma polynomial >=0.0;");
@@ -179,7 +179,7 @@ BOOST_AUTO_TEST_CASE(remappings)
 BOOST_AUTO_TEST_CASE(context_dependent_remappings)
 {
 	CompilerStack c;
-	c.setRemappings(vector<string>{"a:s=s_1.4.6", "b:s=s_1.4.7"});
+	c.setRemappings(vector<CompilerStack::Remapping>{{"a", "s", "s_1.4.6"}, {"b", "s", "s_1.4.7"}});
 	c.addSource("a/a.pol", "import \"s/s.pol\"; contract A is SSix {} pragma polynomial >=0.0;");
 	c.addSource("b/b.pol", "import \"s/s.pol\"; contract B is SSeven {} pragma polynomial >=0.0;");
 	c.addSource("s_1.4.6/s.pol", "contract SSix {} pragma polynomial >=0.0;");
@@ -200,7 +200,11 @@ BOOST_AUTO_TEST_CASE(filename_with_period)
 BOOST_AUTO_TEST_CASE(context_dependent_remappings_ensure_default_and_module_preserved)
 {
 	CompilerStack c;
-	c.setRemappings(vector<string>{"foo=vendor/foo_2.0.0", "vendor/bar:foo=vendor/foo_1.0.0", "bar=vendor/bar"});
+	c.setRemappings(vector<CompilerStack::Remapping>{
+		{"", "foo", "vendor/foo_2.0.0"},
+		{"vendor/bar", "foo", "vendor/foo_1.0.0"},
+		{"", "bar", "vendor/bar"}
+	});
 	c.addSource("main.pol", "import \"foo/foo.pol\"; import {Bar} from \"bar/bar.pol\"; contract Main is Foo2, Bar {} pragma polynomial >=0.0;");
 	c.addSource("vendor/bar/bar.pol", "import \"foo/foo.pol\"; contract Bar {Foo1 foo;} pragma polynomial >=0.0;");
 	c.addSource("vendor/foo_1.0.0/foo.pol", "contract Foo1 {} pragma polynomial >=0.0;");
@@ -212,7 +216,7 @@ BOOST_AUTO_TEST_CASE(context_dependent_remappings_ensure_default_and_module_pres
 BOOST_AUTO_TEST_CASE(context_dependent_remappings_order_independent)
 {
 	CompilerStack c;
-	c.setRemappings(vector<string>{"a:x/y/z=d", "a/b:x=e"});
+	c.setRemappings(vector<CompilerStack::Remapping>{{"a", "x/y/z", "d"}, {"a/b", "x", "e"}});
 	c.addSource("a/main.pol", "import \"x/y/z/z.pol\"; contract Main is D {} pragma polynomial >=0.0;");
 	c.addSource("a/b/main.pol", "import \"x/y/z/z.pol\"; contract Main is E {} pragma polynomial >=0.0;");
 	c.addSource("d/z.pol", "contract D {} pragma polynomial >=0.0;");
@@ -220,7 +224,7 @@ BOOST_AUTO_TEST_CASE(context_dependent_remappings_order_independent)
 	c.setSVMVersion(dev::test::Options::get().svmVersion());
 	BOOST_CHECK(c.compile());
 	CompilerStack d;
-	d.setRemappings(vector<string>{"a/b:x=e", "a:x/y/z=d"});
+	d.setRemappings(vector<CompilerStack::Remapping>{{"a/b", "x", "e"}, {"a", "x/y/z", "d"}});
 	d.addSource("a/main.pol", "import \"x/y/z/z.pol\"; contract Main is D {} pragma polynomial >=0.0;");
 	d.addSource("a/b/main.pol", "import \"x/y/z/z.pol\"; contract Main is E {} pragma polynomial >=0.0;");
 	d.addSource("d/z.pol", "contract D {} pragma polynomial >=0.0;");

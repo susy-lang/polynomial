@@ -39,13 +39,13 @@ namespace
 
 bool successParse(std::string const& _source)
 {
-	std::string ret = sof::parseLLL(_source);
+	std::string ret = lll::parseLLL(_source);
 	return ret.size() != 0;
 }
 
 std::string parse(std::string const& _source)
 {
-	return sof::parseLLL(_source);
+	return lll::parseLLL(_source);
 }
 
 }

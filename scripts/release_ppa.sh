@@ -22,7 +22,7 @@
 ##  method			= ftp
 ##  incoming		= ~sophon/sophon-dev
 ##  login			= anonymous
-## 
+##
 ##  [sophon]
 ##  fqdn			= ppa.launchpad.net
 ##  method			= ftp
@@ -50,11 +50,11 @@ else
     ppafilesurl=https://launchpad.net/~sophon/+archive/ubuntu/sophon/+files
 fi
 
-keyid=703F83D0
+keyid=70D110489D66E2F6
 email=builds@ethereum.org
 packagename=polc
 
-for distribution in trusty vivid xenial zesty artful bionic
+for distribution in trusty xenial bionic cosmic
 do
 cd /tmp/
 rm -rf $distribution

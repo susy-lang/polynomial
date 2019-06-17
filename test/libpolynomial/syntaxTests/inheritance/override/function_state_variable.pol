@@ -1,0 +1,2 @@
+interface SRC20 { function x() external returns (uint); }
+contract C is SRC20 { uint public x; }

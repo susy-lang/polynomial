@@ -1,5 +1,5 @@
 # generates BuildInfo.h
-# 
+#
 # this module expects
 # SOF_SOURCE_DIR - main CMAKE_SOURCE_DIR
 # SOF_DST_DIR - main CMAKE_BINARY_DIR
@@ -19,7 +19,7 @@ if (NOT SOF_BUILD_PLATFORM)
 	set(SOF_BUILD_PLATFORM "unknown")
 endif()
 
-# Logic here: If prereleases.txt exists but is empty, it is a non-pre release.
+# Logic here: If prerelease.txt exists but is empty, it is a non-pre release.
 # If it does not exist, create our own prerelease string
 if (EXISTS ${SOF_SOURCE_DIR}/prerelease.txt)
 	file(READ ${SOF_SOURCE_DIR}/prerelease.txt POL_VERSION_PRERELEASE)

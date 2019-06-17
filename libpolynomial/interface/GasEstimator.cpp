@@ -24,7 +24,7 @@
 #include <map>
 #include <functional>
 #include <memory>
-#include <libdevcore/SHA3.h>
+#include <libdevcore/Keccak256.h>
 #include <libsvmasm/ControlFlowGraph.h>
 #include <libsvmasm/KnownState.h>
 #include <libsvmasm/PathGasMeter.h>
@@ -160,8 +160,7 @@ GasEstimator::GasConsumption GasEstimator::functionalEstimation(
 		);
 	}
 
-	PathGasMeter meter(_items, m_svmVersion);
-	return meter.estimateMax(0, state);
+	return PathGasMeter::estimateMax(_items, m_svmVersion, 0, state);
 }
 
 GasEstimator::GasConsumption GasEstimator::functionalEstimation(
@@ -183,7 +182,7 @@ GasEstimator::GasConsumption GasEstimator::functionalEstimation(
 	if (parametersSize > 0)
 		state->feedItem(swapInstruction(parametersSize));
 
-	return PathGasMeter(_items, m_svmVersion).estimateMax(_offset, state);
+	return PathGasMeter::estimateMax(_items, m_svmVersion, _offset, state);
 }
 
 set<ASTNode const*> GasEstimator::finestNodesAtLocation(

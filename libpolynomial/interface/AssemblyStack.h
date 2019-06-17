@@ -15,7 +15,7 @@
 	along with polynomial.  If not, see <http://www.gnu.org/licenses/>.
 */
 /**
- * Full assembly stack that can support SVM-assembly and JULIA as input and SVM, SVM1.5 and
+ * Full assembly stack that can support SVM-assembly and Yul as input and SVM, SVM1.5 and
  * eWasm as output.
  */
 
@@ -47,13 +47,13 @@ struct MachineAssemblyObject
 };
 
 /*
- * Full assembly stack that can support SVM-assembly and JULIA as input and SVM, SVM1.5 and
+ * Full assembly stack that can support SVM-assembly and Yul as input and SVM, SVM1.5 and
  * eWasm as output.
  */
 class AssemblyStack
 {
 public:
-	enum class Language { JULIA, Assembly, StrictAssembly };
+	enum class Language { Yul, Assembly, StrictAssembly };
 	enum class Machine { SVM, SVM15, eWasm };
 
 	explicit AssemblyStack(SVMVersion _svmVersion = SVMVersion(), Language _language = Language::Assembly):

@@ -1,5 +1,5 @@
 if (EMSCRIPTEN)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s EXPORTED_FUNCTIONS='[\"_compileJSON\",\"_license\",\"_version\",\"_compileJSONMulti\",\"_compileJSONCallback\",\"_compileStandard\"]' -s RESERVED_FUNCTION_POINTERS=20")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s EXPORTED_FUNCTIONS='[\"_polynomial_license\",\"_polynomial_version\",\"_polynomial_compile\"]' -s RESERVED_FUNCTION_POINTERS=20")
 	add_executable(poljson libpolc.cpp)
 	target_link_libraries(poljson PRIVATE polynomial)
 else()

@@ -26,9 +26,9 @@
 
 using namespace std;
 using namespace dev;
-using namespace dev::sof;
+using namespace dev::lll;
 
-bytes dev::sof::compileLLL(string const& _src, dev::polynomial::SVMVersion _svmVersion, bool _opt, std::vector<std::string>* _errors, dev::sof::ReadCallback const& _readFile)
+bytes dev::lll::compileLLL(string const& _src, dev::polynomial::SVMVersion _svmVersion, bool _opt, std::vector<std::string>* _errors, ReadCallback const& _readFile)
 {
 	try
 	{
@@ -66,7 +66,7 @@ bytes dev::sof::compileLLL(string const& _src, dev::polynomial::SVMVersion _svmV
 	return bytes();
 }
 
-std::string dev::sof::compileLLLToAsm(std::string const& _src, SVMVersion _svmVersion, bool _opt, std::vector<std::string>* _errors, ReadCallback const& _readFile)
+std::string dev::lll::compileLLLToAsm(std::string const& _src, SVMVersion _svmVersion, bool _opt, std::vector<std::string>* _errors, ReadCallback const& _readFile)
 {
 	try
 	{
@@ -90,7 +90,8 @@ std::string dev::sof::compileLLLToAsm(std::string const& _src, SVMVersion _svmVe
 	}
 	catch (std::exception const& _e)
 	{
-		if (_errors) {
+		if (_errors)
+		{
 			_errors->push_back("Parse exception.");
 			_errors->push_back(boost::diagnostic_information(_e));
 		}
@@ -103,7 +104,7 @@ std::string dev::sof::compileLLLToAsm(std::string const& _src, SVMVersion _svmVe
 	return string();
 }
 
-string dev::sof::parseLLL(string const& _src)
+string dev::lll::parseLLL(string const& _src)
 {
 	sp::utree o;
 

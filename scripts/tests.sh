@@ -30,7 +30,11 @@ set -e
 
 REPO_ROOT="$(dirname "$0")"/..
 
+WORKDIR=`mktemp -d`
 IPC_ENABLED=true
+ALSOF_PID=
+CMDLINE_PID=
+
 if [[ "$OSTYPE" == "darwin"* ]]
 then
     SMT_FLAGS="--no-smt"
@@ -40,6 +44,49 @@ then
         IPC_FLAGS="--no-ipc"
     fi
 fi
+
+safe_kill() {
+    local PID=${1}
+    local NAME=${2:-${1}}
+    local n=1
+
+    # only proceed if $PID does exist
+    kill -0 $PID 2>/dev/null || return
+
+    echo "Sending SIGTERM to ${NAME} (${PID}) ..."
+    kill $PID
+
+    # wait until process terminated gracefully
+    while kill -0 $PID 2>/dev/null && [[ $n -le 4 ]]; do
+        echo "Waiting ($n) ..."
+        sleep 1
+        n=$[n + 1]
+    done
+
+    # process still alive? then hard-kill
+    if kill -0 $PID 2>/dev/null; then
+        echo "Sending SIGKILL to ${NAME} (${PID}) ..."
+        kill -9 $PID
+    fi
+}
+
+cleanup() {
+	# ensure failing commands don't cause termination during cleanup (especially within safe_kill)
+	set +e
+
+    if [[ "$IPC_ENABLED" = true ]] && [[ -n "${ALSOF_PID}" ]]
+    then
+        safe_kill $ALSOF_PID $ALSOF_PATH
+    fi
+    if [[ -n "$CMDLINE_PID" ]]
+    then
+        safe_kill $CMDLINE_PID "Commandline tests"
+    fi
+
+    echo "Cleaning up working directory ${WORKDIR} ..."
+    rm -rf "$WORKDIR" || true
+}
+trap cleanup INT TERM
 
 if [ "$1" = --junit_report ]
 then
@@ -53,66 +100,82 @@ else
     log_directory=""
 fi
 
-function printError() { echo "$(tput setaf 1)$1$(tput sgr0)"; }
-function printTask() { echo "$(tput bold)$(tput setaf 2)$1$(tput sgr0)"; }
-
+if [ "$CIRCLECI" ]
+then
+    function printTask() { echo "$(tput bold)$(tput setaf 2)$1$(tput setaf 7)"; }
+    function printError() { echo "$(tput setaf 1)$1$(tput setaf 7)"; }
+else
+    function printTask() { echo "$(tput bold)$(tput setaf 2)$1$(tput sgr0)"; }
+    function printError() { echo "$(tput setaf 1)$1$(tput sgr0)"; }
+fi
 
 printTask "Running commandline tests..."
-"$REPO_ROOT/test/cmdlineTests.sh" &
-CMDLINE_PID=$!
 # Only run in parallel if this is run on CI infrastructure
-if [ -z "$CI" ]
+if [[ -n "$CI" ]]
 then
-    if ! wait $CMDLINE_PID
+    "$REPO_ROOT/test/cmdlineTests.sh" &
+    CMDLINE_PID=$!
+else
+    if ! $REPO_ROOT/test/cmdlineTests.sh
     then
         printError "Commandline tests FAILED"
         exit 1
     fi
 fi
 
-function download_sof()
+function download_alsof()
 {
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        SOF_PATH="$REPO_ROOT/sof"
+        ALSOF_PATH="$REPO_ROOT/alsof"
     elif [ -z $CI ]; then
-        SOF_PATH="sof"
+        ALSOF_PATH="alsof"
     else
+        # Any time the hash is updated here, the "Running compiler tests" section should also be updated.
         mkdir -p /tmp/test
         if grep -i trusty /etc/lsb-release >/dev/null 2>&1
         then
-            # built from 5ac09111bd0b6518365fe956e1bdb97a2db82af1 at 2018-04-05
-            SOF_BINARY=sof_2018-04-05_trusty
-            SOF_HASH="1e5e178b005e5b51f9d347df4452875ba9b53cc6"
+            # built from d661ac4fec0aeffbedcdc195f67f5ded0c798278 at 2018-06-20
+            ALSOF_BINARY=alsof_2018-06-20_trusty
+            ALSOF_HASH="54b8a5455e45b295e3a962f353ff8f1580ed106c"
         else
-            # built from 5ac09111bd0b6518365fe956e1bdb97a2db82af1 at 2018-04-05
-            SOF_BINARY=sof_2018-04-05_artful
-            SOF_HASH="eb2d0df022753bb2b442ba73e565a9babf6828d6"
+            # built from d661ac4fec0aeffbedcdc195f67f5ded0c798278 at 2018-06-20
+            ALSOF_BINARY=alsof_2018-06-20_artful
+            ALSOF_HASH="02e6c4b3d98299885e73f7db6c9e3fbe3d66d444"
         fi
-        wget -q -O /tmp/test/sof https://octonion.institute/susy-cpp/cpp-sophon/releases/download/polynomialTester/$SOF_BINARY
-        test "$(shasum /tmp/test/sof)" = "$SOF_HASH  /tmp/test/sof"
+        ALSOF_PATH="/tmp/test/alsof"
+        wget -q -O $ALSOF_PATH https://octonion.institute/susy-cpp/cpp-sophon/releases/download/polynomialTester/$ALSOF_BINARY
+        test "$(shasum $ALSOF_PATH)" = "$ALSOF_HASH  $ALSOF_PATH"
         sync
-        chmod +x /tmp/test/sof
+        chmod +x $ALSOF_PATH
         sync # Otherwise we might get a "text file busy" error
-        SOF_PATH="/tmp/test/sof"
     fi
 
 }
 
 # $1: data directory
 # echos the PID
-function run_sof()
+function run_alsof()
 {
-    $SOF_PATH --test -d "$1" >/dev/null 2>&1 &
+    $ALSOF_PATH --test -d "${WORKDIR}" >/dev/null 2>&1 &
     echo $!
     # Wait until the IPC endpoint is available.
-    while [ ! -S "$1"/graviton.ipc ] ; do sleep 1; done
+    while [ ! -S "${WORKDIR}/graviton.ipc" ] ; do sleep 1; done
     sleep 2
+}
+
+function check_alsof() {
+    printTask "Running IPC tests with $ALSOF_PATH..."
+    if ! hash $ALSOF_PATH 2>/dev/null; then
+      printError "$ALSOF_PATH not found"
+      exit 1
+    fi
 }
 
 if [ "$IPC_ENABLED" = true ];
 then
-    download_sof
-    SOF_PID=$(run_sof /tmp/test)
+    download_alsof
+    check_alsof
+    ALSOF_PID=$(run_alsof)
 fi
 
 progress="--show-progress"
@@ -145,19 +208,15 @@ do
         log=--logger=JUNIT,test_suite,$log_directory/noopt_$vm.xml $testargs_no_opt
       fi
     fi
-    "$REPO_ROOT"/build/test/poltest $progress $log -- --testpath "$REPO_ROOT"/test "$optimize" --svm-version "$vm" $SMT_FLAGS $IPC_FLAGS  --ipcpath /tmp/test/graviton.ipc
+    "$REPO_ROOT"/build/test/poltest $progress $log -- --testpath "$REPO_ROOT"/test "$optimize" --svm-version "$vm" $SMT_FLAGS $IPC_FLAGS  --ipcpath "${WORKDIR}/graviton.ipc"
   done
 done
 
-if ! wait $CMDLINE_PID
+if [[ -n $CMDLINE_PID ]] && ! wait $CMDLINE_PID
 then
     printError "Commandline tests FAILED"
+    CMDLINE_PID=
     exit 1
 fi
 
-if [ "$IPC_ENABLED" = true ]
-then
-    pkill "$SOF_PID" || true
-    sleep 4
-    pgrep "$SOF_PID" && pkill -9 "$SOF_PID" || true
-fi
+cleanup

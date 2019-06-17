@@ -32,8 +32,8 @@
 #include <libsvmasm/SourceLocation.h>
 #include <libsvmasm/Instruction.h>
 
-#include <libjulia/backends/svm/AbstractAssembly.h>
-#include <libjulia/backends/svm/SVMCodeTransform.h>
+#include <libyul/backends/svm/AbstractAssembly.h>
+#include <libyul/backends/svm/SVMCodeTransform.h>
 
 #include <libdevcore/CommonIO.h>
 
@@ -49,7 +49,7 @@ using namespace dev;
 using namespace dev::polynomial;
 using namespace dev::polynomial::assembly;
 
-class SofAssemblyAdapter: public julia::AbstractAssembly
+class SofAssemblyAdapter: public yul::AbstractAssembly
 {
 public:
 	explicit SofAssemblyAdapter(sof::Assembly& _assembly):
@@ -145,12 +145,12 @@ void assembly::CodeGenerator::assemble(
 	Block const& _parsedData,
 	AsmAnalysisInfo& _analysisInfo,
 	sof::Assembly& _assembly,
-	julia::ExternalIdentifierAccess const& _identifierAccess,
+	yul::ExternalIdentifierAccess const& _identifierAccess,
 	bool _useNamedLabelsForFunctions
 )
 {
 	SofAssemblyAdapter assemblyAdapter(_assembly);
-	julia::CodeTransform(
+	yul::CodeTransform(
 		assemblyAdapter,
 		_analysisInfo,
 		false,

@@ -23,7 +23,6 @@ REPO_ROOT="$(dirname "$0")"/..
     mkdir "$POLDIR"
     # Store the current source
     git checkout-index -a --prefix="$POLDIR"
-    git submodule foreach 'git checkout-index -a --prefix="'"$POLDIR"'/$path/"'
     # Store the commit hash
     echo "$commithash" > "$POLDIR/commit_hash.txt"
     if [ -e prerelease.txt -a ! -s prerelease.txt ]

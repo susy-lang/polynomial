@@ -17,7 +17,7 @@
 /**
  * @author Christian <chris@ethereum.org>
  * @date 2017
- * Routines that generate JULIA code related to ABI encoding, decoding and type conversions.
+ * Routines that generate Yul code related to ABI encoding, decoding and type conversions.
  */
 
 #include <libpolynomial/codegen/ABIFunctions.h>
@@ -49,7 +49,7 @@ string ABIFunctions::tupleEncoder(
 	if (_encodeAsLibraryTypes)
 		functionName += "_library";
 
-	return createFunction(functionName, [&]() {
+	return createExternallyUsedFunction(functionName, [&]() {
 		polAssert(!_givenTypes.empty(), "");
 
 		// Note that the values are in reverse due to the difference in calling semantics.
@@ -113,7 +113,7 @@ string ABIFunctions::tupleDecoder(TypePointers const& _types, bool _fromMemory)
 
 	polAssert(!_types.empty(), "");
 
-	return createFunction(functionName, [&]() {
+	return createExternallyUsedFunction(functionName, [&]() {
 		TypePointers decodingTypes;
 		for (auto const& t: _types)
 			decodingTypes.emplace_back(t->decodingType());
@@ -176,13 +176,13 @@ string ABIFunctions::tupleDecoder(TypePointers const& _types, bool _fromMemory)
 	});
 }
 
-string ABIFunctions::requestedFunctions()
+pair<string, set<string>> ABIFunctions::requestedFunctions()
 {
 	string result;
 	for (auto const& f: m_requestedFunctions)
 		result += f.second;
 	m_requestedFunctions.clear();
-	return result;
+	return make_pair(result, std::move(m_externallyUsedFunctions));
 }
 
 string ABIFunctions::cleanupFunction(Type const& _type, bool _revertOnFailure)
@@ -197,6 +197,9 @@ string ABIFunctions::cleanupFunction(Type const& _type, bool _revertOnFailure)
 		templ("functionName", functionName);
 		switch (_type.category())
 		{
+		case Type::Category::Address:
+			templ("body", "cleaned := " + cleanupFunction(IntegerType(160)) + "(value)");
+			break;
 		case Type::Category::Integer:
 		{
 			IntegerType const& type = dynamic_cast<IntegerType const&>(_type);
@@ -228,7 +231,8 @@ string ABIFunctions::cleanupFunction(Type const& _type, bool _revertOnFailure)
 			if (type.numBytes() == 32)
 				templ("body", "cleaned := value");
 			else if (type.numBytes() == 0)
-				templ("body", "cleaned := 0");
+				// This is disallowed in the type system.
+				polAssert(false, "");
 			else
 			{
 				size_t numBits = type.numBytes() * 8;
@@ -238,8 +242,14 @@ string ABIFunctions::cleanupFunction(Type const& _type, bool _revertOnFailure)
 			break;
 		}
 		case Type::Category::Contract:
-			templ("body", "cleaned := " + cleanupFunction(IntegerType(160, IntegerType::Modifier::Address)) + "(value)");
+		{
+			AddressType addressType(dynamic_cast<ContractType const&>(_type).isPayable() ?
+				StateMutability::Payable :
+				StateMutability::NonPayable
+			);
+			templ("body", "cleaned := " + cleanupFunction(addressType) + "(value)");
 			break;
+		}
 		case Type::Category::Enum:
 		{
 			size_t members = dynamic_cast<EnumType const&>(_type).numberOfMembers();
@@ -283,6 +293,12 @@ string ABIFunctions::conversionFunction(Type const& _from, Type const& _to)
 		auto fromCategory = _from.category();
 		switch (fromCategory)
 		{
+		case Type::Category::Address:
+			body =
+				Whiskers("converted := <convert>(value)")
+					("convert", conversionFunction(IntegerType(160), _to))
+					.render();
+			break;
 		case Type::Category::Integer:
 		case Type::Category::RationalNumber:
 		case Type::Category::Contract:
@@ -313,16 +329,19 @@ string ABIFunctions::conversionFunction(Type const& _from, Type const& _to)
 					.render();
 			}
 			else if (toCategory == Type::Category::FixedPoint)
-			{
 				polUnimplemented("Not yet implemented - FixedPointType.");
-			}
+			else if (toCategory == Type::Category::Address)
+				body =
+					Whiskers("converted := <convert>(value)")
+						("convert", conversionFunction(_from, IntegerType(160)))
+						.render();
 			else
 			{
 				polAssert(
 					toCategory == Type::Category::Integer ||
 					toCategory == Type::Category::Contract,
 				"");
-				IntegerType const addressType(160, IntegerType::Modifier::Address);
+				IntegerType const addressType(160);
 				IntegerType const& to =
 					toCategory == Type::Category::Integer ?
 					dynamic_cast<IntegerType const&>(_to) :
@@ -374,6 +393,11 @@ string ABIFunctions::conversionFunction(Type const& _from, Type const& _to)
 					("shift", shiftRightFunction(256 - from.numBytes() * 8))
 					("convert", conversionFunction(IntegerType(from.numBytes() * 8), _to))
 					.render();
+			else if (toCategory == Type::Category::Address)
+				body =
+					Whiskers("converted := <convert>(value)")
+						("convert", conversionFunction(_from, IntegerType(160)))
+						.render();
 			else
 			{
 				// clear for conversion to longer bytes
@@ -409,7 +433,7 @@ string ABIFunctions::conversionFunction(Type const& _from, Type const& _to)
 			polAssert(false, "");
 		}
 
-		polAssert(!body.empty(), "");
+		polAssert(!body.empty(), _from.canonicalName() + " to " + _to.canonicalName());
 		templ("body", body);
 		return templ.render();
 	});
@@ -471,13 +495,8 @@ string ABIFunctions::abiEncodingFunction(
 	bool _fromStack
 )
 {
-	polUnimplementedAssert(
-		_to.mobileType() &&
-		_to.mobileType()->interfaceType(_encodeAsLibraryTypes) &&
-		_to.mobileType()->interfaceType(_encodeAsLibraryTypes)->encodingType(),
-		"Encoding type \"" + _to.toString() + "\" not yet implemented."
-	);
-	TypePointer toInterface = _to.mobileType()->interfaceType(_encodeAsLibraryTypes)->encodingType();
+	TypePointer toInterface = _to.fullEncodingType(_encodeAsLibraryTypes, true, false);
+	polUnimplementedAssert(toInterface, "Encoding type \"" + _to.toString() + "\" not yet implemented.");
 	Type const& to = *toInterface;
 
 	if (_from.category() == Type::Category::StringLiteral)
@@ -679,16 +698,6 @@ string ABIFunctions::abiEncodingFunctionSimpleArray(
 			_encodeAsLibraryTypes,
 			false
 		));
-		polAssert(
-			inMemory ||
-			!_from.baseType()->isValueType() ||
-			(
-				_from.baseType()->category() == Type::Category::Integer &&
-				!dynamic_cast<IntegerType const&>(*_from.baseType()).isSigned()
-			) ||
-			_from.baseType()->storageBytes() == 32,
-			"You are using a buggy part of ABIEncoderV2. Please use a newer compiler version or disable ABIEncoderV2."
-		);
 		templ("arrayElementAccess", inMemory ? "mload(srcPtr)" : _from.baseType()->isValueType() ? "sload(srcPtr)" : "srcPtr" );
 		templ("nextArrayElement", nextArrayElementFunction(_from));
 		return templ.render();
@@ -787,12 +796,6 @@ string ABIFunctions::abiEncodingFunctionCompactStorageArray(
 		}
 		else
 		{
-			// This function is not always a problem, but it can overwrite other data areas.
-			polAssert(
-				false,
-				"You are using a potentially buggy part of ABIEncoderV2. Please use a newer compiler version or disable ABIEncoderV2."
-			);
-
 			// Multiple items per slot
 			polAssert(_from.baseType()->storageBytes() <= 16, "");
 			polAssert(!_from.baseType()->isDynamicallyEncoded(), "");
@@ -902,13 +905,8 @@ string ABIFunctions::abiEncodingFunctionStruct(
 			polAssert(member.type, "");
 			if (!member.type->canLiveOutsideStorage())
 				continue;
-			polUnimplementedAssert(
-				member.type->mobileType() &&
-				member.type->mobileType()->interfaceType(_encodeAsLibraryTypes) &&
-				member.type->mobileType()->interfaceType(_encodeAsLibraryTypes)->encodingType(),
-				"Encoding type \"" + member.type->toString() + "\" not yet implemented."
-			);
-			auto memberTypeTo = member.type->mobileType()->interfaceType(_encodeAsLibraryTypes)->encodingType();
+			TypePointer memberTypeTo = member.type->fullEncodingType(_encodeAsLibraryTypes, true, false);
+			polUnimplementedAssert(memberTypeTo, "Encoding type \"" + member.type->toString() + "\" not yet implemented.");
 			auto memberTypeFrom = _from.memberType(member.name);
 			polAssert(memberTypeFrom, "");
 			bool dynamicMember = memberTypeTo->isDynamicallyEncoded();
@@ -943,16 +941,6 @@ string ABIFunctions::abiEncodingFunctionStruct(
 					}
 					else
 						memberTempl("preprocess", "");
-
-					polAssert(
-						(
-							memberTypeFrom->category() == Type::Category::Integer &&
-							!dynamic_cast<IntegerType const&>(*memberTypeFrom).isSigned()
-						) ||
-						memberTypeFrom->storageBytes() == 32,
-						"You are using a potentially buggy part of ABIEncoderV2. Please use a newer compiler version or disable ABIEncoderV2."
-					);
-
 					memberTempl("retrieveValue", shiftRightFunction(intraSlotOffset * 8) + "(slotValue)");
 				}
 				else
@@ -1015,7 +1003,7 @@ string ABIFunctions::abiEncodingFunctionStringLiteral(
 			)");
 			templ("functionName", functionName);
 
-			// TODO this can make use of CODECOPY for large strings once we have that in JULIA
+			// TODO this can make use of CODECOPY for large strings once we have that in Yul
 			size_t words = (value.size() + 31) / 32;
 			templ("overallSize", to_string(32 + words * 32));
 			templ("length", to_string(value.size()));
@@ -1214,7 +1202,8 @@ string ABIFunctions::abiDecodingFunctionCalldataArray(ArrayType const& _type)
 	polAssert(_type.dataStoredIn(DataLocation::CallData), "");
 	if (!_type.isDynamicallySized())
 		polAssert(_type.length() < u256("0xffffffffffffffff"), "");
-	polAssert(!_type.baseType()->isDynamicallyEncoded(), "");
+	if (_type.baseType()->isDynamicallyEncoded())
+		polUnimplemented("Calldata arrays with non-value base types are not yet supported by Polynomial.");
 	polAssert(_type.baseType()->calldataEncodedSize() < u256("0xffffffffffffffff"), "");
 
 	string functionName =
@@ -1706,6 +1695,13 @@ string ABIFunctions::createFunction(string const& _name, function<string ()> con
 		m_requestedFunctions[_name] = fun;
 	}
 	return _name;
+}
+
+string ABIFunctions::createExternallyUsedFunction(string const& _name, function<string ()> const& _creator)
+{
+	string name = createFunction(_name, _creator);
+	m_externallyUsedFunctions.insert(name);
+	return name;
 }
 
 size_t ABIFunctions::headSize(TypePointers const& _targetTypes)

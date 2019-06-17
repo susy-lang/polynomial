@@ -17,10 +17,16 @@
 /**
  * @author Christian <c@sofdev.com>
  * @date 2014
- * JSON interface for the polynomial compiler to be used from Javascript.
+ * Public compiler API.
  */
 
 #include <stdbool.h>
+
+#ifdef __cplusplus
+#define POLC_NOEXCEPT noexcept
+#else
+#define POLC_NOEXCEPT
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,12 +36,9 @@ extern "C" {
 /// heap-allocated and are free'd by the caller.
 typedef void (*CStyleReadFileCallback)(char const* _path, char** o_contents, char** o_error);
 
-char const* license();
-char const* version();
-char const* compileJSON(char const* _input, bool _optimize);
-char const* compileJSONMulti(char const* _input, bool _optimize);
-char const* compileJSONCallback(char const* _input, bool _optimize, CStyleReadFileCallback _readCallback);
-char const* compileStandard(char const* _input, CStyleReadFileCallback _readCallback);
+char const* polynomial_license() POLC_NOEXCEPT;
+char const* polynomial_version() POLC_NOEXCEPT;
+char const* polynomial_compile(char const* _input, CStyleReadFileCallback _readCallback) POLC_NOEXCEPT;
 
 #ifdef __cplusplus
 }

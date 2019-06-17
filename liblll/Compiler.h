@@ -30,7 +30,7 @@
 
 namespace dev
 {
-namespace sof
+namespace lll
 {
 
 using ReadCallback = std::function<std::string(std::string const&)>;

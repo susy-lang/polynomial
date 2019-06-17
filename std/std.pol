@@ -1,6 +1,0 @@
-pragma polynomial ^0.4.0;
-
-import "./owned.pol";
-import "./mortal.pol";
-import "./Token.pol";
-import "./StandardToken.pol";

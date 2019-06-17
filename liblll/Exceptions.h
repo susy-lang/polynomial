@@ -25,7 +25,7 @@
 
 namespace dev
 {
-namespace sof
+namespace lll
 {
 
 /// Compile a Low-level Lisp-like Language program into SVM-code.

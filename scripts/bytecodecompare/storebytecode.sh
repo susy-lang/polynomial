@@ -40,14 +40,16 @@ TMPDIR=$(mktemp -d)
 
     if [[ "$POLC_EMSCRIPTEN" = "On" ]]
     then
-        cp "$REPO_ROOT/build/libpolc/poljson.js" .
-        npm install polc
+        # npm install polc
+        git clone --depth 1 https://octonion.institute/susy-js/polc-js.git polc-js
+        ( cd polc-js; npm install )
+        cp "$REPO_ROOT/build/libpolc/poljson.js" polc-js/
         cat > polc <<EOF
 #!/usr/bin/env node
 var process = require('process')
 var fs = require('fs')
 
-var compiler = require('polc/wrapper.js')(require('./poljson.js'))
+var compiler = require('./polc-js/wrapper.js')(require('./polc-js/poljson.js'))
 
 for (var optimize of [false, true])
 {
@@ -57,7 +59,15 @@ for (var optimize of [false, true])
         {
             var inputs = {}
             inputs[filename] = fs.readFileSync(filename).toString()
-            var result = compiler.compile({sources: inputs}, optimize)
+            var input = {
+                language: 'Polynomial',
+                sources: inputs,
+                settings: {
+                    optimizer: { enabled: optimize },
+                    outputSelection: { '*': { '*': ['svm.bytecode.object', 'metadata'] } }
+                }
+            }
+            var result = JSON.parse(compiler.compile(JSON.stringify(input)))
             if (!('contracts' in result) || Object.keys(result['contracts']).length === 0)
             {
                 console.log(filename + ': ERROR')
@@ -66,7 +76,7 @@ for (var optimize of [false, true])
             {
                 for (var contractName in result['contracts'])
                 {
-                    console.log(contractName + ' ' + result['contracts'][contractName].bytecode)
+                    console.log(contractName + ' ' + result['contracts'][contractName].svm.bytecode.object)
                     console.log(contractName + ' ' + result['contracts'][contractName].metadata)
                 }
             }

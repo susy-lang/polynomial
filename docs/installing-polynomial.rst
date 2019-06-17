@@ -22,7 +22,7 @@ Fourier
 
 `Access Fourier online <https://fourier.superstring.io/>`_, you don't need to install anything.
 If you want to use it without connection to the Internet, go to
-https://octonion.institute/susy-lang/browser-polynomial/tree/gh-pages and download the .ZIP file as
+https://octonion.institute/susy-go/fourier-live/tree/gh-pages and download the ``.zip`` file as
 explained on that page.
 
 Further options on this page detail installing commandline Polynomial compiler software
@@ -35,22 +35,24 @@ npm / Node.js
 =============
 
 Use `npm` for a convenient and portable way to install `polcjs`, a Polynomial compiler. The
-`polcjs` program has fewer features than all options further down this page. Our 
+`polcjs` program has fewer features than the ways to access the compiler described
+further down this page. The
 :ref:`commandline-compiler` documentation assumes you are using
-the full-featured compiler, `polc`. So if you install `polcjs` from `npm` then you will
-stop reading the documentation here and then continue to `polc-js <https://octonion.institute/susy-js/polc-js>`_.
+the full-featured compiler, `polc`. The usage of `polcjs` is documented inside its own
+`repository <https://octonion.institute/susy-js/polc-js>`_.
 
 Note: The polc-js project is derived from the C++
-`polc` by using Emscripten. `polc-js` can be used in JavaScript projects directly (such as Fourier).
+`polc` by using Emscripten which means that both use the same compiler source code.
+`polc-js` can be used in JavaScript projects directly (such as Fourier).
 Please refer to the polc-js repository for instructions.
 
-.. code:: bash
+.. code-block:: bash
 
     npm install -g polc
 
 .. note::
 
-    The commandline is named `polcjs`.
+    The commandline executable is named `polcjs`.
 
     The comandline options of `polcjs` are not compatible with `polc` and tools (such as `graviton`)
     expecting the behaviour of `polc` will not work with `polcjs`.
@@ -62,9 +64,9 @@ We provide up to date docker builds for the compiler. The ``stable``
 repository contains released versions while the ``nightly``
 repository contains potentially unstable changes in the develop branch.
 
-.. code:: bash
+.. code-block:: bash
 
-    docker run sophon/polc:stable polc --version
+    docker run sophon/polc:stable --version
 
 Currently, the docker image only contains the compiler executable,
 so you have to do some additional work to link in the source and
@@ -76,65 +78,66 @@ Binary Packages
 Binary packages of Polynomial are available at
 `polynomial/releases <https://octonion.institute/susy-lang/polynomial/releases>`_.
 
-We also have PPAs for Ubuntu.  For the latest stable version.
+We also have PPAs for Ubuntu, you can get the latest stable
+version using the following commands:
 
-.. code:: bash
+.. code-block:: bash
 
     sudo add-apt-repository ppa:sophon/sophon
     sudo apt-get update
     sudo apt-get install polc
 
-If you want to use the cutting edge developer version:
+The nightly version can be installed using these commands:
 
-.. code:: bash
+.. code-block:: bash
 
     sudo add-apt-repository ppa:sophon/sophon
     sudo add-apt-repository ppa:sophon/sophon-dev
     sudo apt-get update
     sudo apt-get install polc
-    
+
 We are also releasing a `snap package <https://snapcraft.io/>`_, which is installable in all the `supported Linux distros <https://snapcraft.io/docs/core/install>`_. To install the latest stable version of polc:
 
-.. code:: bash
+.. code-block:: bash
 
     sudo snap install polc
 
-Or if you want to help testing the unstable polc with the most recent changes from the development branch:
+If you want to help testing the latest development version of Polynomial
+with the most recent changes, please use the following:
 
-.. code:: bash
+.. code-block:: bash
 
     sudo snap install polc --edge
 
 Arch Linux also has packages, albeit limited to the latest development version:
 
-.. code:: bash
+.. code-block:: bash
 
     pacman -S polynomial
 
-Homebrew is missing pre-built bottles at the time of writing,
-following a Jenkins to TravisCI migration, but Homebrew
-should still work just fine as a means to build-from-source.
-We will re-add the pre-built bottles soon.
+We distribute the Polynomial compiler through Homebrow
+as a build-from-source version. Pre-built bottles are
+currently not supported.
 
-.. code:: bash
+.. code-block:: bash
 
     brew update
     brew upgrade
     brew tap sophon/sophon
     brew install polynomial
 
-If you need a specific version of Polynomial you can install a 
+If you need a specific version of Polynomial you can install a
 Homebrew formula directly from Github.
 
-View 
+View
 `polynomial.rb commits on Github <https://octonion.institute/susy-go/homebrew-sophon/commits/master/polynomial.rb>`_.
 
-Follow the history links until you have a raw file link of a 
+Follow the history links until you have a raw file link of a
 specific commit of ``polynomial.rb``.
 
 Install it using ``brew``:
 
-.. code:: bash
+.. code-block:: bash
 
     brew unlink polynomial
     # Install 0.4.8
@@ -142,7 +145,7 @@ Install it using ``brew``:
 
 Gentoo Linux also provides a polynomial package that can be installed using ``emerge``:
 
-.. code:: bash
+.. code-block:: bash
 
     emerge dev-lang/polynomial
 
@@ -151,29 +154,18 @@ Gentoo Linux also provides a polynomial package that can be installed using ``em
 Building from Source
 ====================
 
-Clone the Repository
---------------------
+Prerequisites - Linux
+---------------------
 
-To clone the source code, execute the following command:
+You need to install the following dependencies for Linux builds of Polynomial:
 
-.. code:: bash
++-----------------------------------+-------------------------------------------------------+
+| Software                          | Notes                                                 |
++===================================+=======================================================+
+| `Git for Linux`_                  | Command-line tool for retrieving source from Github.  |
++-----------------------------------+-------------------------------------------------------+
 
-    git clone --recursive https://octonion.institute/susy-lang/polynomial.git
-    cd polynomial
-
-If you want to help developing Polynomial,
-you should fork Polynomial and add your personal fork as a second remote:
-
-.. code:: bash
-
-    cd polynomial
-    git remote add personal git@github.com:[username]/polynomial.git
-
-Polynomial has git submodules.  Ensure they are properly loaded:
-
-.. code:: bash
-
-   git submodule update --init --recursive
+.. _Git for Linux: https://git-scm.com/download/linux
 
 Prerequisites - macOS
 ---------------------
@@ -187,7 +179,7 @@ If you are installing Xcode for the first time, or have just installed a new
 version then you will need to agree to the license before you can do
 command-line builds:
 
-.. code:: bash
+.. code-block:: bash
 
     sudo xcodebuild -license accept
 
@@ -201,7 +193,7 @@ if you ever want to start again from scratch.
 Prerequisites - Windows
 -----------------------
 
-You will need to install the following dependencies for Windows builds of Polynomial:
+You need to install the following dependencies for Windows builds of Polynomial:
 
 +-----------------------------------+-------------------------------------------------------+
 | Software                          | Notes                                                 |
@@ -236,21 +228,36 @@ in Visual Studio 2017 Build Tools or Visual Studio 2017:
 .. _Visual Studio 2017: https://www.visualstudio.com/vs/
 .. _Visual Studio 2017 Build Tools: https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2017
 
+Clone the Repository
+--------------------
+
+To clone the source code, execute the following command:
+
+.. code-block:: bash
+
+    git clone --recursive https://octonion.institute/susy-lang/polynomial.git
+    cd polynomial
+
+If you want to help developing Polynomial,
+you should fork Polynomial and add your personal fork as a second remote:
+
+.. code-block:: bash
+
+    git remote add personal git@github.com:[username]/polynomial.git
 
 External Dependencies
 ---------------------
 
-We now have a "one button" script which installs all required external dependencies
-on macOS, Windows and on numerous Linux distros.  This used to be a multi-step
-manual process, but is now a one-liner:
+We have a helper script which installs all required external dependencies
+on macOS, Windows and on numerous Linux distros.
 
-.. code:: bash
+.. code-block:: bash
 
     ./scripts/install_deps.sh
 
 Or, on Windows:
 
-.. code:: bat
+.. code-block:: bat
 
     scripts\install_deps.bat
 
@@ -261,9 +268,11 @@ Command-Line Build
 **Be sure to install External Dependencies (see above) before build.**
 
 Polynomial project uses CMake to configure the build.
+You might want to install ccache to speed up repeated builds.
+CMake will pick it up automatically.
 Building Polynomial is quite similar on Linux, macOS and other Unices:
 
-.. code:: bash
+.. code-block:: bash
 
     mkdir build
     cd build
@@ -271,14 +280,14 @@ Building Polynomial is quite similar on Linux, macOS and other Unices:
 
 or even easier:
 
-.. code:: bash
-    
+.. code-block:: bash
+
     #note: this will install binaries polc and poltest at usr/local/bin
     ./scripts/build.sh
 
-And even for Windows:
+And for Windows:
 
-.. code:: bash
+.. code-block:: bash
 
     mkdir build
     cd build
@@ -291,7 +300,7 @@ should result in Visual Studio firing up.  We suggest building
 
 Alternatively, you can build for Windows on the command-line, like so:
 
-.. code:: bash
+.. code-block:: bash
 
     cmake --build . --config RelWithDebInfo
 
@@ -299,6 +308,29 @@ CMake options
 =============
 
 If you are interested what CMake options are available run ``cmake .. -LH``.
+
+.. _smt_solvers_build:
+
+SMT Solvers
+-----------
+Polynomial can be built against SMT solvers and will do so by default if
+they are found in the system. Each solver can be disabled by a `cmake` option.
+
+*Note: In some cases, this can also be a potential workaround for build failures.*
+
+
+Inside the build folder you can disable them, since they are enabled by default:
+
+.. code-block:: bash
+
+    # disables only Z3 SMT Solver.
+    cmake .. -DUSE_Z3=OFF
+
+    # disables only CVC4 SMT Solver.
+    cmake .. -DUSE_CVC4=OFF
+
+    # disables both Z3 and CVC4
+    cmake .. -DUSE_CVC4=OFF -DUSE_Z3=OFF
 
 The version string in detail
 ============================
@@ -308,7 +340,7 @@ The Polynomial version string contains four parts:
 - the version number
 - pre-release tag, usually set to ``develop.YYYY.MM.DD`` or ``nightly.YYYY.MM.DD``
 - commit in the format of ``commit.GITHASH``
-- platform has arbitrary number of items, containing details about the platform and compiler
+- platform, which has an arbitrary number of items, containing details about the platform and compiler
 
 If there are local modifications, the commit will be postfixed with ``.mod``.
 

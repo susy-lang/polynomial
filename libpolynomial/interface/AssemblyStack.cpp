@@ -15,7 +15,7 @@
 	along with polynomial.  If not, see <http://www.gnu.org/licenses/>.
 */
 /**
- * Full assembly stack that can support SVM-assembly and JULIA as input and SVM, SVM1.5 and
+ * Full assembly stack that can support SVM-assembly and Yul as input and SVM, SVM1.5 and
  * eWasm as output.
  */
 
@@ -31,8 +31,8 @@
 
 #include <libsvmasm/Assembly.h>
 
-#include <libjulia/backends/svm/SVMCodeTransform.h>
-#include <libjulia/backends/svm/SVMAssembly.h>
+#include <libyul/backends/svm/SVMCodeTransform.h>
+#include <libyul/backends/svm/SVMAssembly.h>
 
 using namespace std;
 using namespace dev;
@@ -48,11 +48,11 @@ assembly::AsmFlavour languageToAsmFlavour(AssemblyStack::Language _language)
 		return assembly::AsmFlavour::Loose;
 	case AssemblyStack::Language::StrictAssembly:
 		return assembly::AsmFlavour::Strict;
-	case AssemblyStack::Language::JULIA:
-		return assembly::AsmFlavour::IULIA;
+	case AssemblyStack::Language::Yul:
+		return assembly::AsmFlavour::Yul;
 	}
 	polAssert(false, "");
-	return assembly::AsmFlavour::IULIA;
+	return assembly::AsmFlavour::Yul;
 }
 
 }
@@ -116,10 +116,10 @@ MachineAssemblyObject AssemblyStack::assemble(Machine _machine) const
 	case Machine::SVM15:
 	{
 		MachineAssemblyObject object;
-		julia::SVMAssembly assembly(true);
-		julia::CodeTransform(assembly, *m_analysisInfo, m_language == Language::JULIA, true)(*m_parserResult);
+		yul::SVMAssembly assembly(true);
+		yul::CodeTransform(assembly, *m_analysisInfo, m_language == Language::Yul, true)(*m_parserResult);
 		object.bytecode = make_shared<sof::LinkerObject>(assembly.finalize());
-		/// TOOD: fill out text representation
+		/// TODO: fill out text representation
 		return object;
 	}
 	case Machine::eWasm:
@@ -132,5 +132,5 @@ MachineAssemblyObject AssemblyStack::assemble(Machine _machine) const
 string AssemblyStack::print() const
 {
 	polAssert(m_parserResult, "");
-	return assembly::AsmPrinter(m_language == Language::JULIA)(*m_parserResult);
+	return assembly::AsmPrinter(m_language == Language::Yul)(*m_parserResult);
 }

@@ -1,1 +1,2 @@
 sphinx_rtd_theme>=0.3.1
+pygments-lexer-polynomial>=0.3.1

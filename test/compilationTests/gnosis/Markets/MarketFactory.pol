@@ -1,4 +1,4 @@
-pragma polynomial ^0.4.11;
+pragma polynomial >=0.0;
 import "../Events/Event.pol";
 import "../MarketMakers/MarketMaker.pol";
 import "../Markets/Market.pol";

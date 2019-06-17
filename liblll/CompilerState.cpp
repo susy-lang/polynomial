@@ -24,7 +24,7 @@
 
 using namespace std;
 using namespace dev;
-using namespace dev::sof;
+using namespace dev::lll;
 
 CompilerState::CompilerState()
 {
