@@ -99,6 +99,6 @@ cp poljson.js upload/
 
 OUTPUT_SIZE=`ls -la build/polc/poljson.js`
 
-echo "Emscripten output size: ${OUTPUT_SIZE}"
+echo "Emscripten output size: $OUTPUT_SIZE"
 
 echo -en 'travis_fold:end:compiling_polynomial\\r'

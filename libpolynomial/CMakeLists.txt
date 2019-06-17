@@ -7,10 +7,12 @@ aux_source_directory(formal SRC_LIST)
 aux_source_directory(interface SRC_LIST)
 aux_source_directory(parsing SRC_LIST)
 aux_source_directory(inlineasm SRC_LIST)
+# Until we have a clear separation, libjulia has to be included here
+aux_source_directory(../libjulia SRC_LIST)
 
 set(EXECUTABLE polynomial)
 
-file(GLOB HEADERS "*/*.h") 
+file(GLOB HEADERS "*/*.h" "../libjulia/backends/svm/*")
 
 include_directories(BEFORE ..)
 add_library(${EXECUTABLE} ${SRC_LIST} ${HEADERS})

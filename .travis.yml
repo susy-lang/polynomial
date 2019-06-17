@@ -180,7 +180,7 @@ cache:
 install:
     - test $POLC_INSTALL_DEPS_TRAVIS != On || (scripts/install_deps.sh)
     - test "$TRAVIS_OS_NAME" != "linux" || (scripts/install_cmake.sh)
-    - if [ "$TRAVIS_BRANCH" = release ]; then echo -n > prerelease.txt; else date -u +"nightly.%Y.%-m.%-d" > prerelease.txt; fi
+    - if [ "$TRAVIS_BRANCH" = release -o -n "$TRAVIS_TAG" ]; then echo -n > prerelease.txt; else date -u +"nightly.%Y.%-m.%-d" > prerelease.txt; fi
     - echo -n "$TRAVIS_COMMIT" > commit_hash.txt
 
 before_script:
@@ -191,6 +191,7 @@ before_script:
       && scripts/create_source_tarball.sh)
 
 script:
+    - test $POLC_EMSCRIPTEN != On || (scripts/test_emscripten.sh)
     - test $POLC_DOCS != On || (scripts/docs.sh)
     - test $POLC_TESTS != On || (cd $TRAVIS_BUILD_DIR && scripts/tests.sh)
     - test $POLC_STOREBYTECODE != On || (cd $TRAVIS_BUILD_DIR && scripts/bytecodecompare/storebytecode.sh)

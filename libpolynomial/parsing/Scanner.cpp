@@ -52,7 +52,7 @@
 
 #include <algorithm>
 #include <tuple>
-#include <libpolynomial/interface/Utils.h>
+#include <libpolynomial/interface/Exceptions.h>
 #include <libpolynomial/parsing/Scanner.h>
 
 using namespace std;

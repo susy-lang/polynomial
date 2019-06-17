@@ -6,7 +6,7 @@ set -e
 REPO_ROOT="$(dirname "$0")"/..
 (
     cd "$REPO_ROOT"
-    version=$(grep -oP "PROJECT_VERSION \"?\K[0-9.]+(?=\")"? CMakeLists.txt)
+    version=$(scripts/get_version.sh)
     commithash=$(git rev-parse --short=8 HEAD)
     commitdate=$(git show --format=%ci HEAD | head -n 1 | cut - -b1-10 | sed -e 's/-0?/./' | sed -e 's/-0?/./')
 
@@ -26,6 +26,10 @@ REPO_ROOT="$(dirname "$0")"/..
     git submodule foreach 'git checkout-index -a --prefix="'"$POLDIR"'/$path/"'
     # Store the commit hash
     echo "$commithash" > "$POLDIR/commit_hash.txt"
+    if [ -e prerelease.txt -a ! -s prerelease.txt ]
+    then
+        cp prerelease.txt "$POLDIR/"
+    fi
     # Add dependencies
     mkdir -p "$POLDIR/deps/downloads/" 2>/dev/null || true
     wget -O "$POLDIR/deps/downloads/jsoncpp-1.7.7.tar.gz" https://github.com/open-source-parsers/jsoncpp/archive/1.7.7.tar.gz

@@ -28,7 +28,7 @@
 #include <libsvmasm/SourceLocation.h>
 #include <libpolynomial/ast/ASTVisitor.h>
 #include <libpolynomial/codegen/LValue.h>
-#include <libpolynomial/interface/Utils.h>
+#include <libpolynomial/interface/Exceptions.h>
 
 namespace dev {
 namespace sof

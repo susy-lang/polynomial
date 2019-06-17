@@ -43,7 +43,6 @@
 #pragma once
 
 #include <libdevcore/Common.h>
-#include <libpolynomial/interface/Utils.h>
 #include <libpolynomial/interface/Exceptions.h>
 #include <libdevcore/UndefMacros.h>
 

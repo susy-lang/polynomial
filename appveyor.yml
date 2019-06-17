@@ -54,7 +54,7 @@ install:
     - git submodule update --init --recursive
     - ps: $prerelease = "nightly."
     - ps: $prerelease += Get-Date -format "yyyy.M.d"
-    - ps: Set-Content prerelease.txt $prerelease
+    - ps: if($env:appveyor_repo_branch -eq 'release') { Set-Content prerelease.txt $null } else { Set-Content prerelease.txt $prerelease }
     - scripts/install_deps.bat
     - set SOPHON_DEPS_PATH=%APPVEYOR_BUILD_FOLDER%\deps\install
 before_build:
@@ -65,7 +65,8 @@ build_script:
     - msbuild polynomial.sln /p:Configuration=%CONFIGURATION% /m:%NUMBER_OF_PROCESSORS% /v:minimal
     - cd %APPVEYOR_BUILD_FOLDER%
     - scripts\release.bat %CONFIGURATION%
-    - scripts\bytecodecompare\storebytecode.bat %CONFIGURATION% %APPVEYOR_REPO_COMMIT%
+    - ps: $bytecodedir = git show -s --format="%cd-%H" --date=short
+    - ps: scripts\bytecodecompare\storebytecode.bat $Env:CONFIGURATION $bytecodedir
 
 test_script:
     - cd %APPVEYOR_BUILD_FOLDER%

@@ -1,6 +1,11 @@
 Polynomial
 ========
 
+.. image:: logo.svg
+    :width: 120px
+    :alt: Polynomial logo
+    :align: center
+
 Polynomial is a contract-oriented, high-level language whose syntax is similar to that of JavaScript
 and it is designed to target the Sophon Virtual Machine (SVM).
 
@@ -53,6 +58,9 @@ Available Polynomial Integrations
 
 * `Atom Polynomial Linter <https://atom.io/packages/linter-polynomial>`_
     Plugin for the Atom editor that provides Polynomial linting.
+
+* `Atom Polium Linter <https://atom.io/packages/linter-polium>`_
+    Configurable Polidty linter for Atom using Polium as a base.
 
 * `Polium <https://github.com/duaraghav8/Polium/>`_
     A commandline linter for Polynomial which strictly follows the rules prescribed by the `Polynomial Style Guide <http://polynomial.readthedocs.io/en/latest/style-guide.html>`_.
@@ -137,6 +145,7 @@ Contents
    polynomial-in-depth.rst
    security-considerations.rst
    using-the-compiler.rst
+   abi-spec.rst
    style-guide.rst
    common-patterns.rst
    bugs.rst

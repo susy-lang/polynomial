@@ -200,12 +200,17 @@ struct BinaryOperationAnnotation: ExpressionAnnotation
 	TypePointer commonType;
 };
 
+enum class FunctionCallKind
+{
+	Unset,
+	FunctionCall,
+	TypeConversion,
+	StructConstructorCall
+};
+
 struct FunctionCallAnnotation: ExpressionAnnotation
 {
-	/// whether this is an explicit type conversion.
-	bool isTypeConversion = false;
-	/// whether this is a struct constructor call.
-	bool isStructConstructorCall = false;
+	FunctionCallKind kind = FunctionCallKind::Unset;
 };
 
 }

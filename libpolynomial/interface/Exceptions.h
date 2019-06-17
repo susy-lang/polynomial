@@ -25,6 +25,7 @@
 #include <string>
 #include <utility>
 #include <libdevcore/Exceptions.h>
+#include <libdevcore/Assertions.h>
 #include <libsvmasm/SourceLocation.h>
 
 namespace dev
@@ -39,6 +40,16 @@ struct InternalCompilerError: virtual Exception {};
 struct FatalError: virtual Exception {};
 struct UnimplementedFeatureError: virtual Exception{};
 
+/// Assertion that throws an InternalCompilerError containing the given description if it is not met.
+#define polAssert(CONDITION, DESCRIPTION) \
+        assertThrow(CONDITION, ::dev::polynomial::InternalCompilerError, DESCRIPTION)
+
+#define polUnimplementedAssert(CONDITION, DESCRIPTION) \
+        assertThrow(CONDITION, ::dev::polynomial::UnimplementedFeatureError, DESCRIPTION)
+
+#define polUnimplemented(DESCRIPTION) \
+        polUnimplementedAssert(false, DESCRIPTION)
+
 class Error: virtual public Exception
 {
 public:
@@ -49,7 +60,6 @@ public:
 		ParserError,
 		TypeError,
 		SyntaxError,
-		Why3TranslatorError,
 		Warning
 	};
 

@@ -16,30 +16,37 @@
 */
 /**
  * @author Christian <c@sofdev.com>
- * @date 2014
- * Polynomial Utilities.
+ * @date 2016
+ * Forward declaration of classes for inline assembly / JULIA AST
  */
 
 #pragma once
 
-#include <libdevcore/Assertions.h>
-#include <libpolynomial/interface/Exceptions.h>
+#include <boost/variant.hpp>
 
 namespace dev
 {
 namespace polynomial
 {
-struct InternalCompilerError;
-struct UnimplementedFeatureError;
+namespace assembly
+{
+
+struct Instruction;
+struct Literal;
+struct Label;
+struct StackAssignment;
+struct Identifier;
+struct Assignment;
+struct VariableDeclaration;
+struct FunctionalInstruction;
+struct FunctionDefinition;
+struct FunctionCall;
+struct Switch;
+struct ForLoop;
+struct Block;
+
+using Statement = boost::variant<Instruction, Literal, Label, StackAssignment, Identifier, Assignment, FunctionCall, FunctionalInstruction, VariableDeclaration, FunctionDefinition, Switch, ForLoop, Block>;
+
 }
 }
-
-/// Assertion that throws an InternalCompilerError containing the given description if it is not met.
-#define polAssert(CONDITION, DESCRIPTION) \
-	assertThrow(CONDITION, ::dev::polynomial::InternalCompilerError, DESCRIPTION)
-
-#define polUnimplementedAssert(CONDITION, DESCRIPTION) \
-	assertThrow(CONDITION, ::dev::polynomial::UnimplementedFeatureError, DESCRIPTION)
-
-#define polUnimplemented(DESCRIPTION) \
-	polUnimplementedAssert(false, DESCRIPTION)
+}

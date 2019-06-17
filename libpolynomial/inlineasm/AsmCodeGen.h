@@ -23,7 +23,6 @@
 #pragma once
 
 #include <libpolynomial/inlineasm/AsmAnalysis.h>
-#include <libpolynomial/interface/Exceptions.h>
 
 #include <functional>
 
@@ -42,24 +41,13 @@ struct Block;
 class CodeGenerator
 {
 public:
-	CodeGenerator(ErrorList& _errors):
-		m_errors(_errors) {}
-	/// Performs code generation and @returns the result.
-	sof::Assembly assemble(
-		Block const& _parsedData,
-		AsmAnalysisInfo& _analysisInfo,
-		ExternalIdentifierAccess const& _identifierAccess = ExternalIdentifierAccess()
-	);
 	/// Performs code generation and appends generated to to _assembly.
-	void assemble(
+	static void assemble(
 		Block const& _parsedData,
 		AsmAnalysisInfo& _analysisInfo,
 		sof::Assembly& _assembly,
-		ExternalIdentifierAccess const& _identifierAccess = ExternalIdentifierAccess()
+		julia::ExternalIdentifierAccess const& _identifierAccess = julia::ExternalIdentifierAccess()
 	);
-
-private:
-	ErrorList& m_errors;
 };
 
 }
