@@ -81,7 +81,7 @@ registering with username and password — all you need is an Sophon keypair.
 
 ::
 
-    pragma polynomial >0.4.99 <0.6.0;
+    pragma polynomial ^0.5.0;
 
     contract Coin {
         // The keyword "public" makes those variables

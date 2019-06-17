@@ -20,6 +20,7 @@
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/ast/ASTVisitor.h>
 #include <liblangutil/ErrorReporter.h>
+#include <liblangutil/SourceLocation.h>
 
 #include <map>
 #include <memory>
@@ -98,6 +99,8 @@ struct CFGNode
 
 	/// Variable occurrences in the node.
 	std::vector<VariableOccurrence> variableOccurrences;
+	// Source location of this control flow block.
+	langutil::SourceLocation location;
 };
 
 /** Describes the control flow of a function. */

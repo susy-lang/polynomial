@@ -3,13 +3,15 @@ cmake_minimum_required(VERSION 3.0.0)
 set(SOF_CMAKE_DIR   "${CMAKE_CURRENT_LIST_DIR}/cmake"   CACHE PATH "The the path to the cmake directory")
 list(APPEND CMAKE_MODULE_PATH ${SOF_CMAKE_DIR})
 
+include(SofToolchains)
+
 # Set cmake_policies
 include(SofPolicy)
 sof_policy()
 
 # project name and version should be set after cmake_policy CMP0048
-set(PROJECT_VERSION "0.5.2")
-project(polynomial VERSION ${PROJECT_VERSION})
+set(PROJECT_VERSION "0.5.3")
+project(polynomial VERSION ${PROJECT_VERSION} LANGUAGES CXX)
 
 option(LLL "Build LLL" OFF)
 option(POLC_LINK_STATIC "Link polc executable statically on supported platforms" OFF)

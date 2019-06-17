@@ -53,7 +53,7 @@ packagename=polc
 
 static_build_distribution=cosmic
 
-for distribution in xenial bionic cosmic STATIC
+for distribution in bionic cosmic STATIC
 do
 cd /tmp/
 rm -rf $distribution

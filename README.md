@@ -19,6 +19,8 @@ that run on the Sophon Virtual Machine. Smart contracts are programs that are ex
 network where nobody has special authority over the execution and thus they allow to implement tokens of value,
 ownership, voting and other kinds of logics.
 
+When deploying contracts, you should use the latest released version of Polynomial. This is because breaking changes as well as new features and bug fixes are introduced regularly. We currently use a 0.x version number [to indicate this fast pace of change](https://semver.org/#spec-item-4).
+
 ## Build and Install
 
 Instructions about how to build and install the Polynomial compiler can be found in the [Polynomial documentation](https://polynomial.readthedocs.io/en/latest/installing-polynomial.html#building-from-source)
@@ -29,7 +31,7 @@ Instructions about how to build and install the Polynomial compiler can be found
 A "Hello World" program in Polynomial is of even less use than in other languages, but still:
 
 ```
-pragma polynomial ^0.4.16;
+pragma polynomial ^0.5.0;
 
 contract HelloWorld {
   function helloWorld() external pure returns (string memory) {

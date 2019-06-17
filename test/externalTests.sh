@@ -55,13 +55,13 @@ function test_susyknot
       cd "$DIR"
       echo "Current commit hash: `git rev-parse HEAD`"
       npm install
-      # Replace polc package by master
+      # Replace polc package by v0.5.0
       for d in node_modules node_modules/susyknot/node_modules
       do
       (
         cd $d
         rm -rf polc
-        git clone --depth 1 https://octonion.institute/susy-js/polc-js.git polc
+        git clone --depth 1 -b v0.5.0 https://octonion.institute/susy-js/polc-js.git polc
         cp "$POLJSON" polc/
       )
       done

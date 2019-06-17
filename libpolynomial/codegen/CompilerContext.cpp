@@ -167,11 +167,18 @@ unsigned CompilerContext::numberOfLocalVariables() const
 	return m_localVariables.size();
 }
 
-sof::Assembly const& CompilerContext::compiledContract(const ContractDefinition& _contract) const
+shared_ptr<sof::Assembly> CompilerContext::compiledContract(ContractDefinition const& _contract) const
 {
-	auto ret = m_compiledContracts.find(&_contract);
-	polAssert(ret != m_compiledContracts.end(), "Compiled contract not found.");
-	return *ret->second;
+	auto ret = m_otherCompilers.find(&_contract);
+	polAssert(ret != m_otherCompilers.end(), "Compiled contract not found.");
+	return ret->second->assemblyPtr();
+}
+
+shared_ptr<sof::Assembly> CompilerContext::compiledContractRuntime(ContractDefinition const& _contract) const
+{
+	auto ret = m_otherCompilers.find(&_contract);
+	polAssert(ret != m_otherCompilers.end(), "Compiled contract not found.");
+	return ret->second->runtimeAssemblyPtr();
 }
 
 bool CompilerContext::isLocalVariable(Declaration const* _declaration) const

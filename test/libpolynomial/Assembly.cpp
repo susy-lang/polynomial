@@ -46,6 +46,7 @@ namespace dev
 {
 namespace polynomial
 {
+class Contract;
 namespace test
 {
 
@@ -84,7 +85,7 @@ sof::AssemblyItems compileContract(std::shared_ptr<CharStream> _sourceCode)
 		if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 		{
 			Compiler compiler(dev::test::Options::get().svmVersion());
-			compiler.compileContract(*contract, map<ContractDefinition const*, Assembly const*>{}, bytes());
+			compiler.compileContract(*contract, map<ContractDefinition const*, shared_ptr<Compiler const>>{}, bytes());
 
 			return compiler.runtimeAssemblyItems();
 		}

@@ -33,6 +33,6 @@ REPO_ROOT="$(dirname "$0")"/..
     mkdir -p "$POLDIR/deps/downloads/" 2>/dev/null || true
     wget -O "$POLDIR/deps/downloads/jsoncpp-1.8.4.tar.gz" https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz
     mkdir -p "$REPO_ROOT/upload"
-    tar czf "$REPO_ROOT/upload/polynomial_$versionstring.tar.gz" -C "$TEMPDIR" "polynomial_$versionstring"
+    tar --owner 0 --group 0 -czf "$REPO_ROOT/upload/polynomial_$versionstring.tar.gz" -C "$TEMPDIR" "polynomial_$versionstring"
     rm -r "$TEMPDIR"
 )
