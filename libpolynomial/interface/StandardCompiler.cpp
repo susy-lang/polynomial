@@ -400,10 +400,8 @@ Json::Value StandardCompiler::compileInternal(Json::Value const& _input)
 		// SVM
 		Json::Value svmData(Json::objectValue);
 		// @TODO: add ir
-		ostringstream tmp;
-		m_compilerStack.streamAssembly(tmp, contractName, createSourceList(_input), false);
-		svmData["assembly"] = tmp.str();
-		svmData["legacyAssembly"] = m_compilerStack.streamAssembly(tmp, contractName, createSourceList(_input), true);
+		svmData["assembly"] = m_compilerStack.assemblyString(contractName, createSourceList(_input));
+		svmData["legacyAssembly"] = m_compilerStack.assemblyJSON(contractName, createSourceList(_input));
 		svmData["methodIdentifiers"] = m_compilerStack.methodIdentifiers(contractName);
 		svmData["gasEstimates"] = m_compilerStack.gasEstimates(contractName);
 

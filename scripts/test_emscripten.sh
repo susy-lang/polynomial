@@ -29,28 +29,29 @@
 set -e
 
 REPO_ROOT=$(cd $(dirname "$0")/.. && pwd)
+POLJSON="$REPO_ROOT/build/polc/poljson.js"
 
-cd $REPO_ROOT/build
+DIR=$(mktemp -d)
+(
+    echo "Preparing polc-js..."
+    git clone --depth 1 https://octonion.institute/susy-js/polc-js "$DIR"
+    cd "$DIR"
+    npm install
 
-echo "Preparing polc-js..."
-rm -rf polc-js
-git clone https://octonion.institute/susy-js/polc-js
-cd polc-js
-npm install
+    # Replace poljson with current build
+    echo "Replacing poljson.js"
+    rm -f poljson.js
+    cp "$POLJSON" poljson.js
 
-# Replace poljson with current build
-echo "Replacing poljson.js"
-rm -f poljson.js
-# Make a copy because paths might not be absolute
-cp ../polc/poljson.js poljson.js
+    # Update version (needed for some tests)
+    VERSION=$("$REPO_ROOT/scripts/get_version.sh")
+    echo "Updating package.json to version $VERSION"
+    npm version --no-git-tag-version $VERSION
 
-# Update version (needed for some tests)
-VERSION=$(../../scripts/get_version.sh)
-echo "Updating package.json to version $VERSION"
-npm version $VERSION
-
-echo "Running polc-js tests..."
-npm run test
+    echo "Running polc-js tests..."
+    npm run test
+)
+rm -rf "$DIR"
 
 echo "Running external tests...."
-"$REPO_ROOT"/test/externalTests.sh "$REPO_ROOT"/build/polc/poljson.js
+"$REPO_ROOT/test/externalTests.sh" "$POLJSON"

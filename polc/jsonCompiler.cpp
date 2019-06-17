@@ -20,23 +20,19 @@
  * JSON interface for the polynomial compiler to be used from Javascript.
  */
 
-#include <string>
+#include <polc/jsonCompiler.h>
 #include <libdevcore/Common.h>
 #include <libdevcore/JSON.h>
 #include <libpolynomial/interface/StandardCompiler.h>
 #include <libpolynomial/interface/Version.h>
+
+#include <string>
 
 #include "license.h"
 
 using namespace std;
 using namespace dev;
 using namespace polynomial;
-
-extern "C" {
-/// Callback used to retrieve additional source files. "Returns" two pointers that should be
-/// heap-allocated and are free'd by the caller.
-typedef void (*CStyleReadFileCallback)(char const* _path, char** o_contents, char** o_error);
-}
 
 namespace
 {

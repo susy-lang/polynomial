@@ -22,9 +22,12 @@
  */
 
 #include <libsvmasm/BlockDeduplicator.h>
-#include <functional>
+
 #include <libsvmasm/AssemblyItem.h>
 #include <libsvmasm/SemanticInformation.h>
+
+#include <functional>
+#include <set>
 
 using namespace std;
 using namespace dev;

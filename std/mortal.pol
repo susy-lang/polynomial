@@ -3,7 +3,7 @@ pragma polynomial ^0.4.0;
 import "./owned.pol";
 
 contract mortal is owned {
-    function kill() {
+    function kill() public {
         if (msg.sender == owner)
             selfdestruct(owner);
     }

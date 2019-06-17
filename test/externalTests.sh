@@ -38,10 +38,9 @@ POLJSON="$1"
 
 DIR=$(mktemp -d)
 (
-    cd "$DIR"
     echo "Running Zeppelin tests..."
-    git clone https://github.com/OpenZeppelin/zeppelin-polynomial.git
-    cd zeppelin-polynomial
+    git clone --depth 1 https://github.com/OpenZeppelin/zeppelin-polynomial.git "$DIR"
+    cd "$DIR"
     npm install
     cp "$POLJSON" ./node_modules/polc/poljson.js
     npm run test

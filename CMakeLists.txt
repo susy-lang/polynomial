@@ -8,14 +8,17 @@ include(SofPolicy)
 sof_policy()
 
 # project name and version should be set after cmake_policy CMP0048
-set(PROJECT_VERSION "0.4.16")
+set(PROJECT_VERSION "0.4.17")
 project(polynomial VERSION ${PROJECT_VERSION})
 
 option(POLC_LINK_STATIC "Link polc executable statically on supported platforms" OFF)
 
+# Setup cccache.
+include(SofCcache)
+
 # Let's find our dependencies
 include(SofDependencies)
-include(deps/jsoncpp.cmake)
+include(jsoncpp)
 
 find_package(Threads)
 

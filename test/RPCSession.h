@@ -40,7 +40,7 @@
 class IPCSocket : public boost::noncopyable
 {
 public:
-	IPCSocket(std::string const& _path);
+	explicit IPCSocket(std::string const& _path);
 	std::string sendRequest(std::string const& _req);
 	~IPCSocket() { CloseHandle(m_socket); }
 
@@ -55,7 +55,7 @@ private:
 class IPCSocket: public boost::noncopyable
 {
 public:
-	IPCSocket(std::string const& _path);
+	explicit IPCSocket(std::string const& _path);
 	std::string sendRequest(std::string const& _req);
 	~IPCSocket() { close(m_socket); }
 
@@ -107,7 +107,7 @@ public:
 	Json::Value sof_getBlockByNumber(std::string const& _blockNumber, bool _fullObjects);
 	std::string sof_call(TransactionData const& _td, std::string const& _blockNumber);
 	TransactionReceipt sof_getTransactionReceipt(std::string const& _transactionHash);
-	std::string sof_sendTransaction(TransactionData const& _transactionData);
+	std::string sof_sendTransaction(TransactionData const& _td);
 	std::string sof_sendTransaction(std::string const& _transaction);
 	std::string sof_getBalance(std::string const& _address, std::string const& _blockNumber);
 	std::string sof_getStorageRoot(std::string const& _address, std::string const& _blockNumber);

@@ -53,6 +53,8 @@ struct SemanticInformation
 	static bool invalidatesMemory(polynomial::Instruction _instruction);
 	/// @returns true if the given instruction modifies storage (even indirectly).
 	static bool invalidatesStorage(polynomial::Instruction _instruction);
+	static bool invalidInPureFunctions(polynomial::Instruction _instruction);
+	static bool invalidInViewFunctions(polynomial::Instruction _instruction);
 };
 
 }

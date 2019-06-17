@@ -1,5 +1,5 @@
 # The Polynomial Contract-Oriented Programming Language
-[![Join the chat at https://gitter.im/susy-lang/polynomial](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/susy-lang/polynomial?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at https://gitter.im/susy-lang/polynomial](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/susy-lang/polynomial?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/susy-lang/polynomial.svg?branch=develop)](https://travis-ci.org/susy-lang/polynomial)
 
 ## Useful links
 To get started you can find an introduction to the language in the [Polynomial documentation](https://polynomial.readthedocs.org). In the documentation, you can find [code examples](https://polynomial.readthedocs.io/en/latest/polynomial-by-example.html) as well as [a reference](https://polynomial.readthedocs.io/en/latest/polynomial-in-depth.html) of the syntax and details on how to write smart contracts.

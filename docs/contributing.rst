@@ -66,14 +66,19 @@ Running the compiler tests
 Polynomial includes different types of tests. They are included in the application
 called ``poltest``. Some of them require the ``cpp-sophon`` client in testing mode.
 
-To run ``cpp-sophon`` in testing mode: ``sof --test -d /tmp/testsof``.
+To run a subset of the tests that do not require ``cpp-sophon``, use ``./build/test/poltest -- --no-ipc``.
 
-To run the tests: ``poltest -- --ipcpath /tmp/testsof/graviton.ipc``.
+For all other tests, you need to install `cpp-sophon <https://octonion.institute/susy-cpp/cpp-sophon/releases/download/polynomialTester/sof>`_ and run it in testing mode: ``sof --test -d /tmp/testsof``.
+
+Then you run the actual tests: ``./build/test/poltest -- --ipcpath /tmp/testsof/graviton.ipc``.
 
 To run a subset of tests, filters can be used:
 ``poltest -t TestSuite/TestName -- --ipcpath /tmp/testsof/graviton.ipc``, where ``TestName`` can be a wildcard ``*``.
 
-Alternatively, there is a testing script at ``scripts/test.sh`` which executes all tests.
+Alternatively, there is a testing script at ``scripts/test.sh`` which executes all tests and runs
+``cpp-sophon`` automatically if it is in the path (but does not download it).
+
+Travis CI even runs some additional tests (including ``polc-js`` and testing third party Polynomial frameworks) that require compiling the Emscripten target.
 
 Whiskers
 ========

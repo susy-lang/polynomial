@@ -77,6 +77,14 @@ SVMAssembly::LabelID SVMAssembly::newLabelId()
 	return m_nextLabelId++;
 }
 
+AbstractAssembly::LabelID SVMAssembly::namedLabel(string const& _name)
+{
+	polAssert(!_name.empty(), "");
+	if (!m_namedLabels.count(_name))
+		m_namedLabels[_name] = newLabelId();
+	return m_namedLabels[_name];
+}
+
 void SVMAssembly::appendLinkerSymbol(string const&)
 {
 	polAssert(false, "Linker symbols not yet implemented.");
