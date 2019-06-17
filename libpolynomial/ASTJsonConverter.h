@@ -63,6 +63,7 @@ public:
 	bool visit(Continue const& _node) override;
 	bool visit(Break const& _node) override;
 	bool visit(Return const& _node) override;
+	bool visit(Throw const& _node) override;
 	bool visit(VariableDeclarationStatement const& _node) override;
 	bool visit(ExpressionStatement const& _node) override;
 	bool visit(Assignment const& _node) override;
@@ -93,6 +94,7 @@ public:
 	void endVisit(Continue const&) override;
 	void endVisit(Break const&) override;
 	void endVisit(Return const&) override;
+	void endVisit(Throw const&) override;
 	void endVisit(VariableDeclarationStatement const&) override;
 	void endVisit(ExpressionStatement const&) override;
 	void endVisit(Assignment const&) override;
@@ -112,7 +114,7 @@ private:
 	void addJsonNode(std::string const& _nodeName,
 					 std::initializer_list<std::pair<std::string const, std::string const>> _list,
 					 bool _hasChildren);
-	std::string getType(Expression const& _expression);
+	std::string type(Expression const& _expression);
 	inline void goUp()
 	{
 		polAssert(!m_jsonNodePtrs.empty(), "Uneven json nodes stack. Internal error.");

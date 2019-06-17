@@ -22,18 +22,20 @@
 
 #include <libpolynomial/Version.h>
 #include <string>
-#include <BuildInfo.h>
+#include <libsvmasm/Version.h>
+#include <polynomial/BuildInfo.h>
 #include <libdevcore/Common.h>
 
 using namespace dev;
 using namespace dev::polynomial;
 using namespace std;
 
-char const* dev::polynomial::VersionNumber = "0.1.2";
+char const* dev::polynomial::VersionNumber = SOF_PROJECT_VERSION;
 extern string const dev::polynomial::VersionString =
 	string(dev::polynomial::VersionNumber) +
 	"-" +
 	string(DEV_QUOTED(SOF_COMMIT_HASH)).substr(0, 8) +
 	(SOF_CLEAN_REPO ? "" : "*") +
-	"/" DEV_QUOTED(SOF_BUILD_TYPE) "-" DEV_QUOTED(SOF_BUILD_PLATFORM);
+	"/" DEV_QUOTED(SOF_BUILD_TYPE) "-" DEV_QUOTED(SOF_BUILD_PLATFORM)
+	" linked to libsophon-" + sof::VersionStringLibSvmAsm;
 

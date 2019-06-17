@@ -160,6 +160,7 @@ namespace polynomial
 	K(Internal, "internal", 0)                                         \
 	K(Import, "import", 0)                                             \
 	K(Is, "is", 0)                                                     \
+	K(Library, "library", 0)                                           \
 	K(Mapping, "mapping", 0)                                           \
 	K(Memory, "memory", 0)                                             \
 	K(Modifier, "modifier", 0)                                         \
@@ -170,6 +171,7 @@ namespace polynomial
 	K(Returns, "returns", 0)                                           \
 	K(Storage, "storage", 0)                                           \
 	K(Struct, "struct", 0)                                             \
+	K(Throw, "throw", 0)                                               \
 	K(Var, "var", 0)                                                   \
 	K(While, "while", 0)                                               \
 	\
@@ -305,7 +307,7 @@ namespace polynomial
 	/* Identifiers (not keywords or future reserved words). */         \
 	T(Identifier, NULL, 0)                                             \
 	\
-	/* Keywords reserved for future. use. */                           \
+	/* Keywords reserved for future use. */                            \
 	K(As, "as", 0)                                                     \
 	K(Case, "case", 0)                                                 \
 	K(Catch, "catch", 0)                                               \
@@ -315,7 +317,6 @@ namespace polynomial
 	K(Of, "of", 0)                                                     \
 	K(Relocatable, "relocatable", 0)                                   \
 	K(Switch, "switch", 0)                                             \
-	K(Throw, "throw", 0)                                               \
 	K(Try, "try", 0)                                                   \
 	K(Type, "type", 0)                                                 \
 	K(TypeOf, "typeof", 0)                                             \
@@ -344,7 +345,7 @@ public:
 
 	// Returns a string corresponding to the C++ token name
 	// (e.g. "LT" for the token LT).
-	static char const* getName(Value tok)
+	static char const* name(Value tok)
 	{
 		polAssert(tok < NUM_TOKENS, "");
 		return m_name[tok];

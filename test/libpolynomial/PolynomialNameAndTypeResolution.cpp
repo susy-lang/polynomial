@@ -51,19 +51,19 @@ ASTPointer<SourceUnit> parseTextAndResolveNames(std::string const& _source)
 	resolver.registerDeclarations(*sourceUnit);
 	std::shared_ptr<GlobalContext> globalContext = make_shared<GlobalContext>();
 
-	for (ASTPointer<ASTNode> const& node: sourceUnit->getNodes())
+	for (ASTPointer<ASTNode> const& node: sourceUnit->nodes())
 		if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 		{
 			globalContext->setCurrentContract(*contract);
-			resolver.updateDeclaration(*globalContext->getCurrentThis());
-			resolver.updateDeclaration(*globalContext->getCurrentSuper());
+			resolver.updateDeclaration(*globalContext->currentThis());
+			resolver.updateDeclaration(*globalContext->currentSuper());
 			resolver.resolveNamesAndTypes(*contract);
 		}
-	for (ASTPointer<ASTNode> const& node: sourceUnit->getNodes())
+	for (ASTPointer<ASTNode> const& node: sourceUnit->nodes())
 		if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 		{
 			globalContext->setCurrentContract(*contract);
-			resolver.updateDeclaration(*globalContext->getCurrentThis());
+			resolver.updateDeclaration(*globalContext->currentThis());
 			resolver.checkTypeRequirements(*contract);
 		}
 
@@ -75,7 +75,7 @@ static ContractDefinition const* retrieveContract(ASTPointer<SourceUnit> _source
 {
 	ContractDefinition* contract;
 	unsigned counter = 0;
-	for (ASTPointer<ASTNode> const& node: _source->getNodes())
+	for (ASTPointer<ASTNode> const& node: _source->nodes())
 		if ((contract = dynamic_cast<ContractDefinition*>(node.get())) && counter == index)
 			return contract;
 
@@ -86,7 +86,7 @@ static FunctionTypePointer const& retrieveFunctionBySignature(ContractDefinition
 															  std::string const& _signature)
 {
 	FixedHash<4> hash(dev::sha3(_signature));
-	return _contract->getInterfaceFunctions()[hash];
+	return _contract->interfaceFunctions()[hash];
 }
 
 }
@@ -377,11 +377,11 @@ BOOST_AUTO_TEST_CASE(function_no_implementation)
 		"  function functionName(bytes32 input) returns (bytes32 out);\n"
 		"}\n";
 	SOF_TEST_REQUIRE_NO_THROW(sourceUnit = parseTextAndResolveNames(text), "Parsing and name Repolving failed");
-	std::vector<ASTPointer<ASTNode>> nodes = sourceUnit->getNodes();
+	std::vector<ASTPointer<ASTNode>> nodes = sourceUnit->nodes();
 	ContractDefinition* contract = dynamic_cast<ContractDefinition*>(nodes[0].get());
 	BOOST_CHECK(contract);
 	BOOST_CHECK(!contract->isFullyImplemented());
-	BOOST_CHECK(!contract->getDefinedFunctions()[0]->isFullyImplemented());
+	BOOST_CHECK(!contract->definedFunctions()[0]->isFullyImplemented());
 }
 
 BOOST_AUTO_TEST_CASE(abstract_contract)
@@ -392,15 +392,15 @@ BOOST_AUTO_TEST_CASE(abstract_contract)
 		contract derived is base { function foo() {} }
 		)";
 	SOF_TEST_REQUIRE_NO_THROW(sourceUnit = parseTextAndResolveNames(text), "Parsing and name Repolving failed");
-	std::vector<ASTPointer<ASTNode>> nodes = sourceUnit->getNodes();
+	std::vector<ASTPointer<ASTNode>> nodes = sourceUnit->nodes();
 	ContractDefinition* base = dynamic_cast<ContractDefinition*>(nodes[0].get());
 	ContractDefinition* derived = dynamic_cast<ContractDefinition*>(nodes[1].get());
 	BOOST_CHECK(base);
 	BOOST_CHECK(!base->isFullyImplemented());
-	BOOST_CHECK(!base->getDefinedFunctions()[0]->isFullyImplemented());
+	BOOST_CHECK(!base->definedFunctions()[0]->isFullyImplemented());
 	BOOST_CHECK(derived);
 	BOOST_CHECK(derived->isFullyImplemented());
-	BOOST_CHECK(derived->getDefinedFunctions()[0]->isFullyImplemented());
+	BOOST_CHECK(derived->definedFunctions()[0]->isFullyImplemented());
 }
 
 BOOST_AUTO_TEST_CASE(abstract_contract_with_overload)
@@ -411,7 +411,7 @@ BOOST_AUTO_TEST_CASE(abstract_contract_with_overload)
 		contract derived is base { function foo(uint) {} }
 		)";
 	SOF_TEST_REQUIRE_NO_THROW(sourceUnit = parseTextAndResolveNames(text), "Parsing and name Repolving failed");
-	std::vector<ASTPointer<ASTNode>> nodes = sourceUnit->getNodes();
+	std::vector<ASTPointer<ASTNode>> nodes = sourceUnit->nodes();
 	ContractDefinition* base = dynamic_cast<ContractDefinition*>(nodes[0].get());
 	ContractDefinition* derived = dynamic_cast<ContractDefinition*>(nodes[1].get());
 	BOOST_REQUIRE(base);
@@ -459,7 +459,7 @@ BOOST_AUTO_TEST_CASE(abstract_contract_constructor_args_not_provided)
 		}
 		)";
 	SOF_TEST_REQUIRE_NO_THROW(sourceUnit = parseTextAndResolveNames(text), "Parsing and name repolving failed");
-	std::vector<ASTPointer<ASTNode>> nodes = sourceUnit->getNodes();
+	std::vector<ASTPointer<ASTNode>> nodes = sourceUnit->nodes();
 	BOOST_CHECK_EQUAL(nodes.size(), 3);
 	ContractDefinition* derived = dynamic_cast<ContractDefinition*>(nodes[2].get());
 	BOOST_CHECK(derived);
@@ -486,10 +486,10 @@ BOOST_AUTO_TEST_CASE(function_canonical_signature)
 					   "  }\n"
 					   "}\n";
 	SOF_TEST_REQUIRE_NO_THROW(sourceUnit = parseTextAndResolveNames(text), "Parsing and name Repolving failed");
-	for (ASTPointer<ASTNode> const& node: sourceUnit->getNodes())
+	for (ASTPointer<ASTNode> const& node: sourceUnit->nodes())
 		if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 		{
-			auto functions = contract->getDefinedFunctions();
+			auto functions = contract->definedFunctions();
 			BOOST_CHECK_EQUAL("foo(uint256,uint64,bool)", functions[0]->externalSignature());
 		}
 }
@@ -503,10 +503,10 @@ BOOST_AUTO_TEST_CASE(function_canonical_signature_type_aliases)
 					   "  }\n"
 					   "}\n";
 	SOF_TEST_REQUIRE_NO_THROW(sourceUnit = parseTextAndResolveNames(text), "Parsing and name Repolving failed");
-	for (ASTPointer<ASTNode> const& node: sourceUnit->getNodes())
+	for (ASTPointer<ASTNode> const& node: sourceUnit->nodes())
 		if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 		{
-			auto functions = contract->getDefinedFunctions();
+			auto functions = contract->definedFunctions();
 			if (functions.empty())
 				continue;
 			BOOST_CHECK_EQUAL("boo(uint256,bytes32,address)", functions[0]->externalSignature());
@@ -526,10 +526,10 @@ BOOST_AUTO_TEST_CASE(function_external_types)
 			}
 		})";
 	SOF_TEST_REQUIRE_NO_THROW(sourceUnit = parseTextAndResolveNames(text), "Parsing and name Repolving failed");
-	for (ASTPointer<ASTNode> const& node: sourceUnit->getNodes())
+	for (ASTPointer<ASTNode> const& node: sourceUnit->nodes())
 		if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 		{
-			auto functions = contract->getDefinedFunctions();
+			auto functions = contract->definedFunctions();
 			if (functions.empty())
 				continue;
 			BOOST_CHECK_EQUAL("boo(uint256,bool,bytes8,bool[2],uint256[],address,address[])", functions[0]->externalSignature());
@@ -548,10 +548,10 @@ BOOST_AUTO_TEST_CASE(enum_external_type)
 			}
 		})";
 	SOF_TEST_REQUIRE_NO_THROW(sourceUnit = parseTextAndResolveNames(text), "Parsing and name Repolving failed");
-	for (ASTPointer<ASTNode> const& node: sourceUnit->getNodes())
+	for (ASTPointer<ASTNode> const& node: sourceUnit->nodes())
 		if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 		{
-			auto functions = contract->getDefinedFunctions();
+			auto functions = contract->definedFunctions();
 			if (functions.empty())
 				continue;
 			BOOST_CHECK_EQUAL("boo(uint8)", functions[0]->externalSignature());
@@ -880,24 +880,24 @@ BOOST_AUTO_TEST_CASE(state_variable_accessors)
 	BOOST_REQUIRE((contract = retrieveContract(source, 0)) != nullptr);
 	FunctionTypePointer function = retrieveFunctionBySignature(contract, "foo()");
 	BOOST_REQUIRE(function && function->hasDeclaration());
-	auto returnParams = function->getReturnParameterTypeNames();
+	auto returnParams = function->returnParameterTypeNames();
 	BOOST_CHECK_EQUAL(returnParams.at(0), "uint256");
 	BOOST_CHECK(function->isConstant());
 
 	function = retrieveFunctionBySignature(contract, "map(uint256)");
 	BOOST_REQUIRE(function && function->hasDeclaration());
-	auto params = function->getParameterTypeNames();
+	auto params = function->parameterTypeNames();
 	BOOST_CHECK_EQUAL(params.at(0), "uint256");
-	returnParams = function->getReturnParameterTypeNames();
+	returnParams = function->returnParameterTypeNames();
 	BOOST_CHECK_EQUAL(returnParams.at(0), "bytes4");
 	BOOST_CHECK(function->isConstant());
 
 	function = retrieveFunctionBySignature(contract, "multiple_map(uint256,uint256)");
 	BOOST_REQUIRE(function && function->hasDeclaration());
-	params = function->getParameterTypeNames();
+	params = function->parameterTypeNames();
 	BOOST_CHECK_EQUAL(params.at(0), "uint256");
 	BOOST_CHECK_EQUAL(params.at(1), "uint256");
-	returnParams = function->getReturnParameterTypeNames();
+	returnParams = function->returnParameterTypeNames();
 	BOOST_CHECK_EQUAL(returnParams.at(0), "bytes4");
 	BOOST_CHECK(function->isConstant());
 }
@@ -1050,7 +1050,6 @@ BOOST_AUTO_TEST_CASE(event_too_many_indexed)
 	char const* text = R"(
 		contract c {
 			event e(uint indexed a, bytes3 indexed b, bool indexed c, uint indexed d);
-			function f() { e(2, "abc", true); }
 		})";
 	BOOST_CHECK_THROW(parseTextAndResolveNames(text), TypeError);
 }
@@ -2192,6 +2191,80 @@ BOOST_AUTO_TEST_CASE(string_bytes_conversion)
 		}
 	)";
 	BOOST_CHECK_NO_THROW(parseTextAndResolveNames(text));
+}
+
+BOOST_AUTO_TEST_CASE(inheriting_from_library)
+{
+	char const* text = R"(
+		library Lib {}
+		contract Test is Lib {}
+	)";
+	BOOST_CHECK_THROW(parseTextAndResolveNames(text), TypeError);
+}
+
+BOOST_AUTO_TEST_CASE(inheriting_library)
+{
+	char const* text = R"(
+		contract Test {}
+		library Lib is Test {}
+	)";
+	BOOST_CHECK_THROW(parseTextAndResolveNames(text), TypeError);
+}
+
+BOOST_AUTO_TEST_CASE(library_having_variables)
+{
+	char const* text = R"(
+		library Lib { uint x; }
+	)";
+	BOOST_CHECK_THROW(parseTextAndResolveNames(text), TypeError);
+}
+
+BOOST_AUTO_TEST_CASE(valid_library)
+{
+	char const* text = R"(
+		library Lib { uint constant x = 9; }
+	)";
+	BOOST_CHECK_NO_THROW(parseTextAndResolveNames(text));
+}
+
+BOOST_AUTO_TEST_CASE(call_to_library_function)
+{
+	char const* text = R"(
+		library Lib {
+			uint constant public pimil = 3141592;
+			function min(uint x, uint y) returns (uint);
+		}
+		contract Test {
+			function f() {
+				uint t = Lib.min(Lib.pimil(), 7);
+			}
+		}
+	)";
+	BOOST_CHECK_NO_THROW(parseTextAndResolveNames(text));
+}
+
+BOOST_AUTO_TEST_CASE(creating_contract_within_the_contract)
+{
+	char const* sourceCode = R"(
+		contract Test {
+			function f() { var x = new Test(); }
+		}
+	)";
+	BOOST_CHECK_THROW(parseTextAndResolveNames(sourceCode), TypeError);
+}
+
+BOOST_AUTO_TEST_CASE(array_out_of_bound_access)
+{
+	char const* text = R"(
+		contract c {
+			uint[2] dataArray;
+			function set5th() returns (bool) {
+				dataArray[5] = 2;
+				return true;
+			}
+		}
+	)";
+	BOOST_CHECK_THROW(parseTextAndResolveNames(text), TypeError);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

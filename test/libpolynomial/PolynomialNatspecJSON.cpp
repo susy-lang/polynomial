@@ -49,9 +49,9 @@ public:
 		SOF_TEST_REQUIRE_NO_THROW(m_compilerStack.parse(_code), "Parsing failed");
 
 		if (_userDocumentation)
-			generatedDocumentationString = m_compilerStack.getMetadata("", DocumentationType::NatspecUser);
+			generatedDocumentationString = m_compilerStack.metadata("", DocumentationType::NatspecUser);
 		else
-			generatedDocumentationString = m_compilerStack.getMetadata("", DocumentationType::NatspecDev);
+			generatedDocumentationString = m_compilerStack.metadata("", DocumentationType::NatspecDev);
 		Json::Value generatedDocumentation;
 		m_reader.parse(generatedDocumentationString, generatedDocumentation);
 		Json::Value expectedDocumentation;
@@ -521,6 +521,22 @@ BOOST_AUTO_TEST_CASE(natspec_multiline_notice_without_tag)
 			 "notice" : "I do something awesome which requires two lines to explain"
 		  }
 	   }
+	}
+	)ABCDEF";
+
+	checkNatspec(sourceCode, natspec, true);
+}
+
+BOOST_AUTO_TEST_CASE(empty_comment)
+{
+	char const* sourceCode = R"(
+		//
+		contract test
+		{}
+	)";
+	char const* natspec = R"ABCDEF(
+	{
+	   "methods" : {}
 	}
 	)ABCDEF";
 

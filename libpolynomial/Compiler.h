@@ -42,16 +42,19 @@ public:
 	{
 	}
 
-	void compileContract(ContractDefinition const& _contract,
-						 std::map<ContractDefinition const*, bytes const*> const& _contracts);
+	void compileContract(
+		ContractDefinition const& _contract,
+		std::map<ContractDefinition const*, sof::Assembly const*> const& _contracts
+	);
 	/// Compiles a contract that uses CALLCODE to call into a pre-deployed version of the given
 	/// contract at runtime, but contains the full creation-time code.
 	void compileClone(
 		ContractDefinition const& _contract,
-		std::map<ContractDefinition const*, bytes const*> const& _contracts
+		std::map<ContractDefinition const*, sof::Assembly const*> const& _contracts
 	);
-	bytes getAssembledBytecode() { return m_context.getAssembledBytecode(); }
-	bytes getRuntimeBytecode() { return m_context.getAssembledRuntimeBytecode(m_runtimeSub); }
+	sof::Assembly const& assembly() { return m_context.assembly(); }
+	sof::LinkerObject assembledObject() { return m_context.assembledObject(); }
+	sof::LinkerObject runtimeObject() { return m_context.assembledRuntimeObject(m_runtimeSub); }
 	/// @arg _sourceCodes is the map of input files to source code strings
 	/// @arg _inJsonFromat shows whether the out should be in Json format
 	Json::Value streamAssembly(std::ostream& _stream, StringMap const& _sourceCodes = StringMap(), bool _inJsonFormat = false) const
@@ -59,18 +62,20 @@ public:
 		return m_context.streamAssembly(_stream, _sourceCodes, _inJsonFormat);
 	}
 	/// @returns Assembly items of the normal compiler context
-	sof::AssemblyItems const& getAssemblyItems() const { return m_context.getAssembly().getItems(); }
+	sof::AssemblyItems const& assemblyItems() const { return m_context.assembly().items(); }
 	/// @returns Assembly items of the runtime compiler context
-	sof::AssemblyItems const& getRuntimeAssemblyItems() const { return m_context.getAssembly().getSub(m_runtimeSub).getItems(); }
+	sof::AssemblyItems const& runtimeAssemblyItems() const { return m_context.assembly().sub(m_runtimeSub).items(); }
 
 	/// @returns the entry label of the given function. Might return an AssemblyItem of type
 	/// UndefinedItem if it does not exist yet.
-	sof::AssemblyItem getFunctionEntryLabel(FunctionDefinition const& _function) const;
+	sof::AssemblyItem functionEntryLabel(FunctionDefinition const& _function) const;
 
 private:
 	/// Registers the non-function objects inside the contract with the context.
-	void initializeContext(ContractDefinition const& _contract,
-						   std::map<ContractDefinition const*, bytes const*> const& _contracts);
+	void initializeContext(
+		ContractDefinition const& _contract,
+		std::map<ContractDefinition const*, sof::Assembly const*> const& _compiledContracts
+	);
 	/// Adds the code that is run at creation time. Should be run after exchanging the run-time context
 	/// with a new and initialized context. Adds the constructor code.
 	void packIntoContractCreator(ContractDefinition const& _contract, CompilerContext const& _runtimeContext);
@@ -107,6 +112,7 @@ private:
 	virtual bool visit(Continue const& _continue) override;
 	virtual bool visit(Break const& _break) override;
 	virtual bool visit(Return const& _return) override;
+	virtual bool visit(Throw const& _throw) override;
 	virtual bool visit(VariableDeclarationStatement const& _variableDeclarationStatement) override;
 	virtual bool visit(ExpressionStatement const& _expressionStatement) override;
 	virtual bool visit(PlaceholderStatement const&) override;
@@ -122,7 +128,7 @@ private:
 	void compileExpression(Expression const& _expression, TypePointer const& _targetType = TypePointer());
 
 	/// @returns the runtime assembly for clone contracts.
-	static sof::Assembly getCloneRuntime();
+	static sof::Assembly cloneRuntime();
 
 	bool const m_optimize;
 	unsigned const m_optimizeRuns;

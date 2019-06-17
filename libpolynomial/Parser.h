@@ -37,15 +37,15 @@ public:
 	Parser() {}
 
 	ASTPointer<SourceUnit> parse(std::shared_ptr<Scanner> const& _scanner);
-	std::shared_ptr<std::string const> const& getSourceName() const;
+	std::shared_ptr<std::string const> const& sourceName() const;
 
 private:
 	class ASTNodeFactory;
 
 	/// Start position of the current token
-	int getPosition() const;
+	int position() const;
 	/// End position of the current token
-	int getEndPosition() const;
+	int endPosition() const;
 
 	struct VarDeclParserOptions
 	{
@@ -61,15 +61,17 @@ private:
 	///@{
 	///@name Parsing functions for the AST nodes
 	ASTPointer<ImportDirective> parseImportDirective();
-	ASTPointer<ContractDefinition> parseContractDefinition();
+	ASTPointer<ContractDefinition> parseContractDefinition(bool _isLibrary);
 	ASTPointer<InheritanceSpecifier> parseInheritanceSpecifier();
 	Declaration::Visibility parseVisibilitySpecifier(Token::Value _token);
 	ASTPointer<FunctionDefinition> parseFunctionDefinition(ASTString const* _contractName);
 	ASTPointer<StructDefinition> parseStructDefinition();
 	ASTPointer<EnumDefinition> parseEnumDefinition();
 	ASTPointer<EnumValue> parseEnumValue();
-	ASTPointer<VariableDeclaration> parseVariableDeclaration(VarDeclParserOptions const& _options = VarDeclParserOptions(),
-		ASTPointer<TypeName> const& _lookAheadArrayType = ASTPointer<TypeName>());
+	ASTPointer<VariableDeclaration> parseVariableDeclaration(
+		VarDeclParserOptions const& _options = VarDeclParserOptions(),
+		ASTPointer<TypeName> const& _lookAheadArrayType = ASTPointer<TypeName>()
+	);
 	ASTPointer<ModifierDefinition> parseModifierDefinition();
 	ASTPointer<EventDefinition> parseEventDefinition();
 	ASTPointer<ModifierInvocation> parseModifierInvocation();

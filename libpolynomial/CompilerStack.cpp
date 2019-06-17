@@ -103,30 +103,30 @@ void CompilerStack::parse()
 	resolveImports();
 
 	m_globalContext = make_shared<GlobalContext>();
-	NameAndTypeResolver resolver(m_globalContext->getDeclarations());
+	NameAndTypeResolver resolver(m_globalContext->declarations());
 	for (Source const* source: m_sourceOrder)
 		resolver.registerDeclarations(*source->ast);
 	for (Source const* source: m_sourceOrder)
-		for (ASTPointer<ASTNode> const& node: source->ast->getNodes())
+		for (ASTPointer<ASTNode> const& node: source->ast->nodes())
 			if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 			{
 				m_globalContext->setCurrentContract(*contract);
-				resolver.updateDeclaration(*m_globalContext->getCurrentThis());
-				resolver.updateDeclaration(*m_globalContext->getCurrentSuper());
+				resolver.updateDeclaration(*m_globalContext->currentThis());
+				resolver.updateDeclaration(*m_globalContext->currentSuper());
 				resolver.resolveNamesAndTypes(*contract);
-				m_contracts[contract->getName()].contract = contract;
+				m_contracts[contract->name()].contract = contract;
 			}
 	InterfaceHandler interfaceHandler;
 	for (Source const* source: m_sourceOrder)
-		for (ASTPointer<ASTNode> const& node: source->ast->getNodes())
+		for (ASTPointer<ASTNode> const& node: source->ast->nodes())
 			if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 			{
 				m_globalContext->setCurrentContract(*contract);
-				resolver.updateDeclaration(*m_globalContext->getCurrentThis());
+				resolver.updateDeclaration(*m_globalContext->currentThis());
 				resolver.checkTypeRequirements(*contract);
 				contract->setDevDocumentation(interfaceHandler.devDocumentation(*contract));
 				contract->setUserDocumentation(interfaceHandler.userDocumentation(*contract));
-				m_contracts[contract->getName()].contract = contract;
+				m_contracts[contract->name()].contract = contract;
 			}
 	m_parseSuccessful = true;
 }
@@ -137,7 +137,7 @@ void CompilerStack::parse(string const& _sourceCode)
 	parse();
 }
 
-vector<string> CompilerStack::getContractNames() const
+vector<string> CompilerStack::contractNames() const
 {
 	if (!m_parseSuccessful)
 		BOOST_THROW_EXCEPTION(CompilerError() << errinfo_comment("Parsing was not successful."));
@@ -153,73 +153,85 @@ void CompilerStack::compile(bool _optimize, unsigned _runs)
 	if (!m_parseSuccessful)
 		parse();
 
-	map<ContractDefinition const*, bytes const*> contractBytecode;
+	map<ContractDefinition const*, sof::Assembly const*> compiledContracts;
 	for (Source const* source: m_sourceOrder)
-		for (ASTPointer<ASTNode> const& node: source->ast->getNodes())
+		for (ASTPointer<ASTNode> const& node: source->ast->nodes())
 			if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 			{
 				if (!contract->isFullyImplemented())
 					continue;
 				shared_ptr<Compiler> compiler = make_shared<Compiler>(_optimize, _runs);
-				compiler->compileContract(*contract, contractBytecode);
-				Contract& compiledContract = m_contracts.at(contract->getName());
-				compiledContract.bytecode = compiler->getAssembledBytecode();
-				compiledContract.runtimeBytecode = compiler->getRuntimeBytecode();
-				compiledContract.compiler = move(compiler);
-				compiler = make_shared<Compiler>(_optimize, _runs);
-				compiler->compileContract(*contract, contractBytecode);
-				contractBytecode[compiledContract.contract] = &compiledContract.bytecode;
+				compiler->compileContract(*contract, compiledContracts);
+				Contract& compiledContract = m_contracts.at(contract->name());
+				compiledContract.compiler = compiler;
+				compiledContract.object = compiler->assembledObject();
+				compiledContract.runtimeObject = compiler->runtimeObject();
+				compiledContracts[compiledContract.contract] = &compiler->assembly();
 
 				Compiler cloneCompiler(_optimize, _runs);
-				cloneCompiler.compileClone(*contract, contractBytecode);
-				compiledContract.cloneBytecode = cloneCompiler.getAssembledBytecode();
+				cloneCompiler.compileClone(*contract, compiledContracts);
+				compiledContract.cloneObject = cloneCompiler.assembledObject();
 			}
 }
 
-bytes const& CompilerStack::compile(string const& _sourceCode, bool _optimize)
+sof::LinkerObject const& CompilerStack::compile(string const& _sourceCode, bool _optimize)
 {
 	parse(_sourceCode);
 	compile(_optimize);
-	return getBytecode();
+	return object();
 }
 
-sof::AssemblyItems const* CompilerStack::getAssemblyItems(string const& _contractName) const
+void CompilerStack::link(const std::map<string, h160>& _libraries)
 {
-	Contract const& contract = getContract(_contractName);
-	return contract.compiler ? &getContract(_contractName).compiler->getAssemblyItems() : nullptr;
+	for (auto& contract: m_contracts)
+	{
+		contract.second.object.link(_libraries);
+		contract.second.runtimeObject.link(_libraries);
+		contract.second.cloneObject.link(_libraries);
+	}
 }
 
-sof::AssemblyItems const* CompilerStack::getRuntimeAssemblyItems(string const& _contractName) const
+sof::AssemblyItems const* CompilerStack::assemblyItems(string const& _contractName) const
 {
-	Contract const& contract = getContract(_contractName);
-	return contract.compiler ? &getContract(_contractName).compiler->getRuntimeAssemblyItems() : nullptr;
+	Contract const& currentContract = contract(_contractName);
+	return currentContract.compiler ? &contract(_contractName).compiler->assemblyItems() : nullptr;
 }
 
-bytes const& CompilerStack::getBytecode(string const& _contractName) const
+sof::AssemblyItems const* CompilerStack::runtimeAssemblyItems(string const& _contractName) const
 {
-	return getContract(_contractName).bytecode;
+	Contract const& currentContract = contract(_contractName);
+	return currentContract.compiler ? &contract(_contractName).compiler->runtimeAssemblyItems() : nullptr;
 }
 
-bytes const& CompilerStack::getRuntimeBytecode(string const& _contractName) const
+sof::LinkerObject const& CompilerStack::object(string const& _contractName) const
 {
-	return getContract(_contractName).runtimeBytecode;
+	return contract(_contractName).object;
 }
 
-bytes const& CompilerStack::getCloneBytecode(string const& _contractName) const
+sof::LinkerObject const& CompilerStack::runtimeObject(string const& _contractName) const
 {
-	return getContract(_contractName).cloneBytecode;
+	return contract(_contractName).runtimeObject;
 }
 
-dev::h256 CompilerStack::getContractCodeHash(string const& _contractName) const
+sof::LinkerObject const& CompilerStack::cloneObject(string const& _contractName) const
 {
-	return dev::sha3(getRuntimeBytecode(_contractName));
+	return contract(_contractName).cloneObject;
+}
+
+dev::h256 CompilerStack::contractCodeHash(string const& _contractName) const
+{
+	auto const& obj = runtimeObject(_contractName);
+	if (obj.bytecode.empty() || !obj.linkReferences.empty())
+		return dev::h256();
+	else
+		return dev::sha3(obj.bytecode);
 }
 
 Json::Value CompilerStack::streamAssembly(ostream& _outStream, string const& _contractName, StringMap _sourceCodes, bool _inJsonFormat) const
 {
-	Contract const& contract = getContract(_contractName);
-	if (contract.compiler)
-		return contract.compiler->streamAssembly(_outStream, _sourceCodes, _inJsonFormat);
+	Contract const& currentContract = contract(_contractName);
+	if (currentContract.compiler)
+		return currentContract.compiler->streamAssembly(_outStream, _sourceCodes, _inJsonFormat);
 	else
 	{
 		_outStream << "Contract not fully implemented" << endl;
@@ -227,22 +239,22 @@ Json::Value CompilerStack::streamAssembly(ostream& _outStream, string const& _co
 	}
 }
 
-string const& CompilerStack::getInterface(string const& _contractName) const
+string const& CompilerStack::interface(string const& _contractName) const
 {
-	return getMetadata(_contractName, DocumentationType::ABIInterface);
+	return metadata(_contractName, DocumentationType::ABIInterface);
 }
 
-string const& CompilerStack::getPolynomialInterface(string const& _contractName) const
+string const& CompilerStack::polynomialInterface(string const& _contractName) const
 {
-	return getMetadata(_contractName, DocumentationType::ABIPolynomialInterface);
+	return metadata(_contractName, DocumentationType::ABIPolynomialInterface);
 }
 
-string const& CompilerStack::getMetadata(string const& _contractName, DocumentationType _type) const
+string const& CompilerStack::metadata(string const& _contractName, DocumentationType _type) const
 {
 	if (!m_parseSuccessful)
 		BOOST_THROW_EXCEPTION(CompilerError() << errinfo_comment("Parsing was not successful."));
 
-	Contract const& contract = getContract(_contractName);
+	Contract const& currentContract = contract(_contractName);
 
 	std::unique_ptr<string const>* doc;
 
@@ -250,16 +262,16 @@ string const& CompilerStack::getMetadata(string const& _contractName, Documentat
 	switch (_type)
 	{
 	case DocumentationType::NatspecUser:
-		doc = &contract.userDocumentation;
+		doc = &currentContract.userDocumentation;
 		break;
 	case DocumentationType::NatspecDev:
-		doc = &contract.devDocumentation;
+		doc = &currentContract.devDocumentation;
 		break;
 	case DocumentationType::ABIInterface:
-		doc = &contract.interface;
+		doc = &currentContract.interface;
 		break;
 	case DocumentationType::ABIPolynomialInterface:
-		doc = &contract.polynomialInterface;
+		doc = &currentContract.polynomialInterface;
 		break;
 	default:
 		BOOST_THROW_EXCEPTION(InternalCompilerError() << errinfo_comment("Illegal documentation type."));
@@ -267,45 +279,45 @@ string const& CompilerStack::getMetadata(string const& _contractName, Documentat
 
 	// caches the result
 	if (!*doc)
-		doc->reset(new string(contract.interfaceHandler->getDocumentation(*contract.contract, _type)));
+		doc->reset(new string(currentContract.interfaceHandler->documentation(*currentContract.contract, _type)));
 
 	return *(*doc);
 }
 
-Scanner const& CompilerStack::getScanner(string const& _sourceName) const
+Scanner const& CompilerStack::scanner(string const& _sourceName) const
 {
-	return *getSource(_sourceName).scanner;
+	return *source(_sourceName).scanner;
 }
 
-SourceUnit const& CompilerStack::getAST(string const& _sourceName) const
+SourceUnit const& CompilerStack::ast(string const& _sourceName) const
 {
-	return *getSource(_sourceName).ast;
+	return *source(_sourceName).ast;
 }
 
-ContractDefinition const& CompilerStack::getContractDefinition(string const& _contractName) const
+ContractDefinition const& CompilerStack::contractDefinition(string const& _contractName) const
 {
-	return *getContract(_contractName).contract;
+	return *contract(_contractName).contract;
 }
 
-size_t CompilerStack::getFunctionEntryPoint(
+size_t CompilerStack::functionEntryPoint(
 	std::string const& _contractName,
 	FunctionDefinition const& _function
 ) const
 {
-	shared_ptr<Compiler> const& compiler = getContract(_contractName).compiler;
+	shared_ptr<Compiler> const& compiler = contract(_contractName).compiler;
 	if (!compiler)
 		return 0;
-	sof::AssemblyItem tag = compiler->getFunctionEntryLabel(_function);
+	sof::AssemblyItem tag = compiler->functionEntryLabel(_function);
 	if (tag.type() == sof::UndefinedItem)
 		return 0;
-	sof::AssemblyItems const& items = compiler->getRuntimeAssemblyItems();
+	sof::AssemblyItems const& items = compiler->runtimeAssemblyItems();
 	for (size_t i = 0; i < items.size(); ++i)
 		if (items.at(i).type() == sof::Tag && items.at(i).data() == tag.data())
 			return i;
 	return 0;
 }
 
-bytes CompilerStack::staticCompile(std::string const& _sourceCode, bool _optimize)
+sof::LinkerObject CompilerStack::staticCompile(std::string const& _sourceCode, bool _optimize)
 {
 	CompilerStack stack;
 	return stack.compile(_sourceCode, _optimize);
@@ -317,8 +329,8 @@ tuple<int, int, int, int> CompilerStack::positionFromSourceLocation(SourceLocati
 	int startColumn;
 	int endLine;
 	int endColumn;
-	tie(startLine, startColumn) = getScanner(*_sourceLocation.sourceName).translatePositionToLineColumn(_sourceLocation.start);
-	tie(endLine, endColumn) = getScanner(*_sourceLocation.sourceName).translatePositionToLineColumn(_sourceLocation.end);
+	tie(startLine, startColumn) = scanner(*_sourceLocation.sourceName).translatePositionToLineColumn(_sourceLocation.start);
+	tie(endLine, endColumn) = scanner(*_sourceLocation.sourceName).translatePositionToLineColumn(_sourceLocation.end);
 
 	return make_tuple(++startLine, ++startColumn, ++endLine, ++endColumn);
 }
@@ -334,14 +346,16 @@ void CompilerStack::resolveImports()
 		if (sourcesSeen.count(_source))
 			return;
 		sourcesSeen.insert(_source);
-		for (ASTPointer<ASTNode> const& node: _source->ast->getNodes())
+		for (ASTPointer<ASTNode> const& node: _source->ast->nodes())
 			if (ImportDirective const* import = dynamic_cast<ImportDirective*>(node.get()))
 			{
-				string const& id = import->getIdentifier();
+				string const& id = import->identifier();
 				if (!m_sources.count(id))
-					BOOST_THROW_EXCEPTION(ParserError()
-										  << errinfo_sourceLocation(import->getLocation())
-										  << errinfo_comment("Source not found."));
+					BOOST_THROW_EXCEPTION(
+						ParserError()
+							  << errinfo_sourceLocation(import->location())
+							  << errinfo_comment("Source not found.")
+					);
 				toposort(&m_sources[id]);
 			}
 		sourceOrder.push_back(_source);
@@ -356,10 +370,10 @@ void CompilerStack::resolveImports()
 
 std::string CompilerStack::defaultContractName() const
 {
-	return getContract("").contract->getName();
+	return contract("").contract->name();
 }
 
-CompilerStack::Contract const& CompilerStack::getContract(string const& _contractName) const
+CompilerStack::Contract const& CompilerStack::contract(string const& _contractName) const
 {
 	if (m_contracts.empty())
 		BOOST_THROW_EXCEPTION(CompilerError() << errinfo_comment("No compiled contracts found."));
@@ -368,16 +382,16 @@ CompilerStack::Contract const& CompilerStack::getContract(string const& _contrac
 		// try to find some user-supplied contract
 		for (auto const& it: m_sources)
 			if (!StandardSources.count(it.first))
-				for (ASTPointer<ASTNode> const& node: it.second.ast->getNodes())
+				for (ASTPointer<ASTNode> const& node: it.second.ast->nodes())
 					if (auto contract = dynamic_cast<ContractDefinition const*>(node.get()))
-						contractName = contract->getName();
+						contractName = contract->name();
 	auto it = m_contracts.find(contractName);
 	if (it == m_contracts.end())
 		BOOST_THROW_EXCEPTION(CompilerError() << errinfo_comment("Contract " + _contractName + " not found."));
 	return it->second;
 }
 
-CompilerStack::Source const& CompilerStack::getSource(string const& _sourceName) const
+CompilerStack::Source const& CompilerStack::source(string const& _sourceName) const
 {
 	auto it = m_sources.find(_sourceName);
 	if (it == m_sources.end())
