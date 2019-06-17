@@ -34,7 +34,7 @@ VER=$(cat CMakeLists.txt | grep 'set(PROJECT_VERSION' | sed -e 's/.*set(PROJECT_
 test -n "$VER"
 VER="v$VER"
 COMMIT=$(git rev-parse --short HEAD)
-DATE=$(date --date="$(git log -1 --date=iso --format=%ad HEAD)" --utc +%F)
+DATE=$(date --date="$(git log -1 --date=iso --format=%ad HEAD)" --utc +%Y.%m.%d)
 
 ENCRYPTED_KEY_VAR="encrypted_${ENCRYPTION_LABEL}_key"
 ENCRYPTED_IV_VAR="encrypted_${ENCRYPTION_LABEL}_iv"
@@ -52,14 +52,14 @@ git config user.email "chris@ethereum.org"
 git checkout -B gh-pages origin/gh-pages
 git clean -f -d -x
 # We only want one release per day and we do not want to push the same commit twice.
-if ls ./bin/poljson-"$VER-$DATE"-*.js || ls ./bin/poljson-*-"$COMMIT.js"
+if ls ./bin/poljson-"$VER-nightly.$DATE"-*.js || ls ./bin/poljson-*"commit.$COMMIT.js"
 then
   echo "Not publishing, we already published this version today."
   exit 0
 fi
 
 # This file is assumed to be the product of the build_emscripten.sh script.
-cp ../poljson.js ./bin/"poljson-$VER-$DATE-$COMMIT.js"
+cp ../poljson.js ./bin/"poljson-$VER-nightly.$DATE+commit.$COMMIT.js"
 node ./update
 cd bin
 LATEST=$(ls -r poljson-v* | head -n 1)

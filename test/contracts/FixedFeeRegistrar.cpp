@@ -52,7 +52,7 @@ static char const* registrarCode = R"DELIMITER(
 // @authors:
 //   Gav Wood <g@sofdev.com>
 
-pragma polynomial ^0.3.5;
+pragma polynomial ^0.4.0;
 
 contract Registrar {
 	event Changed(string indexed name);

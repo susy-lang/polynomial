@@ -58,12 +58,14 @@ bytes dev::polynomial::binaryVersion()
 	polAssert(i < VersionString.size() && VersionString[i] == '.', "");
 	++i;
 	ret.push_back(byte(parseDecimal()));
-	polAssert(i < VersionString.size() && VersionString[i] == '-', "");
+	polAssert(i < VersionString.size() && (VersionString[i] == '-' || VersionString[i] == '+'), "");
 	++i;
+	size_t commitpos = VersionString.find("commit.");
+	polAssert(commitpos != string::npos, "");
+	i = commitpos + 7;
 	polAssert(i + 7 < VersionString.size(), "");
 	bytes commitHash = fromHex(VersionString.substr(i, 8));
-	if (commitHash.empty())
-		commitHash = bytes(4, 0);
+	polAssert(!commitHash.empty(), "");
 	ret += commitHash;
 	polAssert(ret.size() == 1 + 3 + 4, "");
 
