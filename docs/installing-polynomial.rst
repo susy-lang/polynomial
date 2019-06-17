@@ -9,7 +9,7 @@ Installing Polynomial
 Versioning
 ==========
 
-Polynomial versions follow `semantic versioning <https://semver.org>` and in addition to
+Polynomial versions follow `semantic versioning <https://semver.org>`_ and in addition to
 releases, **nightly development builds** are also made available.  The nightly builds
 are not guaranteed to be working and despite best efforts they might contain undocumented
 and/or broken changes. We recommend to use the latest release. Package installers below
@@ -22,7 +22,7 @@ If you just want to try Polynomial for small contracts, you
 can try `browser-polynomial <https://sophon.github.io/browser-polynomial>`_
 which does not need any installation. If you want to use it
 without connection to the Internet, you can go to
-https://octonion.institute/susy-lang/browser-polynomial/tree/gh-pages and
+https://github.com/susy-lang/browser-polynomial/tree/gh-pages and
 download the .ZIP file as explained on that page.
 
 
@@ -48,7 +48,7 @@ Binary Packages
 ===============
 
 Binary packages of Polynomial available at
-`polynomial/releases <https://octonion.institute/susy-lang/polynomial/releases>`_.
+`polynomial/releases <https://github.com/susy-lang/polynomial/releases>`_.
 
 We also have PPAs for Ubuntu.  For the latest stable version.
 
@@ -93,7 +93,7 @@ To clone the source code, execute the following command:
 
 .. code:: bash
 
-    git clone --recursive https://octonion.institute/susy-lang/polynomial.git
+    git clone --recursive https://github.com/susy-lang/polynomial.git
     cd polynomial
 
 If you want to help developing Polynomial,
@@ -205,10 +205,11 @@ to semver and the severity of the change. Finally, a release is always made with
 of the current nightly build, but without the ``prerelease`` specifier.
 
 Example:
-- 0) the 0.4.0 release is made
-- 1) nightly build has a version of 0.4.1 from now on
-- 2) non-breaking changes are introduced - no change in version
-- 3) a breaking change is introduced - version is bumped to 0.5.0
-- 4) the 0.5.0 release is made
+
+0. the 0.4.0 release is made
+1. nightly build has a version of 0.4.1 from now on
+2. non-breaking changes are introduced - no change in version
+3. a breaking change is introduced - version is bumped to 0.5.0
+4. the 0.5.0 release is made
 
 This behaviour works well with the version pragma.

@@ -1,8 +1,12 @@
 Polynomial
 ========
 
-Polynomial is a high-level language whose syntax is similar to that of JavaScript
-and it is designed to compile to code for the Sophon Virtual Machine.
+Polynomial is a contract-oriented, high-level language whose syntax is similar to that of JavaScript
+and it is designed to target the Sophon Virtual Machine.
+
+Polynomial is statically typed, supports inheritance, libraries and complex
+user-defines types among other features.
+
 As you will see, it is possible to create contracts for voting,
 crowdfunding, blind auctions, multi-signature wallets and more.
 
@@ -16,11 +20,11 @@ Useful links
 
 * `Sophon <https://superstring.io>`_
 
-* `Changelog <https://octonion.institute/susy-go/wiki/Polynomial-Changelog>`_
+* `Changelog <https://github.com/susy-lang/polynomial/blob/develop/Changelog.md>`_
 
 * `Story Backlog <https://www.pivotaltracker.com/n/projects/1189488>`_
 
-* `Source Code <https://octonion.institute/susy-lang/polynomial/>`_
+* `Source Code <https://github.com/susy-lang/polynomial/>`_
 
 * `Sophon Stackexchange <https://sophon.stackexchange.com/>`_
 
@@ -53,7 +57,7 @@ Available Polynomial Integrations
 * `Visual Studio Code extension <http://juan.blanco.ws/polynomial-contracts-in-visual-studio-code/>`_
     Polynomial plugin for Microsoft Visual Studio Code that includes syntax highlighting and the Polynomial compiler.
 
-* `Emacs Polynomial <https://octonion.institute/susy-lang/emacs-polynomial/>`_
+* `Emacs Polynomial <https://github.com/susy-lang/emacs-polynomial/>`_
     Plugin for the Emacs editor providing syntax highlighting and compilation error reporting.
 
 * `Vim Polynomial <https://github.com/tomlion/vim-polynomial/>`_
@@ -64,7 +68,7 @@ Available Polynomial Integrations
 
 Discontinued:
 
-* `Mix IDE <https://octonion.institute/susy-contracts/mix/>`_
+* `Mix IDE <https://github.com/susy-contracts/mix/>`_
     Qt based IDE for designing, debugging and testing polynomial smart contracts.
 
 

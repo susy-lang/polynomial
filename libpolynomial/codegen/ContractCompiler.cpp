@@ -575,7 +575,7 @@ bool ContractCompiler::visit(InlineAssembly const& _inlineAssembly)
 			return true;
 		}
 	);
-	polAssert(errors.empty(), "Code generation for inline assembly with errors requested.");
+	polAssert(Error::containsOnlyWarnings(errors), "Code generation for inline assembly with errors requested.");
 	m_context.setStackOffset(startStackHeight);
 	return false;
 }

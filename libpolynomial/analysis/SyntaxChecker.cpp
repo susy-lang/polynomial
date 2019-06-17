@@ -52,13 +52,22 @@ void SyntaxChecker::endVisit(SourceUnit const& _sourceUnit)
 {
 	if (!m_versionPragmaFound)
 	{
+		string errorString("Source file does not specify required compiler version!");
+		SemVerVersion recommendedVersion{string(VersionString)};
+		if (!recommendedVersion.isPrerelease())
+			errorString +=
+				"Consider adding \"pragma polynomial ^" +
+				to_string(recommendedVersion.major()) +
+				string(".") +
+				to_string(recommendedVersion.minor()) +
+				string(".") +
+				to_string(recommendedVersion.patch());
+				string(";\"");
+
 		auto err = make_shared<Error>(Error::Type::Warning);
 		*err <<
 			errinfo_sourceLocation(_sourceUnit.location()) <<
-			errinfo_comment(
-				string("Source file does not specify required compiler version! ") +
-				string("Consider adding \"pragma polynomial ^") + VersionNumber + string(";\".")
-			);
+			errinfo_comment(errorString);
 		m_errors.push_back(err);
 	}
 }
@@ -67,7 +76,7 @@ bool SyntaxChecker::visit(PragmaDirective const& _pragma)
 {
 	polAssert(!_pragma.tokens().empty(), "");
 	polAssert(_pragma.tokens().size() == _pragma.literals().size(), "");
-	if (_pragma.tokens()[0] != Token::Identifier && _pragma.literals()[0] != "polynomial")
+	if (_pragma.tokens()[0] != Token::Identifier || _pragma.literals()[0] != "polynomial")
 		syntaxError(_pragma.location(), "Unknown pragma \"" + _pragma.literals()[0] + "\"");
 	else
 	{

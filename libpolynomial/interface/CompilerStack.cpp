@@ -21,8 +21,10 @@
  * Full-stack compiler that converts a source code string to bytecode.
  */
 
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
+#include <libpolynomial/interface/CompilerStack.h>
+
+#include <libpolynomial/interface/Version.h>
+#include <libpolynomial/analysis/SemVerHandler.h>
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/parsing/Scanner.h>
 #include <libpolynomial/parsing/Parser.h>
@@ -32,11 +34,14 @@
 #include <libpolynomial/analysis/DocStringAnalyser.h>
 #include <libpolynomial/analysis/SyntaxChecker.h>
 #include <libpolynomial/codegen/Compiler.h>
-#include <libpolynomial/interface/CompilerStack.h>
 #include <libpolynomial/interface/InterfaceHandler.h>
 #include <libpolynomial/formal/Why3Translator.h>
 
 #include <libdevcore/SHA3.h>
+
+#include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
+
 
 using namespace std;
 using namespace dev;
@@ -99,6 +104,13 @@ bool CompilerStack::parse()
 	//reset
 	m_errors.clear();
 	m_parseSuccessful = false;
+
+	if (SemVerVersion{string(VersionString)}.isPrerelease())
+	{
+		auto err = make_shared<Error>(Error::Type::Warning);
+		*err << errinfo_comment("This is a pre-release compiler version, please do not use it in production.");
+		m_errors.push_back(err);
+	}
 
 	vector<string> sourcesToParse;
 	for (auto const& s: m_sources)
@@ -302,7 +314,7 @@ dev::h256 CompilerStack::contractCodeHash(string const& _contractName) const
 	if (obj.bytecode.empty() || !obj.linkReferences.empty())
 		return dev::h256();
 	else
-		return dev::sha3(obj.bytecode);
+		return dev::keccak256(obj.bytecode);
 }
 
 Json::Value CompilerStack::streamAssembly(ostream& _outStream, string const& _contractName, StringMap _sourceCodes, bool _inJsonFormat) const

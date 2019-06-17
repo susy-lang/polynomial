@@ -57,7 +57,7 @@ Return = 'return' Expression?
 Throw = 'throw'
 VariableDefinition = VariableDeclaration ( '=' Expression )?
 
-// Precedence by order (see octonion.institute/susy-lang/polynomial/pull/732)
+// Precedence by order (see github.com/susy-lang/polynomial/pull/732)
 Expression =
   ( Expression ('++' | '--') | FunctionCall | IndexAccess | MemberAccess | '(' Expression ')' )
   | ('!' | '~' | 'delete' | '++' | '--' | '+' | '-') Expression
@@ -77,7 +77,7 @@ Expression =
   | Expression? (',' Expression)
   | PrimaryExpression
 
-PrimaryExpression = Identifier | BooleanLiteral | NumberLiteral | StringLiteral
+PrimaryExpression = Identifier | BooleanLiteral | NumberLiteral | HexLiteral | StringLiteral
 
 FunctionCall = ( PrimaryExpression | NewExpression | TypeName ) ( ( '.' Identifier ) | ( '[' Expression ']' ) )* '(' Expression? ( ',' Expression )* ')'
 NewExpression = 'new' Identifier
@@ -88,8 +88,8 @@ BooleanLiteral = 'true' | 'false'
 NumberLiteral = '0x'? [0-9]+ (' ' NumberUnit)?
 NumberUnit = 'wei' | 'szabo' | 'finney' | 'sophy'
            | 'seconds' | 'minutes' | 'hours' | 'days' | 'weeks' | 'years'
+HexLiteral = 'hex' ('"' ([0-9a-fA-F]{2})* '"' | '\'' ([0-9a-fA-F]{2})* '\'')
 StringLiteral = '"' ([^"\r\n\\] | '\\' .)* '"'
-
 Identifier = [a-zA-Z_] [a-zA-Z_0-9]*
 
 ElementaryTypeName = 'address' | 'bool' | 'string' | 'var'

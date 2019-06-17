@@ -45,13 +45,21 @@ bytes dev::sof::compileLLL(string const& _src, bool _opt, vector<string>* _error
 		if (_errors)
 		{
 			_errors->push_back("Parse error.");
-			_errors->push_back(diagnostic_information(_e));
+			_errors->push_back(boost::diagnostic_information(_e));
 		}
 	}
-	catch (std::exception)
+	catch (std::exception const& _e)
 	{
 		if (_errors)
-			_errors->push_back("Parse error.");
+		{
+			_errors->push_back("Parse exception.");
+			_errors->push_back(boost::diagnostic_information(_e));
+		}
+	}
+	catch (...)
+	{
+		if (_errors)
+			_errors->push_back("Internal parse exception.");
 	}
 	return bytes();
 }
@@ -70,12 +78,22 @@ std::string dev::sof::compileLLLToAsm(std::string const& _src, bool _opt, std::v
 	catch (Exception const& _e)
 	{
 		if (_errors)
-			_errors->push_back(diagnostic_information(_e));
+		{
+			_errors->push_back("Parse error.");
+			_errors->push_back(boost::diagnostic_information(_e));
+		}
 	}
-	catch (std::exception)
+	catch (std::exception const& _e)
+	{
+		if (_errors) {
+			_errors->push_back("Parse exception.");
+			_errors->push_back(boost::diagnostic_information(_e));
+		}
+	}
+	catch (...)
 	{
 		if (_errors)
-			_errors->push_back("Parse error.");
+			_errors->push_back("Internal parse exception.");
 	}
 	return string();
 }
