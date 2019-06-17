@@ -19,8 +19,12 @@
 * @date 2014
 */
 
+#include <test/TestHelper.h>
+
+#include <libpolynomial/interface/SVMVersion.h>
+
 #include <boost/test/framework.hpp>
-#include "TestHelper.h"
+
 using namespace std;
 using namespace dev::test;
 
@@ -41,6 +45,11 @@ Options::Options()
 		}
 		else if (string(suite.argv[i]) == "--optimize")
 			optimize = true;
+		else if (string(suite.argv[i]) == "--svm-version")
+		{
+			svmVersionString = i + 1 < suite.argc ? suite.argv[i + 1] : "INVALID";
+			++i;
+		}
 		else if (string(suite.argv[i]) == "--show-messages")
 			showMessages = true;
 		else if (string(suite.argv[i]) == "--no-ipc")
@@ -51,4 +60,18 @@ Options::Options()
 	if (!disableIPC && ipcPath.empty())
 		if (auto path = getenv("SOF_TEST_IPC"))
 			ipcPath = path;
+}
+
+dev::polynomial::SVMVersion Options::svmVersion() const
+{
+	if (!svmVersionString.empty())
+	{
+		// We do this check as opposed to in the constructor because the BOOST_REQUIRE
+		// macros cannot yet be used in the constructor.
+		auto version = polynomial::SVMVersion::fromString(svmVersionString);
+		BOOST_REQUIRE_MESSAGE(version, "Invalid SVM version: " + svmVersionString);
+		return *version;
+	}
+	else
+		return dev::polynomial::SVMVersion();
 }

@@ -522,7 +522,7 @@ void CodeTransform::generateAssignment(Identifier const& _variableName)
 	}
 }
 
-int CodeTransform::variableHeightDiff(polynomial::assembly::Scope::Variable const& _var, bool _forSwap)
+int CodeTransform::variableHeightDiff(polynomial::assembly::Scope::Variable const& _var, bool _forSwap) const
 {
 	polAssert(m_context->variableStackHeights.count(&_var), "");
 	int heightDiff = m_assembly.stackHeight() - m_context->variableStackHeights[&_var];
@@ -537,12 +537,12 @@ int CodeTransform::variableHeightDiff(polynomial::assembly::Scope::Variable cons
 		return heightDiff;
 }
 
-void CodeTransform::expectDeposit(int _deposit, int _oldHeight)
+void CodeTransform::expectDeposit(int _deposit, int _oldHeight) const
 {
 	polAssert(m_assembly.stackHeight() == _oldHeight + _deposit, "Invalid stack deposit.");
 }
 
-void CodeTransform::checkStackHeight(void const* _astElement)
+void CodeTransform::checkStackHeight(void const* _astElement) const
 {
 	polAssert(m_info.stackHeightInfo.count(_astElement), "Stack height for AST element not found.");
 	polAssert(

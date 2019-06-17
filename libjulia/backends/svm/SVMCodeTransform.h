@@ -133,11 +133,11 @@ private:
 	/// Determines the stack height difference to the given variables. Throws
 	/// if it is not yet in scope or the height difference is too large. Returns
 	/// the (positive) stack height difference otherwise.
-	int variableHeightDiff(polynomial::assembly::Scope::Variable const& _var, bool _forSwap);
+	int variableHeightDiff(polynomial::assembly::Scope::Variable const& _var, bool _forSwap) const;
 
-	void expectDeposit(int _deposit, int _oldHeight);
+	void expectDeposit(int _deposit, int _oldHeight) const;
 
-	void checkStackHeight(void const* _astElement);
+	void checkStackHeight(void const* _astElement) const;
 
 	julia::AbstractAssembly& m_assembly;
 	polynomial::assembly::AsmAnalysisInfo& m_info;

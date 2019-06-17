@@ -22,7 +22,7 @@
 
 #include "../TestHelper.h"
 #include <string>
-#include <json/json.h>
+#include <libdevcore/JSON.h>
 #include <libpolynomial/interface/CompilerStack.h>
 #include <libpolynomial/interface/Exceptions.h>
 #include <libdevcore/Exceptions.h>
@@ -47,6 +47,7 @@ public:
 	{
 		m_compilerStack.reset(false);
 		m_compilerStack.addSource("", "pragma polynomial >=0.0;\n" + _code);
+		m_compilerStack.setSVMVersion(dev::test::Options::get().svmVersion());
 		BOOST_REQUIRE_MESSAGE(m_compilerStack.parseAndAnalyze(), "Parsing contract failed");
 
 		Json::Value generatedDocumentation;
@@ -55,7 +56,7 @@ public:
 		else
 			generatedDocumentation = m_compilerStack.natspecDev(m_compilerStack.lastContractName());
 		Json::Value expectedDocumentation;
-		m_reader.parse(_expectedDocumentationString, expectedDocumentation);
+		jsonParseStrict(_expectedDocumentationString, expectedDocumentation);
 		BOOST_CHECK_MESSAGE(
 			expectedDocumentation == generatedDocumentation,
 			"Expected:\n" << expectedDocumentation.toStyledString() <<
@@ -67,13 +68,13 @@ public:
 	{
 		m_compilerStack.reset(false);
 		m_compilerStack.addSource("", "pragma polynomial >=0.0;\n" + _code);
+		m_compilerStack.setSVMVersion(dev::test::Options::get().svmVersion());
 		BOOST_CHECK(!m_compilerStack.parseAndAnalyze());
 		BOOST_REQUIRE(Error::containsErrorOfType(m_compilerStack.errors(), Error::Type::DocstringParsingError));
 	}
 
 private:
 	CompilerStack m_compilerStack;
-	Json::Reader m_reader;
 };
 
 BOOST_FIXTURE_TEST_SUITE(PolynomialNatspecJSON, DocumentationChecker)

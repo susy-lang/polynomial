@@ -25,6 +25,8 @@
 #include <test/TestHelper.h>
 #include <test/RPCSession.h>
 
+#include <libpolynomial/interface/SVMVersion.h>
+
 #include <libdevcore/FixedHash.h>
 #include <libdevcore/SHA3.h>
 
@@ -227,6 +229,7 @@ protected:
 		bytes data;
 	};
 
+	polynomial::SVMVersion m_svmVersion;
 	unsigned m_optimizeRuns = 200;
 	bool m_optimize = false;
 	bool m_showMessages = false;

@@ -54,7 +54,10 @@ bool AsmAnalyzer::analyze(Block const& _block)
 
 bool AsmAnalyzer::operator()(Label const& _label)
 {
-	polAssert(m_flavour == AsmFlavour::Loose, "");
+	checkLooseFeature(
+		_label.location,
+		"The use of labels is deprecated. Please use \"if\", \"switch\", \"for\" or function calls instead."
+	);
 	m_info.stackHeightInfo[&_label] = m_stackHeight;
 	warnOnInstructions(polynomial::Instruction::JUMPDEST, _label.location);
 	return true;
@@ -62,7 +65,10 @@ bool AsmAnalyzer::operator()(Label const& _label)
 
 bool AsmAnalyzer::operator()(assembly::Instruction const& _instruction)
 {
-	polAssert(m_flavour == AsmFlavour::Loose, "");
+	checkLooseFeature(
+		_instruction.location,
+		"The use of non-functional instructions is deprecated. Please use functional notation instead."
+	);
 	auto const& info = instructionInfo(_instruction.instruction);
 	m_stackHeight += info.ret - info.args;
 	m_info.stackHeightInfo[&_instruction] = m_stackHeight;
@@ -81,6 +87,19 @@ bool AsmAnalyzer::operator()(assembly::Literal const& _literal)
 			"String literal too long (" + boost::lexical_cast<std::string>(_literal.value.size()) + " > 32)"
 		);
 		return false;
+	}
+	else if (_literal.kind == assembly::LiteralKind::Number && bigint(_literal.value) > u256(-1))
+	{
+		m_errorReporter.typeError(
+			_literal.location,
+			"Number literal too large (> 256 bits)"
+		);
+		return false;
+	}
+	else if (_literal.kind == assembly::LiteralKind::Boolean)
+	{
+		polAssert(m_flavour == AsmFlavour::IULIA, "");
+		polAssert(_literal.value == "true" || _literal.value == "false", "");
 	}
 	m_info.stackHeightInfo[&_literal] = m_stackHeight;
 	return true;
@@ -157,18 +176,31 @@ bool AsmAnalyzer::operator()(FunctionalInstruction const& _instr)
 
 bool AsmAnalyzer::operator()(assembly::ExpressionStatement const& _statement)
 {
-	size_t initialStackHeight = m_stackHeight;
+	int initialStackHeight = m_stackHeight;
 	bool success = boost::apply_visitor(*this, _statement.expression);
-	if (m_flavour != AsmFlavour::Loose)
-		if (!expectDeposit(0, initialStackHeight, _statement.location))
+	if (m_stackHeight != initialStackHeight && (m_flavour != AsmFlavour::Loose || m_errorTypeForLoose))
+	{
+		Error::Type errorType = m_flavour == AsmFlavour::Loose ? *m_errorTypeForLoose : Error::Type::TypeError;
+		string msg =
+			"Top-level expressions are not supposed to return values (this expression returns " +
+			boost::lexical_cast<string>(m_stackHeight - initialStackHeight) +
+			" value" +
+			(m_stackHeight - initialStackHeight == 1 ? "" : "s") +
+			"). Use ``pop()`` or assign them.";
+		m_errorReporter.error(errorType, _statement.location, msg);
+		if (errorType != Error::Type::Warning)
 			success = false;
+	}
 	m_info.stackHeightInfo[&_statement] = m_stackHeight;
 	return success;
 }
 
 bool AsmAnalyzer::operator()(assembly::StackAssignment const& _assignment)
 {
-	polAssert(m_flavour == AsmFlavour::Loose, "");
+	checkLooseFeature(
+		_assignment.location,
+		"The use of stack assignment is deprecated. Please use assignment in functional notation instead."
+	);
 	bool success = checkAssignment(_assignment.variableName, size_t(-1));
 	m_info.stackHeightInfo[&_assignment] = m_stackHeight;
 	return success;
@@ -520,26 +552,66 @@ void AsmAnalyzer::expectValidType(string const& type, SourceLocation const& _loc
 
 void AsmAnalyzer::warnOnInstructions(polynomial::Instruction _instr, SourceLocation const& _location)
 {
-	static set<polynomial::Instruction> futureInstructions{
-		polynomial::Instruction::CREATE2,
-		polynomial::Instruction::RETURNDATACOPY,
-		polynomial::Instruction::RETURNDATASIZE,
-		polynomial::Instruction::STATICCALL
-	};
-	if (futureInstructions.count(_instr))
+	// We assume that returndatacopy, returndatasize and staticcall are either all available
+	// or all not available.
+	polAssert(m_svmVersion.supportsReturndata() == m_svmVersion.hasStaticCall(), "");
+
+	if (_instr == polynomial::Instruction::CREATE2)
 		m_errorReporter.warning(
 			_location,
 			"The \"" +
 			boost::to_lower_copy(instructionInfo(_instr).name)
-			+ "\" instruction is only available after " +
-			"the Metropolis hard fork. Before that it acts as an invalid instruction."
+			+ "\" instruction is not supported by the VM version \"" +
+			"" + m_svmVersion.name() +
+			"\" you are currently compiling for. " +
+			"It will be interpreted as an invalid instruction on this VM."
+		);
+	else if ((
+		_instr == polynomial::Instruction::RETURNDATACOPY ||
+		_instr == polynomial::Instruction::RETURNDATASIZE ||
+		_instr == polynomial::Instruction::STATICCALL
+	) && !m_svmVersion.supportsReturndata())
+		m_errorReporter.warning(
+			_location,
+			"The \"" +
+			boost::to_lower_copy(instructionInfo(_instr).name)
+			+ "\" instruction is only available for Byzantium-compatible VMs. " +
+			"You are currently compiling for \"" +
+			m_svmVersion.name() +
+			"\", where it will be interpreted as an invalid instruction."
+		);
+	else if ((
+		_instr == polynomial::Instruction::SHL ||
+		_instr == polynomial::Instruction::SHR ||
+		_instr == polynomial::Instruction::SAR
+	) && !m_svmVersion.hasBitwiseShifting())
+		m_errorReporter.warning(
+			_location,
+			"The \"" +
+			boost::to_lower_copy(instructionInfo(_instr).name)
+			+ "\" instruction is only available for Constantinople-compatible VMs. " +
+			"You are currently compiling for \"" +
+			m_svmVersion.name() +
+			"\", where it will be interpreted as an invalid instruction."
 		);
 
 	if (_instr == polynomial::Instruction::JUMP || _instr == polynomial::Instruction::JUMPI || _instr == polynomial::Instruction::JUMPDEST)
-		m_errorReporter.warning(
+	{
+		polAssert(m_flavour == AsmFlavour::Loose, "");
+		m_errorReporter.error(
+			m_errorTypeForLoose ? *m_errorTypeForLoose : Error::Type::Warning,
 			_location,
 			"Jump instructions and labels are low-level SVM features that can lead to "
 			"incorrect stack access. Because of that they are discouraged. "
 			"Please consider using \"switch\", \"if\" or \"for\" statements instead."
 		);
+	}
+}
+
+void AsmAnalyzer::checkLooseFeature(SourceLocation const& _location, string const& _description)
+{
+	if (m_flavour != AsmFlavour::Loose)
+		polAssert(false, _description);
+	else if (m_errorTypeForLoose)
+		m_errorReporter.error(*m_errorTypeForLoose, _location, _description);
 }

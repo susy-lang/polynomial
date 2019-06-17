@@ -8,7 +8,7 @@ include(SofPolicy)
 sof_policy()
 
 # project name and version should be set after cmake_policy CMP0048
-set(PROJECT_VERSION "0.4.20")
+set(PROJECT_VERSION "0.4.21")
 project(polynomial VERSION ${PROJECT_VERSION})
 
 option(POLC_LINK_STATIC "Link polc executable statically on supported platforms" OFF)

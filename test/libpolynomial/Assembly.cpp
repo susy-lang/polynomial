@@ -20,11 +20,11 @@
  * Unit tests for Assembly Items from svmasm/Assembly.h
  */
 
-#include <string>
-#include <iostream>
-#include <boost/test/unit_test.hpp>
+#include <test/TestHelper.h>
+
 #include <libsvmasm/SourceLocation.h>
 #include <libsvmasm/Assembly.h>
+
 #include <libpolynomial/parsing/Scanner.h>
 #include <libpolynomial/parsing/Parser.h>
 #include <libpolynomial/analysis/NameAndTypeResolver.h>
@@ -32,6 +32,11 @@
 #include <libpolynomial/ast/AST.h>
 #include <libpolynomial/analysis/TypeChecker.h>
 #include <libpolynomial/interface/ErrorReporter.h>
+
+#include <boost/test/unit_test.hpp>
+
+#include <string>
+#include <iostream>
 
 using namespace std;
 using namespace dev::sof;
@@ -46,7 +51,7 @@ namespace test
 namespace
 {
 
-sof::AssemblyItems compileContract(const string& _sourceCode)
+sof::AssemblyItems compileContract(string const& _sourceCode)
 {
 	ErrorList errors;
 	ErrorReporter errorReporter(errors);
@@ -69,7 +74,7 @@ sof::AssemblyItems compileContract(const string& _sourceCode)
 	for (ASTPointer<ASTNode> const& node: sourceUnit->nodes())
 		if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 		{
-			TypeChecker checker(errorReporter);
+			TypeChecker checker(dev::test::Options::get().svmVersion(), errorReporter);
 			BOOST_REQUIRE_NO_THROW(checker.checkTypeRequirements(*contract));
 			if (!Error::containsOnlyWarnings(errorReporter.errors()))
 				return AssemblyItems();
@@ -77,7 +82,7 @@ sof::AssemblyItems compileContract(const string& _sourceCode)
 	for (ASTPointer<ASTNode> const& node: sourceUnit->nodes())
 		if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 		{
-			Compiler compiler;
+			Compiler compiler(dev::test::Options::get().svmVersion());
 			compiler.compileContract(*contract, map<ContractDefinition const*, Assembly const*>{}, bytes());
 
 			return compiler.runtimeAssemblyItems();

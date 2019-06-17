@@ -396,7 +396,7 @@ protected:
 		if (!s_compiledSrc20)
 		{
 			vector<string> errors;
-			s_compiledSrc20.reset(new bytes(compileLLL(src20Code, dev::test::Options::get().optimize, &errors)));
+			s_compiledSrc20.reset(new bytes(compileLLL(src20Code, dev::test::Options::get().svmVersion(), dev::test::Options::get().optimize, &errors)));
 			BOOST_REQUIRE(errors.empty());
 		}
 		sendMessage(*s_compiledSrc20, true);

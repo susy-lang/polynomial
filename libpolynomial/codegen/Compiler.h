@@ -22,10 +22,13 @@
 
 #pragma once
 
+#include <libpolynomial/codegen/CompilerContext.h>
+#include <libpolynomial/interface/SVMVersion.h>
+
+#include <libsvmasm/Assembly.h>
+
 #include <ostream>
 #include <functional>
-#include <libpolynomial/codegen/CompilerContext.h>
-#include <libsvmasm/Assembly.h>
 
 namespace dev {
 namespace polynomial {
@@ -33,11 +36,11 @@ namespace polynomial {
 class Compiler
 {
 public:
-	explicit Compiler(bool _optimize = false, unsigned _runs = 200):
+	explicit Compiler(SVMVersion _svmVersion = SVMVersion{}, bool _optimize = false, unsigned _runs = 200):
 		m_optimize(_optimize),
 		m_optimizeRuns(_runs),
-		m_runtimeContext(),
-		m_context(&m_runtimeContext)
+		m_runtimeContext(_svmVersion),
+		m_context(_svmVersion, &m_runtimeContext)
 	{ }
 
 	/// Compiles a contract.

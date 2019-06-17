@@ -903,6 +903,15 @@ bool ContractCompiler::visit(Throw const& _throw)
 	return false;
 }
 
+bool ContractCompiler::visit(EmitStatement const& _emit)
+{
+	CompilerContext::LocationSetter locationSetter(m_context, _emit);
+	StackHeightChecker checker(m_context);
+	compileExpression(_emit.eventCall());
+	checker.check();
+	return false;
+}
+
 bool ContractCompiler::visit(VariableDeclarationStatement const& _variableDeclarationStatement)
 {
 	StackHeightChecker checker(m_context);
@@ -1050,7 +1059,7 @@ void ContractCompiler::compileExpression(Expression const& _expression, TypePoin
 		CompilerUtils(m_context).convertType(*_expression.annotation().type, *_targetType);
 }
 
-sof::AssemblyPointer ContractCompiler::cloneRuntime()
+sof::AssemblyPointer ContractCompiler::cloneRuntime() const
 {
 	sof::Assembly a;
 	a << Instruction::CALLDATASIZE;
@@ -1061,7 +1070,7 @@ sof::AssemblyPointer ContractCompiler::cloneRuntime()
 	// this is the address which has to be substituted by the linker.
 	//@todo implement as special "marker" AssemblyItem.
 	a << u256("0xcafecafecafecafecafecafecafecafecafecafe");
-	a << u256(sof::GasCosts::callGas + 10) << Instruction::GAS << Instruction::SUB;
+	a << u256(sof::GasCosts::callGas(m_context.svmVersion()) + 10) << Instruction::GAS << Instruction::SUB;
 	a << Instruction::DELEGATECALL;
 	//Propagate error condition (if DELEGATECALL pushes 0 on stack).
 	a << Instruction::ISZERO;

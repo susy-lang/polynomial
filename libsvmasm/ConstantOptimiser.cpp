@@ -29,6 +29,7 @@ using namespace dev::sof;
 unsigned ConstantOptimisationMethod::optimiseConstants(
 	bool _isCreation,
 	size_t _runs,
+	polynomial::SVMVersion _svmVersion,
 	Assembly& _assembly,
 	AssemblyItems& _items
 )
@@ -48,6 +49,7 @@ unsigned ConstantOptimisationMethod::optimiseConstants(
 		params.multiplicity = it.second;
 		params.isCreation = _isCreation;
 		params.runs = _runs;
+		params.svmVersion = _svmVersion;
 		LiteralMethod lit(params, item.data());
 		bigint literalGas = lit.gasNeeded();
 		CodeCopyMethod copy(params, item.data());
@@ -80,7 +82,12 @@ bigint ConstantOptimisationMethod::simpleRunGas(AssemblyItems const& _items)
 		if (item.type() == Push)
 			gas += GasMeter::runGas(Instruction::PUSH1);
 		else if (item.type() == Operation)
-			gas += GasMeter::runGas(item.instruction());
+		{
+			if (item.instruction() == Instruction::EXP)
+				gas += GasCosts::expGas;
+			else
+				gas += GasMeter::runGas(item.instruction());
+		}
 	return gas;
 }
 
@@ -286,7 +293,7 @@ bigint ComputeMethod::gasNeeded(AssemblyItems const& _routine) const
 {
 	size_t numExps = count(_routine.begin(), _routine.end(), Instruction::EXP);
 	return combineGas(
-		simpleRunGas(_routine) + numExps * (GasCosts::expGas + GasCosts::expByteGas),
+		simpleRunGas(_routine) + numExps * (GasCosts::expGas + GasCosts::expByteGas(m_params.svmVersion)),
 		// Data gas for routine: Some bytes are zero, but we ignore them.
 		bytesRequired(_routine) * (m_params.isCreation ? GasCosts::txDataNonZeroGas : GasCosts::createDataGas),
 		0

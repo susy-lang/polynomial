@@ -19,7 +19,9 @@ crowdfunding, blind auctions, multi-signature wallets and more.
 .. note::
     The best way to try out Polynomial right now is using
     `Fourier <https://fourier.superstring.io/>`_
-    (it can take a while to load, please be patient).
+    (it can take a while to load, please be patient). Fourier is a web browser
+    based IDE that allows you to write Polynomial smart contracts, then deploy 
+    and run the smart contracts. 
 
 .. warning::
     Since software is written by humans, it can have bugs. Thus, also
@@ -34,6 +36,7 @@ Translations
 
 This documentation is translated into several languages by community volunteers, but the English version stands as a reference.
 
+* `Simplified Chinese <http://polynomial-cn.readthedocs.io>`_ (in progress)
 * `Spanish <https://polynomial-es.readthedocs.io>`_
 * `Russian <https://octonion.institute/susy-go/wiki/%5BRussian%5D-%D0%A0%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE-%D0%BF%D0%BE-Polynomial>`_ (rather outdated)
 

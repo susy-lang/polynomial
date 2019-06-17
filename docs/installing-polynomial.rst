@@ -29,18 +29,20 @@ Further options on this page detail installing commandline Polynomial compiler s
 on your computer. Choose a commandline compiler if you are working on a larger contract
 or if you require more compilation options.
 
+.. _polcjs:
+
 npm / Node.js
 =============
 
 Use `npm` for a convenient and portable way to install `polcjs`, a Polynomial compiler. The
 `polcjs` program has less features than all options further down this page. Our 
-`Using the compiler <using-the-compiler.html>` documentation assumes you are using
+:ref:`commandline-compiler` documentation assumes you are using
 the full-featured compiler, `polc`. So if you install `polcjs` from `npm` then you will
-stop reading the documentation here and then continue to <https://octonion.institute/susy-js/polc-js>,
+stop reading the documentation here and then continue to `polc-js <https://octonion.institute/susy-js/polc-js>`_.
 
-Note: The `polc-js <https://octonion.institute/susy-js/polc-js>` project is derived from the C++
+Note: The polc-js project is derived from the C++
 `polc` by using Emscripten. `polc-js` can be used in JavaScript projects directly (such as Fourier).
-Please refer to the `polc-js <https://octonion.institute/susy-js/polc-js>`_ repository for instructions.
+Please refer to the polc-js repository for instructions.
 
 .. code:: bash
 

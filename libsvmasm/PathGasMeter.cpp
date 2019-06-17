@@ -27,8 +27,8 @@ using namespace std;
 using namespace dev;
 using namespace dev::sof;
 
-PathGasMeter::PathGasMeter(AssemblyItems const& _items):
-	m_items(_items)
+PathGasMeter::PathGasMeter(AssemblyItems const& _items, polynomial::SVMVersion _svmVersion):
+	m_items(_items), m_svmVersion(_svmVersion)
 {
 	for (size_t i = 0; i < m_items.size(); ++i)
 		if (m_items[i].type() == Tag)
@@ -59,7 +59,7 @@ GasMeter::GasConsumption PathGasMeter::handleQueueItem()
 	m_queue.pop_back();
 
 	shared_ptr<KnownState> state = path->state;
-	GasMeter meter(state, path->largestMemoryAccess);
+	GasMeter meter(state, m_svmVersion, path->largestMemoryAccess);
 	ExpressionClasses& classes = state->expressionClasses();
 	GasMeter::GasConsumption gas = path->gas;
 	size_t index = path->index;

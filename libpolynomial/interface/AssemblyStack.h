@@ -22,6 +22,8 @@
 #pragma once
 
 #include <libpolynomial/interface/ErrorReporter.h>
+#include <libpolynomial/interface/SVMVersion.h>
+
 #include <libsvmasm/LinkerObject.h>
 
 #include <string>
@@ -54,8 +56,8 @@ public:
 	enum class Language { JULIA, Assembly, StrictAssembly };
 	enum class Machine { SVM, SVM15, eWasm };
 
-	explicit AssemblyStack(Language _language = Language::Assembly):
-		m_language(_language), m_errorReporter(m_errors)
+	explicit AssemblyStack(SVMVersion _svmVersion = SVMVersion(), Language _language = Language::Assembly):
+		m_language(_language), m_svmVersion(_svmVersion), m_errorReporter(m_errors)
 	{}
 
 	/// @returns the scanner used during parsing
@@ -82,6 +84,7 @@ private:
 	bool analyzeParsed();
 
 	Language m_language = Language::Assembly;
+	SVMVersion m_svmVersion;
 
 	std::shared_ptr<Scanner> m_scanner;
 

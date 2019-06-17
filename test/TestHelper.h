@@ -19,10 +19,13 @@
 
 #pragma once
 
-#include <functional>
+#include <libpolynomial/interface/SVMVersion.h>
+
 #include <boost/test/unit_test.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/version.hpp>
+
+#include <functional>
 
 namespace dev
 {
@@ -37,9 +40,13 @@ struct Options: boost::noncopyable
 	bool disableIPC = false;
 	bool disableSMT = false;
 
+	polynomial::SVMVersion svmVersion() const;
+
 	static Options const& get();
 
 private:
+	std::string svmVersionString;
+
 	Options();
 };
 

@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include <libpolynomial/interface/SVMVersion.h>
+
 #include <libpolynomial/ast/Types.h>
 #include <libpolynomial/ast/ASTAnnotations.h>
 #include <libpolynomial/ast/ASTForward.h>
@@ -43,7 +45,10 @@ class TypeChecker: private ASTConstVisitor
 {
 public:
 	/// @param _errorReporter provides the error logging functionality.
-	TypeChecker(ErrorReporter& _errorReporter): m_errorReporter(_errorReporter) {}
+	TypeChecker(SVMVersion _svmVersion, ErrorReporter& _errorReporter):
+		m_svmVersion(_svmVersion),
+		m_errorReporter(_errorReporter)
+	{}
 
 	/// Performs type checking on the given contract and all of its sub-nodes.
 	/// @returns true iff all checks passed. Note even if all checks passed, errors() can still contain warnings
@@ -94,6 +99,8 @@ private:
 	virtual bool visit(WhileStatement const& _whileStatement) override;
 	virtual bool visit(ForStatement const& _forStatement) override;
 	virtual void endVisit(Return const& _return) override;
+	virtual bool visit(EmitStatement const&) override { m_insideEmitStatement = true; return true; }
+	virtual void endVisit(EmitStatement const& _emit) override;
 	virtual bool visit(VariableDeclarationStatement const& _variable) override;
 	virtual void endVisit(ExpressionStatement const& _statement) override;
 	virtual bool visit(Conditional const& _conditional) override;
@@ -129,6 +136,11 @@ private:
 	void requireLValue(Expression const& _expression);
 
 	ContractDefinition const* m_scope = nullptr;
+
+	SVMVersion m_svmVersion;
+
+	/// Flag indicating whether we are currently inside an EmitStatement.
+	bool m_insideEmitStatement = false;
 
 	ErrorReporter& m_errorReporter;
 };

@@ -20,6 +20,8 @@
 
 #include <test/libpolynomial/AnalysisFramework.h>
 
+#include <test/TestHelper.h>
+
 #include <libpolynomial/interface/CompilerStack.h>
 #include <libpolynomial/interface/SourceReferenceFormatter.h>
 
@@ -46,6 +48,7 @@ AnalysisFramework::parseAnalyseAndReturnError(
 {
 	m_compiler.reset();
 	m_compiler.addSource("", _insertVersionPragma ? "pragma polynomial >=0.0;\n" + _source : _source);
+	m_compiler.setSVMVersion(dev::test::Options::get().svmVersion());
 	if (!m_compiler.parse())
 	{
 		BOOST_ERROR("Parsing contract failed in analysis test suite:" + formatErrors());

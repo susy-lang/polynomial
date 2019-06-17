@@ -89,7 +89,7 @@ Json::Value compile(string const& _input)
 	StandardCompiler compiler;
 	string output = compiler.compile(_input);
 	Json::Value ret;
-	BOOST_REQUIRE(Json::Reader().parse(output, ret, false));
+	BOOST_REQUIRE(jsonParseStrict(output, ret));
 	return ret;
 }
 
@@ -110,11 +110,11 @@ BOOST_AUTO_TEST_CASE(assume_object_input)
 
 	/// Use the string interface of StandardCompiler to trigger these
 	result = compile("");
-	BOOST_CHECK(containsError(result, "JSONError", "* Line 1, Column 1\n  Syntax error: value, object or array expected.\n"));
+	BOOST_CHECK(containsError(result, "JSONError", "* Line 1, Column 1\n  Syntax error: value, object or array expected.\n* Line 1, Column 1\n  A valid JSON document must be either an array or an object value.\n"));
 	result = compile("invalid");
-	BOOST_CHECK(containsError(result, "JSONError", "* Line 1, Column 1\n  Syntax error: value, object or array expected.\n"));
+	BOOST_CHECK(containsError(result, "JSONError", "* Line 1, Column 1\n  Syntax error: value, object or array expected.\n* Line 1, Column 2\n  Extra non-whitespace after JSON value.\n"));
 	result = compile("\"invalid\"");
-	BOOST_CHECK(containsError(result, "JSONError", "Input is not a JSON object."));
+	BOOST_CHECK(containsError(result, "JSONError", "* Line 1, Column 1\n  A valid JSON document must be either an array or an object value.\n"));
 	BOOST_CHECK(!containsError(result, "JSONError", "* Line 1, Column 1\n  Syntax error: value, object or array expected.\n"));
 	result = compile("{}");
 	BOOST_CHECK(!containsError(result, "JSONError", "* Line 1, Column 1\n  Syntax error: value, object or array expected.\n"));
@@ -153,6 +153,61 @@ BOOST_AUTO_TEST_CASE(no_sources)
 	Json::Value result = compile(input);
 	BOOST_CHECK(containsError(result, "JSONError", "No input sources specified."));
 }
+
+BOOST_AUTO_TEST_CASE(no_sources_empty_object)
+{
+	char const* input = R"(
+	{
+		"language": "Polynomial",
+		"sources": {}
+	}
+	)";
+	Json::Value result = compile(input);
+	BOOST_CHECK(containsError(result, "JSONError", "No input sources specified."));
+}
+
+BOOST_AUTO_TEST_CASE(no_sources_empty_array)
+{
+	char const* input = R"(
+	{
+		"language": "Polynomial",
+		"sources": []
+	}
+	)";
+	Json::Value result = compile(input);
+	BOOST_CHECK(containsError(result, "JSONError", "\"sources\" is not a JSON object."));
+}
+
+BOOST_AUTO_TEST_CASE(sources_is_array)
+{
+	char const* input = R"(
+	{
+		"language": "Polynomial",
+		"sources": ["aa", "bb"]
+	}
+	)";
+	Json::Value result = compile(input);
+	BOOST_CHECK(containsError(result, "JSONError", "\"sources\" is not a JSON object."));
+}
+
+BOOST_AUTO_TEST_CASE(unexpected_trailing_test)
+{
+	char const* input = R"(
+	{
+		"language": "Polynomial",
+		"sources": {
+			"A": {
+				"content": "contract A { function f() {} }"
+			}
+		}
+	}
+	}
+	}
+	)";
+	Json::Value result = compile(input);
+	BOOST_CHECK(containsError(result, "JSONError", "* Line 10, Column 2\n  Extra non-whitespace after JSON value.\n"));
+}
+
 
 BOOST_AUTO_TEST_CASE(smoke_test)
 {
@@ -513,6 +568,196 @@ BOOST_AUTO_TEST_CASE(library_filename_with_colon)
 	BOOST_CHECK(contract["svm"]["bytecode"]["linkReferences"]["git:library.pol"].isObject());
 	BOOST_CHECK(contract["svm"]["bytecode"]["linkReferences"]["git:library.pol"]["L"].isArray());
 	BOOST_CHECK(contract["svm"]["bytecode"]["linkReferences"]["git:library.pol"]["L"][0].isObject());
+}
+
+BOOST_AUTO_TEST_CASE(libraries_invalid_top_level)
+{
+	char const* input = R"(
+	{
+		"language": "Polynomial",
+		"settings": {
+			"libraries": "42"
+		},
+		"sources": {
+			"empty": {
+				"content": ""
+			}
+		}
+	}
+	)";
+	Json::Value result = compile(input);
+	BOOST_CHECK(containsError(result, "JSONError", "\"libraries\" is not a JSON object."));
+}
+
+BOOST_AUTO_TEST_CASE(libraries_invalid_entry)
+{
+	char const* input = R"(
+	{
+		"language": "Polynomial",
+		"settings": {
+			"libraries": {
+				"L": "42"
+			}
+		},
+		"sources": {
+			"empty": {
+				"content": ""
+			}
+		}
+	}
+	)";
+	Json::Value result = compile(input);
+	BOOST_CHECK(containsError(result, "JSONError", "library entry is not a JSON object."));
+}
+
+BOOST_AUTO_TEST_CASE(libraries_invalid_hex)
+{
+	char const* input = R"(
+	{
+		"language": "Polynomial",
+		"settings": {
+			"libraries": {
+				"library.pol": {
+					"L": "0x4200000000000000000000000000000000000xx1"
+				}
+			}
+		},
+		"sources": {
+			"empty": {
+				"content": ""
+			}
+		}
+	}
+	)";
+	Json::Value result = compile(input);
+	BOOST_CHECK(containsError(result, "JSONError", "Invalid library address (\"0x4200000000000000000000000000000000000xx1\") supplied."));
+}
+
+BOOST_AUTO_TEST_CASE(libraries_invalid_length)
+{
+	char const* input = R"(
+	{
+		"language": "Polynomial",
+		"settings": {
+			"libraries": {
+				"library.pol": {
+					"L1": "0x42",
+					"L2": "0x4200000000000000000000000000000000000001ff"
+				}
+			}
+		},
+		"sources": {
+			"empty": {
+				"content": ""
+			}
+		}
+	}
+	)";
+	Json::Value result = compile(input);
+	BOOST_CHECK(containsError(result, "JSONError", "Library address is of invalid length."));
+}
+
+BOOST_AUTO_TEST_CASE(libraries_missing_hex_prefix)
+{
+	char const* input = R"(
+	{
+		"language": "Polynomial",
+		"settings": {
+			"libraries": {
+				"library.pol": {
+					"L": "4200000000000000000000000000000000000001"
+				}
+			}
+		},
+		"sources": {
+			"empty": {
+				"content": ""
+			}
+		}
+	}
+	)";
+	Json::Value result = compile(input);
+	BOOST_CHECK(containsError(result, "JSONError", "Library address is not prefixed with \"0x\"."));
+}
+
+BOOST_AUTO_TEST_CASE(library_linking)
+{
+	char const* input = R"(
+	{
+		"language": "Polynomial",
+		"settings": {
+			"libraries": {
+				"library.pol": {
+					"L": "0x4200000000000000000000000000000000000001"
+				}
+			},
+			"outputSelection": {
+				"fileA": {
+					"A": [
+						"svm.bytecode"
+					]
+				}
+			}
+		},
+		"sources": {
+			"fileA": {
+				"content": "import \"library.pol\"; import \"library2.pol\"; contract A { function f() returns (uint) { L2.g(); return L.g(); } }"
+			},
+			"library.pol": {
+				"content": "library L { function g() returns (uint) { return 1; } }"
+			},
+			"library2.pol": {
+				"content": "library L2 { function g() { } }"
+			}
+		}
+	}
+	)";
+	Json::Value result = compile(input);
+	BOOST_CHECK(containsAtMostWarnings(result));
+	Json::Value contract = getContractResult(result, "fileA", "A");
+	BOOST_CHECK(contract.isObject());
+	BOOST_CHECK(contract["svm"]["bytecode"].isObject());
+	BOOST_CHECK(contract["svm"]["bytecode"]["linkReferences"].isObject());
+	BOOST_CHECK(!contract["svm"]["bytecode"]["linkReferences"]["library.pol"].isObject());
+	BOOST_CHECK(contract["svm"]["bytecode"]["linkReferences"]["library2.pol"].isObject());
+	BOOST_CHECK(contract["svm"]["bytecode"]["linkReferences"]["library2.pol"]["L2"].isArray());
+	BOOST_CHECK(contract["svm"]["bytecode"]["linkReferences"]["library2.pol"]["L2"][0].isObject());
+}
+
+BOOST_AUTO_TEST_CASE(svm_version)
+{
+	auto inputForVersion = [](string const& _version)
+	{
+		return R"(
+			{
+				"language": "Polynomial",
+				"sources": { "fileA": { "content": "contract A { }" } },
+				"settings": {
+					)" + _version + R"(
+					"outputSelection": {
+						"fileA": {
+							"A": [ "metadata" ]
+						}
+					}
+				}
+			}
+		)";
+	};
+	Json::Value result;
+	result = compile(inputForVersion("\"svmVersion\": \"homestead\","));
+	BOOST_CHECK(result["contracts"]["fileA"]["A"]["metadata"].asString().find("\"svmVersion\":\"homestead\"") != string::npos);
+	result = compile(inputForVersion("\"svmVersion\": \"tangerineWhistle\","));
+	BOOST_CHECK(result["contracts"]["fileA"]["A"]["metadata"].asString().find("\"svmVersion\":\"tangerineWhistle\"") != string::npos);
+	result = compile(inputForVersion("\"svmVersion\": \"spuriousDragon\","));
+	BOOST_CHECK(result["contracts"]["fileA"]["A"]["metadata"].asString().find("\"svmVersion\":\"spuriousDragon\"") != string::npos);
+	result = compile(inputForVersion("\"svmVersion\": \"byzantium\","));
+	BOOST_CHECK(result["contracts"]["fileA"]["A"]["metadata"].asString().find("\"svmVersion\":\"byzantium\"") != string::npos);
+	// test default
+	result = compile(inputForVersion(""));
+	BOOST_CHECK(result["contracts"]["fileA"]["A"]["metadata"].asString().find("\"svmVersion\":\"byzantium\"") != string::npos);
+	// test invalid
+	result = compile(inputForVersion("\"svmVersion\": \"invalid\","));
+	BOOST_CHECK(result["errors"][0]["message"].asString() == "Invalid SVM version requested.");
 }
 
 

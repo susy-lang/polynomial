@@ -19,17 +19,16 @@
  * @date 2014
  */
 
-#include "Compiler.h"
-#include "Parser.h"
-#include "CompilerState.h"
-#include "CodeFragment.h"
+#include <liblll/Compiler.h>
+#include <liblll/Parser.h>
+#include <liblll/CompilerState.h>
+#include <liblll/CodeFragment.h>
 
 using namespace std;
 using namespace dev;
 using namespace dev::sof;
 
-
-bytes dev::sof::compileLLL(string const& _src, bool _opt, vector<string>* _errors, ReadCallback const& _readFile)
+bytes dev::sof::compileLLL(string const& _src, dev::polynomial::SVMVersion _svmVersion, bool _opt, std::vector<std::string>* _errors, dev::sof::ReadCallback const& _readFile)
 {
 	try
 	{
@@ -37,7 +36,7 @@ bytes dev::sof::compileLLL(string const& _src, bool _opt, vector<string>* _error
 		cs.populateStandard();
 		auto assembly = CodeFragment::compile(_src, cs, _readFile).assembly(cs);
 		if (_opt)
-			assembly = assembly.optimise(true);
+			assembly = assembly.optimise(true, _svmVersion);
 		bytes ret = assembly.assemble().bytecode;
 		for (auto i: cs.treesToKill)
 			killBigints(i);
@@ -67,7 +66,7 @@ bytes dev::sof::compileLLL(string const& _src, bool _opt, vector<string>* _error
 	return bytes();
 }
 
-std::string dev::sof::compileLLLToAsm(std::string const& _src, bool _opt, std::vector<std::string>* _errors, ReadCallback const& _readFile)
+std::string dev::sof::compileLLLToAsm(std::string const& _src, SVMVersion _svmVersion, bool _opt, std::vector<std::string>* _errors, ReadCallback const& _readFile)
 {
 	try
 	{
@@ -75,7 +74,7 @@ std::string dev::sof::compileLLLToAsm(std::string const& _src, bool _opt, std::v
 		cs.populateStandard();
 		auto assembly = CodeFragment::compile(_src, cs, _readFile).assembly(cs);
 		if (_opt)
-			assembly = assembly.optimise(true);
+			assembly = assembly.optimise(true, _svmVersion);
 		string ret = assembly.assemblyString();
 		for (auto i: cs.treesToKill)
 			killBigints(i);

@@ -23,6 +23,7 @@
 
 #include <libpolynomial/interface/CompilerStack.h>
 #include <libpolynomial/interface/AssemblyStack.h>
+#include <libpolynomial/interface/SVMVersion.h>
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem/path.hpp>
@@ -102,6 +103,8 @@ private:
 	std::map<std::string, h160> m_libraries;
 	/// Polynomial compiler stack
 	std::unique_ptr<dev::polynomial::CompilerStack> m_compiler;
+	/// SVM version to use
+	SVMVersion m_svmVersion;
 };
 
 }

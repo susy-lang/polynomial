@@ -24,6 +24,8 @@
 
 #include <libpolynomial/codegen/ABIFunctions.h>
 
+#include <libpolynomial/interface/SVMVersion.h>
+
 #include <libpolynomial/ast/ASTForward.h>
 #include <libpolynomial/ast/Types.h>
 #include <libpolynomial/ast/ASTAnnotations.h>
@@ -50,13 +52,16 @@ namespace polynomial {
 class CompilerContext
 {
 public:
-	explicit CompilerContext(CompilerContext* _runtimeContext = nullptr):
+	explicit CompilerContext(SVMVersion _svmVersion = SVMVersion{}, CompilerContext* _runtimeContext = nullptr):
 		m_asm(std::make_shared<sof::Assembly>()),
+		m_svmVersion(_svmVersion),
 		m_runtimeContext(_runtimeContext)
 	{
 		if (m_runtimeContext)
 			m_runtimeSub = size_t(m_asm->newSub(m_runtimeContext->m_asm).data());
 	}
+
+	SVMVersion const& svmVersion() const { return m_svmVersion; }
 
 	/// Update currently enabled set of experimental features.
 	void setExperimentalFeatures(std::set<ExperimentalFeature> const& _features) { m_experimentalFeatures = _features; }
@@ -204,7 +209,7 @@ public:
 	void appendAuxiliaryData(bytes const& _data) { m_asm->appendAuxiliaryDataToEnd(_data); }
 
 	/// Run optimisation step.
-	void optimise(bool _fullOptimsation, unsigned _runs = 200) { m_asm->optimise(_fullOptimsation, true, _runs); }
+	void optimise(bool _fullOptimsation, unsigned _runs = 200) { m_asm->optimise(_fullOptimsation, m_svmVersion, true, _runs); }
 
 	/// @returns the runtime context if in creation mode and runtime context is set, nullptr otherwise.
 	CompilerContext* runtimeContext() { return m_runtimeContext; }
@@ -287,6 +292,8 @@ private:
 	} m_functionCompilationQueue;
 
 	sof::AssemblyPointer m_asm;
+	/// Version of the SVM to compile against.
+	SVMVersion m_svmVersion;
 	/// Activated experimental features.
 	std::set<ExperimentalFeature> m_experimentalFeatures;
 	/// Other already compiled contracts to be used in contract creation calls.

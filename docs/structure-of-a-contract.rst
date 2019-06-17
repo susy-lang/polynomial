@@ -86,14 +86,14 @@ Events are convenience interfaces with the SVM logging facilities.
 
 ::
 
-    pragma polynomial ^0.4.0;
+    pragma polynomial ^0.4.21;
 
     contract SimpleAuction {
         event HighestBidIncreased(address bidder, uint amount); // Event
 
         function bid() public payable {
             // ...
-            HighestBidIncreased(msg.sender, msg.value); // Triggering event
+            emit HighestBidIncreased(msg.sender, msg.value); // Triggering event
         }
     }
 

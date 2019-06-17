@@ -9,17 +9,6 @@ This list was originally compiled by `fivedogit <mailto:fivedogit@gmail.com>`_.
 Basic Questions
 ***************
 
-Example contracts
-=================
-
-There are some `contract examples <https://github.com/fivedogit/polynomial-baby-steps/tree/master/contracts/>`_ by fivedogit and
-there should be a `test contract <https://octonion.institute/susy-lang/polynomial/blob/develop/test/libpolynomial/PolynomialEndToEndTest.cpp>`_ for every single feature of Polynomial.
-
-Create and publish the most basic contract possible
-===================================================
-
-A quite simple contract is the `greeter <https://github.com/fivedogit/polynomial-baby-steps/blob/master/contracts/05_greeter.pol>`_
-
 Is it possible to do something on a specific block number? (e.g. publish a contract or execute a transaction)
 =============================================================================================================
 
@@ -40,9 +29,9 @@ Is there a decompiler available?
 ================================
 
 There is no exact decompiler to Polynomial, but
-`Porosity <https://github.com/comaeio/porosity>`_ is close. 
-Because some information like variable names, comments, and 
-source code formatting is lost in the compilation process, 
+`Porosity <https://github.com/comaeio/porosity>`_ is close.
+Because some information like variable names, comments, and
+source code formatting is lost in the compilation process,
 it is not possible to completely recover the original source code.
 
 Bytecode can be disassembled to opcodes, a service that is provided by
@@ -73,25 +62,6 @@ has it (which includes `Fourier <https://fourier.superstring.io/>`_), then
 ``kill()`` is taken care of for you. Once a contract is "mortal", then you can
 ``contractname.kill.sendTransaction({from:sof.coinbase})``, just the same as my
 examples.
-
-Store Sophy in a contract
-=========================
-
-The trick is to create the contract with ``{from:someaddress, value: susyweb.toWei(3,"sophy")...}``
-
-See `endowment_retriever.pol <https://github.com/fivedogit/polynomial-baby-steps/blob/master/contracts/30_endowment_retriever.pol>`_.
-
-Use a non-constant function (req ``sendTransaction``) to increment a variable in a contract
-===========================================================================================
-
-See `value_incrementer.pol <https://github.com/fivedogit/polynomial-baby-steps/blob/master/contracts/20_value_incrementer.pol>`_.
-
-Get a contract to return its funds to you (not using ``selfdestruct(...)``).
-============================================================================
-
-This example demonstrates how to send funds from a contract to an address.
-
-See `endowment_retriever <https://github.com/fivedogit/polynomial-baby-steps/blob/master/contracts/30_endowment_retriever.pol>`_.
 
 Can you return an array or a ``string`` from a polynomial function call?
 ======================================================================
@@ -542,12 +512,27 @@ contract level) with ``arrayname.length = <some new length>;``. If you get the
 
 ::
 
-    int8[] memory memArr;        // Case 1
-    memArr.length++;             // illegal
-    int8[5] storageArr;          // Case 2
-    somearray.length++;          // legal
-    int8[5] storage storageArr2; // Explicit case 2
-    somearray2.length++;         // legal
+    // This will not compile
+
+    pragma polynomial ^0.4.18;
+
+    contract C {
+        int8[] dynamicStorageArray;
+        int8[5] fixedStorageArray;
+
+        function f() {
+            int8[] memory memArr;        // Case 1
+            memArr.length++;             // illegal
+
+            int8[5] storage storageArr = fixedStorageArray;   // Case 2
+            storageArr.length++;                             // illegal
+
+            int8[] storage storageArr2 = dynamicStorageArray;
+            storageArr2.length++;                     // legal
+
+
+        }
+    }
 
 **Important note:** In Polynomial, array dimensions are declared backwards from the way you
 might be used to declaring them in C or Java, but they are access as in

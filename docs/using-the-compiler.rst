@@ -9,6 +9,9 @@ Using the compiler
 Using the Commandline Compiler
 ******************************
 
+.. note::
+    This section doesn't apply to :ref:`polcjs <polcjs>`.
+
 One of the build targets of the Polynomial repository is ``polc``, the polynomial commandline compiler.
 Using ``polc --help`` provides you with an explanation of all options. The compiler can produce various outputs, ranging from simple binaries and assembly over an abstract syntax tree (parse tree) to estimations of gas usage.
 If you only want to compile a single file, you run it as ``polc --bin sourceFile.pol`` and it will print the binary. Before you deploy your contract, activate the optimizer while compiling using ``polc --optimize --bin sourceFile.pol``. If you want to get some of the more advanced output variants of ``polc``, it is probably better to tell it to output everything to separate files using ``polc -o outputDirectory --bin --ast --asm sourceFile.pol``.
@@ -98,6 +101,7 @@ Input Description
           enabled: true,
           runs: 500
         },
+        svmVersion: "byzantium", // Version of the SVM to compile for. Affects type checking and code generation. Can be homestead, tangerineWhistle, spuriousDragon, byzantium or constantinople
         // Metadata settings (optional)
         metadata: {
           // Use only literal content and not URLs (false by default)

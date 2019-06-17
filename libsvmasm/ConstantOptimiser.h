@@ -23,6 +23,8 @@
 
 #include <libsvmasm/Exceptions.h>
 
+#include <libpolynomial/interface/SVMVersion.h>
+
 #include <libdevcore/Assertions.h>
 #include <libdevcore/CommonData.h>
 #include <libdevcore/CommonIO.h>
@@ -50,6 +52,7 @@ public:
 	static unsigned optimiseConstants(
 		bool _isCreation,
 		size_t _runs,
+		polynomial::SVMVersion _svmVersion,
 		Assembly& _assembly,
 		AssemblyItems& _items
 	);
@@ -59,6 +62,7 @@ public:
 		bool isCreation; ///< whether this is called during contract creation or runtime.
 		size_t runs; ///< Estimated number of calls per opcode oven the lifetime of the contract.
 		size_t multiplicity; ///< Number of times the constant appears in the code.
+		polynomial::SVMVersion svmVersion; ///< Version of the SVM
 	};
 
 	explicit ConstantOptimisationMethod(Params const& _params, u256 const& _value):
