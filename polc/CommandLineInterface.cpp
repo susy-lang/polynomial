@@ -74,6 +74,7 @@ static string const g_stdinFileName = "<stdin>";
 /// Possible arguments to for --combined-json
 static set<string> const g_combinedJsonArgs{
 	"bin",
+	"bin-runtime",
 	"clone-bin",
 	"opcodes",
 	"abi",
@@ -144,7 +145,7 @@ void CommandLineInterface::handleBinary(string const& _contract)
 	if (m_args.count(g_argRuntimeBinaryStr))
 	{
 		if (m_args.count("output-dir"))
-			createFile(_contract + ".bin", m_compiler->runtimeObject(_contract).toHex());
+			createFile(_contract + ".bin-runtime", m_compiler->runtimeObject(_contract).toHex());
 		else
 		{
 			cout << "Binary of the runtime part: " << endl;
@@ -490,7 +491,12 @@ bool CommandLineInterface::processInput()
 		// TODO: Perhaps we should not compile unless requested
 		bool optimize = m_args.count("optimize") > 0;
 		unsigned runs = m_args["optimize-runs"].as<unsigned>();
-		m_compiler->compile(optimize, runs);
+		if (!m_compiler->compile(optimize, runs))
+		{
+			for (auto const& error: m_compiler->errors())
+				SourceReferenceFormatter::printExceptionInformation(cerr, *error, "Error", *m_compiler);
+			return false;
+		}
 		m_compiler->link(m_libraries);
 	}
 	catch (ParserError const& _exception)
@@ -545,6 +551,7 @@ void CommandLineInterface::handleCombinedJSON()
 
 	Json::Value output(Json::objectValue);
 
+	output["version"] = ::dev::polynomial::VersionString;
 	set<string> requests;
 	boost::split(requests, m_args["combined-json"].as<string>(), boost::is_any_of(","));
 	vector<string> contracts = m_compiler->contractNames();
@@ -559,7 +566,9 @@ void CommandLineInterface::handleCombinedJSON()
 		if (requests.count("abi"))
 			contractData["abi"] = m_compiler->interface(contractName);
 		if (requests.count("bin"))
-			contractData["bin"] = m_compiler->runtimeObject(contractName).toHex();
+			contractData["bin"] = m_compiler->object(contractName).toHex();
+		if (requests.count("bin-runtime"))
+			contractData["bin-runtime"] = m_compiler->runtimeObject(contractName).toHex();
 		if (requests.count("clone-bin"))
 			contractData["clone-bin"] = m_compiler->cloneObject(contractName).toHex();
 		if (requests.count("opcodes"))

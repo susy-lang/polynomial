@@ -29,6 +29,7 @@
 #include <libpolynomial/CompilerContext.h>
 #include <libpolynomial/ExpressionCompiler.h>
 #include <libpolynomial/AST.h>
+#include <libpolynomial/TypeChecker.h>
 #include "../TestHelper.h"
 
 using namespace std;
@@ -117,7 +118,8 @@ bytes compileFirstExpression(const string& _sourceCode, vector<vector<string>> _
 	for (ASTPointer<ASTNode> const& node: sourceUnit->nodes())
 		if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 		{
-			SOF_TEST_REQUIRE_NO_THROW(resolver.checkTypeRequirements(*contract), "Checking type Requirements failed");
+			TypeChecker typeChecker;
+			BOOST_REQUIRE(typeChecker.checkTypeRequirements(*contract));
 		}
 	for (ASTPointer<ASTNode> const& node: sourceUnit->nodes())
 		if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))

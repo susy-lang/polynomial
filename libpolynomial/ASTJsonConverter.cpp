@@ -124,7 +124,10 @@ bool ASTJsonConverter::visit(FunctionDefinition const& _node)
 
 bool ASTJsonConverter::visit(VariableDeclaration const& _node)
 {
-	addJsonNode("VariableDeclaration", { make_pair("name", _node.name()) }, true);
+	addJsonNode("VariableDeclaration", {
+		make_pair("name", _node.name()),
+		make_pair("name", _node.name()),
+	}, true);
 	return true;
 }
 
@@ -232,19 +235,19 @@ bool ASTJsonConverter::visit(UnaryOperation const& _node)
 
 bool ASTJsonConverter::visit(BinaryOperation const& _node)
 {
-	addJsonNode("BinaryOperation",
-				{ make_pair("operator", Token::toString(_node.getOperator())),
-					make_pair("type", type(_node))},
-				true);
+	addJsonNode("BinaryOperation", {
+		make_pair("operator", Token::toString(_node.getOperator())),
+		make_pair("type", type(_node))
+	}, true);
 	return true;
 }
 
 bool ASTJsonConverter::visit(FunctionCall const& _node)
 {
-	addJsonNode("FunctionCall",
-				{ make_pair("type_conversion", boost::lexical_cast<std::string>(_node.isTypeConversion())),
-					make_pair("type", type(_node)) },
-				true);
+	addJsonNode("FunctionCall", {
+		make_pair("type_conversion", boost::lexical_cast<std::string>(_node.annotation().isTypeConversion)),
+		make_pair("type", type(_node))
+	}, true);
 	return true;
 }
 
@@ -441,7 +444,12 @@ void ASTJsonConverter::process()
 
 string ASTJsonConverter::type(Expression const& _expression)
 {
-	return (_expression.type()) ? _expression.type()->toString() : "Unknown";
+	return _expression.annotation().type ? _expression.annotation().type->toString() : "Unknown";
+}
+
+string ASTJsonConverter::type(VariableDeclaration const& _varDecl)
+{
+	return _varDecl.annotation().type ? _varDecl.annotation().type->toString() : "Unknown";
 }
 
 }

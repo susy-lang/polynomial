@@ -29,6 +29,7 @@
 #include <libsvmasm/Assembly.h>
 #include <libpolynomial/ASTForward.h>
 #include <libpolynomial/Types.h>
+#include <libpolynomial/ASTAnnotations.h>
 #include <libdevcore/Common.h>
 
 namespace dev {

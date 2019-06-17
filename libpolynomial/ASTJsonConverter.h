@@ -27,6 +27,7 @@
 #include <libpolynomial/ASTVisitor.h>
 #include <libpolynomial/Exceptions.h>
 #include <libpolynomial/Utils.h>
+#include <libpolynomial/ASTAnnotations.h>
 #include <json/json.h>
 
 namespace dev
@@ -41,7 +42,7 @@ class ASTJsonConverter: public ASTConstVisitor
 {
 public:
 	/// Create a converter to JSON for the given abstract syntax tree.
-	ASTJsonConverter(ASTNode const& _ast);
+	explicit ASTJsonConverter(ASTNode const& _ast);
 	/// Output the json representation of the AST to _stream.
 	void print(std::ostream& _stream);
 	Json::Value const& json();
@@ -115,6 +116,7 @@ private:
 					 std::initializer_list<std::pair<std::string const, std::string const>> _list,
 					 bool _hasChildren);
 	std::string type(Expression const& _expression);
+	std::string type(VariableDeclaration const& _varDecl);
 	inline void goUp()
 	{
 		polAssert(!m_jsonNodePtrs.empty(), "Uneven json nodes stack. Internal error.");

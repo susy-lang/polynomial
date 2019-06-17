@@ -86,16 +86,27 @@ void CompilerUtils::loadFromMemoryDynamic(
 	bool _padToWordBoundaries,
 	bool _keepUpdatedMemoryOffset
 )
-{
-	polAssert(_type.category() != Type::Category::Array, "Arrays not yet implemented.");
+{		
 	if (_keepUpdatedMemoryOffset)
 		m_context << sof::Instruction::DUP1;
-	unsigned numBytes = loadFromMemoryHelper(_type, _fromCalldata, _padToWordBoundaries);
-	if (_keepUpdatedMemoryOffset)
+
+	if (auto arrayType = dynamic_cast<ArrayType const*>(&_type))
 	{
-		// update memory counter
-		moveToStackTop(_type.sizeOnStack());
-		m_context << u256(numBytes) << sof::Instruction::ADD;
+		polAssert(!arrayType->isDynamicallySized(), "");
+		polAssert(!_fromCalldata, "");
+		polAssert(_padToWordBoundaries, "");
+		if (_keepUpdatedMemoryOffset)
+			m_context << arrayType->memorySize() << sof::Instruction::ADD;
+	}
+	else
+	{
+		unsigned numBytes = loadFromMemoryHelper(_type, _fromCalldata, _padToWordBoundaries);
+		if (_keepUpdatedMemoryOffset)
+		{
+			// update memory counter
+			moveToStackTop(_type.sizeOnStack());
+			m_context << u256(numBytes) << sof::Instruction::ADD;
+		}
 	}
 }
 
@@ -600,7 +611,7 @@ void CompilerUtils::pushZeroValue(const Type& _type)
 void CompilerUtils::moveToStackVariable(VariableDeclaration const& _variable)
 {
 	unsigned const stackPosition = m_context.baseToCurrentStackOffset(m_context.baseStackOffsetOfVariable(_variable));
-	unsigned const size = _variable.type()->sizeOnStack();
+	unsigned const size = _variable.annotation().type->sizeOnStack();
 	polAssert(stackPosition >= size, "Variable size and position mismatch.");
 	// move variable starting from its top end in the stack
 	if (stackPosition - size + 1 > 16)

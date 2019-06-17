@@ -31,6 +31,7 @@
 #include <libpolynomial/NameAndTypeResolver.h>
 #include <libpolynomial/Compiler.h>
 #include <libpolynomial/AST.h>
+#include <libpolynomial/TypeChecker.h>
 
 using namespace std;
 using namespace dev::sof;
@@ -60,7 +61,8 @@ sof::AssemblyItems compileContract(const string& _sourceCode)
 	for (ASTPointer<ASTNode> const& node: sourceUnit->nodes())
 		if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))
 		{
-			BOOST_REQUIRE_NO_THROW(resolver.checkTypeRequirements(*contract));
+			TypeChecker checker;
+			BOOST_REQUIRE_NO_THROW(checker.checkTypeRequirements(*contract));
 		}
 	for (ASTPointer<ASTNode> const& node: sourceUnit->nodes())
 		if (ContractDefinition* contract = dynamic_cast<ContractDefinition*>(node.get()))

@@ -62,7 +62,7 @@ bool ASTPrinter::visit(ContractDefinition const& _node)
 
 bool ASTPrinter::visit(InheritanceSpecifier const& _node)
 {
-	writeLine("InheritanceSpecifier \"" + _node.name()->name() + "\"");
+	writeLine("InheritanceSpecifier \"" + _node.name().name() + "\"");
 	printSourcePart(_node);
 	return goDeeper();
 }
@@ -105,6 +105,11 @@ bool ASTPrinter::visit(FunctionDefinition const& _node)
 bool ASTPrinter::visit(VariableDeclaration const& _node)
 {
 	writeLine("VariableDeclaration \"" + _node.name() + "\"");
+	*m_ostream << indentation() << (
+		_node.annotation().type ?
+		string("   Type: ") + _node.annotation().type->toString() :
+		string("   Type unknown.")
+	) << "\n";
 	printSourcePart(_node);
 	return goDeeper();
 }
@@ -530,8 +535,8 @@ void ASTPrinter::printSourcePart(ASTNode const& _node)
 
 void ASTPrinter::printType(Expression const& _expression)
 {
-	if (_expression.type())
-		*m_ostream << indentation() << "   Type: " << _expression.type()->toString() << "\n";
+	if (_expression.annotation().type)
+		*m_ostream << indentation() << "   Type: " << _expression.annotation().type->toString() << "\n";
 	else
 		*m_ostream << indentation() << "   Type unknown.\n";
 }
