@@ -45,7 +45,7 @@ using namespace dev::polynomial;
 class StackHeightChecker
 {
 public:
-	StackHeightChecker(CompilerContext const& _context):
+	explicit StackHeightChecker(CompilerContext const& _context):
 		m_context(_context), stackHeight(m_context.stackHeight()) {}
 	void check() { polAssert(m_context.stackHeight() == stackHeight, std::string("I sense a disturbance in the stack: ") + std::to_string(m_context.stackHeight()) + " vs " + std::to_string(stackHeight)); }
 private:
@@ -100,6 +100,7 @@ void ContractCompiler::initializeContext(
 	map<ContractDefinition const*, sof::Assembly const*> const& _compiledContracts
 )
 {
+	m_context.setExperimentalFeatures(_contract.sourceUnit().annotation().experimentalFeatures);
 	m_context.setCompiledContracts(_compiledContracts);
 	m_context.setInheritanceHierarchy(_contract.annotation().linearizedBaseContracts);
 	CompilerUtils(m_context).initialiseFreeMemoryPointer();

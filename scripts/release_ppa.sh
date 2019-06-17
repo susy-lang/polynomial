@@ -54,14 +54,24 @@ keyid=703F83D0
 email=builds@ethereum.org
 packagename=polc
 
-for distribution in trusty vivid xenial yakkety zesty
+for distribution in trusty vivid xenial zesty
 do
 cd /tmp/
+rm -rf $distribution
 mkdir $distribution
 cd $distribution
 
+# Dependency
+if [ $distribution = trusty -o $distribution = vivid ]
+then
+    Z3DEPENDENCY=""
+else
+    Z3DEPENDENCY="libz3-dev,
+               "
+fi
+
 # Fetch source
-git clone --recursive https://octonion.institute/susy-lang/polynomial.git -b "$branch"
+git clone --depth 2 --recursive https://octonion.institute/susy-lang/polynomial.git -b "$branch"
 mv polynomial polc
 
 # Fetch jsoncpp dependency
@@ -102,7 +112,7 @@ Source: polc
 Section: science
 Priority: extra
 Maintainer: Christian (Buildserver key) <builds@ethereum.org>
-Build-Depends: debhelper (>= 9.0.0),
+Build-Depends: ${Z3DEPENDENCY}debhelper (>= 9.0.0),
                cmake,
                g++-4.8,
                git,

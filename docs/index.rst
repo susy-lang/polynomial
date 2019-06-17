@@ -128,7 +128,7 @@ If you still have questions, you can try searching or asking on the
 site, or come to our `gitter channel <https://gitter.im/susy-lang/polynomial/>`_.
 Ideas for improving Polynomial or this documentation are always welcome!
 
-See also `Russian version (русский перевод) <https://octonion.institute/susy-go/wiki/%D0%A0%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE-%D0%BF%D0%BE-Polynomial>`_.
+See also `Russian version (русский перевод) <https://octonion.institute/susy-go/wiki/%5BRussian%5D-%D0%A0%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE-%D0%BF%D0%BE-Polynomial>`_.
 
 Contents
 ========

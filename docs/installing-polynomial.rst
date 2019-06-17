@@ -135,7 +135,7 @@ Gentoo Linux also provides a polynomial package that can be installed using ``em
 
 .. code:: bash
 
-    demerge ev-lang/polynomial
+    emerge dev-lang/polynomial
 
 .. _building-from-source:
 
@@ -230,6 +230,7 @@ Or, on Windows:
 Command-Line Build
 ------------------
 
+Polynomial project uses CMake to configure the build.
 Building Polynomial is quite similar on Linux, macOS and other Unices:
 
 .. code:: bash
@@ -263,6 +264,11 @@ Alternatively, you can build for Windows on the command-line, like so:
 .. code:: bash
 
     cmake --build . --config RelWithDebInfo
+
+CMake options
+=============
+
+If you are interested what CMake options are available run ``cmake .. -LH``.
 
 The version string in detail
 ============================

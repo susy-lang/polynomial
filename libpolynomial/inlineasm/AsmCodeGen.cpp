@@ -52,7 +52,7 @@ using namespace dev::polynomial::assembly;
 class SofAssemblyAdapter: public julia::AbstractAssembly
 {
 public:
-	SofAssemblyAdapter(sof::Assembly& _assembly):
+	explicit SofAssemblyAdapter(sof::Assembly& _assembly):
 		m_assembly(_assembly)
 	{
 	}
@@ -127,7 +127,7 @@ public:
 	}
 
 private:
-	LabelID assemblyTagToIdentifier(sof::AssemblyItem const& _tag) const
+	static LabelID assemblyTagToIdentifier(sof::AssemblyItem const& _tag)
 	{
 		u256 id = _tag.data();
 		polAssert(id <= std::numeric_limits<LabelID>::max(), "Tag id too large.");

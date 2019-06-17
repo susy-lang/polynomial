@@ -51,9 +51,9 @@ public:
 		ContractDefinition const& _contract,
 		std::map<ContractDefinition const*, sof::Assembly const*> const& _contracts
 	);
-	sof::Assembly const& assembly() { return m_context.assembly(); }
-	sof::LinkerObject assembledObject() { return m_context.assembledObject(); }
-	sof::LinkerObject runtimeObject() { return m_context.assembledRuntimeObject(m_runtimeSub); }
+	sof::Assembly const& assembly() const { return m_context.assembly(); }
+	sof::LinkerObject assembledObject() const { return m_context.assembledObject(); }
+	sof::LinkerObject runtimeObject() const { return m_context.assembledRuntimeObject(m_runtimeSub); }
 	/// @arg _sourceCodes is the map of input files to source code strings
 	/// @arg _inJsonFromat shows whether the out should be in Json format
 	Json::Value streamAssembly(std::ostream& _stream, StringMap const& _sourceCodes = StringMap(), bool _inJsonFormat = false) const
