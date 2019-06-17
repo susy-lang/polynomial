@@ -540,7 +540,7 @@ BOOST_AUTO_TEST_CASE(if_statement)
 {
 	char const* text = "contract test {\n"
 					   "  function fun(uint256 a) {\n"
-					   "    if (a >= 8) return 2; else { var b = 7; }\n"
+					   "    if (a >= 8) { return 2; } else { var b = 7; }\n"
 					   "  }\n"
 					   "}\n";
 	BOOST_CHECK(successParse(text));
@@ -681,15 +681,23 @@ BOOST_AUTO_TEST_CASE(placeholder_in_function_context)
 BOOST_AUTO_TEST_CASE(modifier)
 {
 	char const* text = "contract c {\n"
-					   "  modifier mod { if (msg.sender == 0) _ }\n"
+					   "  modifier mod { if (msg.sender == 0) _; }\n"
 					   "}\n";
 	BOOST_CHECK(successParse(text));
+}
+
+BOOST_AUTO_TEST_CASE(modifier_without_semicolon)
+{
+	char const* text = "contract c {\n"
+					   "  modifier mod { if (msg.sender == 0) _ }\n"
+					   "}\n";
+	BOOST_CHECK(!successParse(text));
 }
 
 BOOST_AUTO_TEST_CASE(modifier_arguments)
 {
 	char const* text = "contract c {\n"
-					   "  modifier mod(uint a) { if (msg.sender == a) _ }\n"
+					   "  modifier mod(uint a) { if (msg.sender == a) _; }\n"
 					   "}\n";
 	BOOST_CHECK(successParse(text));
 }
@@ -697,8 +705,8 @@ BOOST_AUTO_TEST_CASE(modifier_arguments)
 BOOST_AUTO_TEST_CASE(modifier_invocation)
 {
 	char const* text = "contract c {\n"
-					   "  modifier mod1(uint a) { if (msg.sender == a) _ }\n"
-					   "  modifier mod2 { if (msg.sender == 2) _ }\n"
+					   "  modifier mod1(uint a) { if (msg.sender == a) _; }\n"
+					   "  modifier mod2 { if (msg.sender == 2) _; }\n"
 					   "  function f() mod1(7) mod2 { }\n"
 					   "}\n";
 	BOOST_CHECK(successParse(text));
@@ -1218,6 +1226,16 @@ BOOST_AUTO_TEST_CASE(invalid_fixed_conversion_leading_zeroes_check)
 			function f() {
 				fixed a = 1.0x2;
 			}
+		}
+	)";
+	BOOST_CHECK(!successParse(text));
+}
+
+BOOST_AUTO_TEST_CASE(payable_accessor)
+{
+	char const* text = R"(
+		contract test {
+			uint payable x;
 		}
 	)";
 	BOOST_CHECK(!successParse(text));

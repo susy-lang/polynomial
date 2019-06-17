@@ -32,7 +32,6 @@
 #pragma warning(pop)
 #endif
 
-#include <libdevcore/Hash.h>
 #include <test/libpolynomial/PolynomialExecutionFramework.h>
 
 using namespace std;
@@ -53,6 +52,8 @@ static char const* registrarCode = R"DELIMITER(
 // @authors:
 //   Gav Wood <g@sofdev.com>
 
+pragma polynomial ^0.3.5;
+
 contract Registrar {
 	event Changed(string indexed name);
 
@@ -70,9 +71,9 @@ contract FixedFeeRegistrar is Registrar {
 		address owner;
 	}
 
-	modifier onlyrecordowner(string _name) { if (m_record(_name).owner == msg.sender) _ }
+	modifier onlyrecordowner(string _name) { if (m_record(_name).owner == msg.sender) _; }
 
-	function reserve(string _name) {
+	function reserve(string _name) payable {
 		Record rec = m_record(_name);
 		if (rec.owner == 0 && msg.value >= c_fee) {
 			rec.owner = msg.sender;
@@ -132,7 +133,7 @@ protected:
 		if (!s_compiledRegistrar)
 		{
 			m_optimize = true;
-			m_compiler.reset(false, m_addStandardSources);
+			m_compiler.reset(false);
 			m_compiler.addSource("", registrarCode);
 			SOF_TEST_REQUIRE_NO_THROW(m_compiler.compile(m_optimize, m_optimizeRuns), "Compiling contract failed");
 			s_compiledRegistrar.reset(new bytes(m_compiler.object("FixedFeeRegistrar").bytecode));

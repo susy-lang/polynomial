@@ -35,10 +35,8 @@ char const* dev::polynomial::VersionNumber = SOF_PROJECT_VERSION;
 
 string const dev::polynomial::VersionString =
 	string(dev::polynomial::VersionNumber) +
-	"-" +
-	string(DEV_QUOTED(SOF_COMMIT_HASH)).substr(0, 8) +
-	(SOF_CLEAN_REPO ? "" : "*") +
-	"/" DEV_QUOTED(SOF_BUILD_TYPE) "-" DEV_QUOTED(SOF_BUILD_PLATFORM);
+	(string(POL_VERSION_PRERELEASE).empty() ? "" : "-" + string(POL_VERSION_PRERELEASE)) +
+	(string(POL_VERSION_BUILDINFO).empty() ? "" : "+" + string(POL_VERSION_BUILDINFO));
 
 
 bytes dev::polynomial::binaryVersion()

@@ -1,0 +1,4 @@
+import "./owned.pol";
+import "./mortal.pol";
+import "./Token.pol";
+import "./StandardToken.pol";

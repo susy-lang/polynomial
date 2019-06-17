@@ -36,7 +36,7 @@ class SourceUnit;
 /**
  * Simple translator from Polynomial to Why3.
  *
- * @todo detect side effects in sub-expressions and limit them to one per statement.
+ * @todo detect side effects in sub-expressions and limit them to one per statement. #1043
  * @todo `x = y = z`
  * @todo implicit and explicit type conversion
  */
@@ -108,7 +108,7 @@ private:
 	/// @returns a string representing an expression that is a copy of this.storage
 	std::string copyOfStorage() const;
 
-	/// Visits the givin statement and indents it unless it is a block
+	/// Visits the given statement and indents it unless it is a block
 	/// (which does its own indentation).
 	void visitIndentedUnlessBlock(Statement const& _statement);
 

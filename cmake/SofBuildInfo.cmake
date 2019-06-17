@@ -19,7 +19,7 @@ function(create_build_info NAME)
 		set(SOF_BUILD_COMPILER "unknown")
 	endif ()
 
-	set(SOF_BUILD_PLATFORM "${SOF_BUILD_OS}/${SOF_BUILD_COMPILER}")
+	set(SOF_BUILD_PLATFORM "${SOF_BUILD_OS}.${SOF_BUILD_COMPILER}")
 
 	#cmake build type may be not speCified when using msvc
 	if (CMAKE_BUILD_TYPE)
@@ -36,8 +36,6 @@ function(create_build_info NAME)
 		-DSOF_BUILD_OS="${SOF_BUILD_OS}"
 		-DSOF_BUILD_COMPILER="${SOF_BUILD_COMPILER}"
 		-DSOF_BUILD_PLATFORM="${SOF_BUILD_PLATFORM}"
-		-DSOF_BUILD_NUMBER="${BUILD_NUMBER}"
-		-DSOF_VERSION_SUFFIX="${VERSION_SUFFIX}"
 		-DPROJECT_VERSION="${PROJECT_VERSION}"
 		-P "${SOF_SCRIPTS_DIR}/buildinfo.cmake"
 		)

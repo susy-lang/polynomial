@@ -53,7 +53,7 @@ $SOF_PATH --test -d /tmp/test &
 while [ ! -S /tmp/test/graviton.ipc ]; do sleep 2; done
 
 # And then run the Polynomial unit-tests, pointing to that IPC endpoint.
-"$REPO_ROOT"/build/test/poltest --ipc /tmp/test/graviton.ipc
+"$REPO_ROOT"/build/test/poltest -- --ipcpath /tmp/test/graviton.ipc
 ERROR_CODE=$?
 pkill sof || true
 sleep 4

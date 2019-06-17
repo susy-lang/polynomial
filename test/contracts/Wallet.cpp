@@ -32,7 +32,6 @@
 #pragma warning(pop)
 #endif
 
-#include <libdevcore/Hash.h>
 #include <test/libpolynomial/PolynomialExecutionFramework.h>
 
 using namespace std;
@@ -55,6 +54,9 @@ static char const* walletCode = R"DELIMITER(
 // use modifiers onlyowner (just own owned) or onlymanyowners(hash), whereby the same hash must be provided by
 // some number (specified in constructor) of the set of owners (specified in the constructor, modifiable) before the
 // interior is executed.
+
+pragma polynomial ^0.3.5;
+
 contract multiowned {
 
 	// TYPES
@@ -84,14 +86,14 @@ contract multiowned {
 	// simple single-sig function modifier.
 	modifier onlyowner {
 		if (isOwner(msg.sender))
-			_
+			_;
 	}
 	// multi-sig function modifier: the operation must have an intrinsic hash in order
 	// that later attempts can be realised as the same underlying operation and
 	// thus count as confirmations.
 	modifier onlymanyowners(bytes32 _operation) {
 		if (confirmAndCheck(_operation))
-			_
+			_;
 	}
 
 	// METHODS
@@ -279,7 +281,7 @@ contract daylimit is multiowned {
 	// simple modifier for daily limit.
 	modifier limitedDaily(uint _value) {
 		if (underLimit(_value))
-			_
+			_;
 	}
 
 	// METHODS
@@ -376,7 +378,7 @@ contract Wallet is multisig, multiowned, daylimit {
 	}
 
 	// gets called when no other function matches
-	function() {
+	function() payable {
 		// just being sent some cash?
 		if (msg.value > 0)
 			Deposit(msg.sender, msg.value);
@@ -446,7 +448,7 @@ protected:
 		if (!s_compiledWallet)
 		{
 			m_optimize = true;
-			m_compiler.reset(false, m_addStandardSources);
+			m_compiler.reset(false);
 			m_compiler.addSource("", walletCode);
 			SOF_TEST_REQUIRE_NO_THROW(m_compiler.compile(m_optimize, m_optimizeRuns), "Compiling contract failed");
 			s_compiledWallet.reset(new bytes(m_compiler.object("Wallet").bytecode));

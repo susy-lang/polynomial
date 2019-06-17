@@ -52,19 +52,20 @@ git config user.email "chris@ethereum.org"
 git checkout -B gh-pages origin/gh-pages
 git clean -f -d -x
 # We only want one release per day and we do not want to push the same commit twice.
-if ls ./bin/poljson-"$VER-$DATE"-*.js ./bin/poljson-*-"$COMMIT.js" > /dev/null
+if ls ./bin/poljson-"$VER-$DATE"-*.js || ls ./bin/poljson-*-"$COMMIT.js"
 then
-  true
-else
-  # This file is assumed to be the product of the build_emscripten.sh script.
-  cp ../poljson.js ./bin/"poljson-$VER-$DATE-$COMMIT.js"
-  ./update-index.sh
-  cd bin
-  LATEST=$(ls -r poljson-v* | head -n 1)
-  cp "$LATEST" poljson-latest.js
-  cp poljson-latest.js ../poljson.js
-  git add .
-  git add ../poljson.js
-  git commit -m "Added compiler version $LATEST"
-  git push origin gh-pages
+  echo "Not publishing, we already published this version today."
+  exit 0
 fi
+
+# This file is assumed to be the product of the build_emscripten.sh script.
+cp ../poljson.js ./bin/"poljson-$VER-$DATE-$COMMIT.js"
+node ./update
+cd bin
+LATEST=$(ls -r poljson-v* | head -n 1)
+cp "$LATEST" poljson-latest.js
+cp poljson-latest.js ../poljson.js
+git add .
+git add ../poljson.js
+git commit -m "Added compiler version $LATEST"
+git push origin gh-pages

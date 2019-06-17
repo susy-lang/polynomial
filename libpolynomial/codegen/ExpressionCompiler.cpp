@@ -23,6 +23,7 @@
 #include <utility>
 #include <numeric>
 #include <boost/range/adaptor/reversed.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <libdevcore/Common.h>
 #include <libdevcore/SHA3.h>
 #include <libpolynomial/ast/AST.h>
@@ -297,9 +298,6 @@ bool ExpressionCompiler::visit(UnaryOperation const& _unaryOperation)
 	case Token::BitNot: // ~
 		m_context << Instruction::NOT;
 		break;
-	case Token::After: // after
-		m_context << Instruction::TIMESTAMP << Instruction::ADD;
-		break;
 	case Token::Delete: // delete
 		polAssert(!!m_currentLValue, "LValue not retrieved.");
 		m_currentLValue->setToZero(_unaryOperation.location());
@@ -536,6 +534,9 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 			else
 				m_context << u256(0);
 			m_context << Instruction::CREATE;
+			// Check if zero (out of stack or not enough balance).
+			m_context << Instruction::DUP1 << Instruction::ISZERO;
+			m_context.appendConditionalJumpTo(m_context.errorTag());
 			if (function.valueSet())
 				m_context << swapInstruction(1) << Instruction::POP;
 			break;
@@ -567,12 +568,17 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 			break;
 		case Location::Send:
 			_functionCall.expression().accept(*this);
-			m_context << u256(0); // do not send gas (there still is the stipend)
+			// Provide the gas stipend manually at first because we may send zero sophy.
+			// Will be zeroed if we send more than zero sophy.
+			m_context << u256(sof::GasCosts::callStipend);
 			arguments.front()->accept(*this);
 			utils().convertType(
 				*arguments.front()->annotation().type,
 				*function.parameterTypes().front(), true
 			);
+			// gas <- gas * !value
+			m_context << Instruction::SWAP1 << Instruction::DUP2;
+			m_context << Instruction::ISZERO << Instruction::MUL << Instruction::SWAP1;
 			appendExternalFunctionCall(
 				FunctionType(
 					TypePointers{},
@@ -582,6 +588,8 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 					Location::Bare,
 					false,
 					nullptr,
+					false,
+					false,
 					true,
 					true
 				),
@@ -1323,11 +1331,18 @@ void ExpressionCompiler::appendArithmeticOperatorCode(Token::Value _operator, Ty
 		m_context << Instruction::MUL;
 		break;
 	case Token::Div:
-		m_context  << (c_isSigned ? Instruction::SDIV : Instruction::DIV);
-		break;
 	case Token::Mod:
-		m_context << (c_isSigned ? Instruction::SMOD : Instruction::MOD);
+	{
+		// Test for division by zero
+		m_context << Instruction::DUP2 << Instruction::ISZERO;
+		m_context.appendConditionalJumpTo(m_context.errorTag());
+
+		if (_operator == Token::Div)
+			m_context << (c_isSigned ? Instruction::SDIV : Instruction::DIV);
+		else
+			m_context << (c_isSigned ? Instruction::SMOD : Instruction::MOD);
 		break;
+	}
 	case Token::Exp:
 		m_context << Instruction::EXP;
 		break;
@@ -1448,6 +1463,19 @@ void ExpressionCompiler::appendExternalFunctionCall(
 		argumentTypes.push_back(_arguments[i]->annotation().type);
 	}
 
+	if (funKind == FunctionKind::ECRecover)
+	{
+		// Clears 32 bytes of currently free memory and advances free memory pointer.
+		// Output area will be "start of input area" - 32.
+		// The reason is that a failing ECRecover cannot be detected, it will just return
+		// zero bytes (which we cannot detect).
+		polAssert(0 < retSize && retSize <= 32, "");
+		utils().fetchFreeMemoryPointer();
+		m_context << Instruction::DUP1 << u256(0) << Instruction::MSTORE;
+		m_context << u256(32) << Instruction::ADD;
+		utils().storeFreeMemoryPointer();
+	}
+
 	// Copy function identifier to memory.
 	utils().fetchFreeMemoryPointer();
 	if (!_functionType.isBareCall() || manualFunctionId)
@@ -1456,7 +1484,7 @@ void ExpressionCompiler::appendExternalFunctionCall(
 		utils().storeInMemoryDynamic(IntegerType(8 * CompilerUtils::dataStartOffset), false);
 	}
 	// If the function takes arbitrary parameters, copy dynamic length data in place.
-	// Move argumenst to memory, will not update the free memory pointer (but will update the memory
+	// Move arguments to memory, will not update the free memory pointer (but will update the memory
 	// pointer on the stack).
 	utils().encodeToMemory(
 		argumentTypes,
@@ -1474,12 +1502,24 @@ void ExpressionCompiler::appendExternalFunctionCall(
 	// function identifier [unless bare]
 	// contract address
 
-	// Output data will replace input data.
+	// Output data will replace input data, unless we have ECRecover (then, output
+	// area will be 32 bytes just before input area).
 	// put on stack: <size of output> <memory pos of output> <size of input> <memory pos of input>
 	m_context << u256(retSize);
-	utils().fetchFreeMemoryPointer();
-	m_context << Instruction::DUP1 << Instruction::DUP4 << Instruction::SUB;
-	m_context << Instruction::DUP2;
+	utils().fetchFreeMemoryPointer(); // This is the start of input
+	if (funKind == FunctionKind::ECRecover)
+	{
+		// In this case, output is 32 bytes before input and has already been cleared.
+		m_context << u256(32) << Instruction::DUP2 << Instruction::SUB << Instruction::SWAP1;
+		// Here: <input end> <output size> <outpos> <input pos>
+		m_context << Instruction::DUP1 << Instruction::DUP5 << Instruction::SUB;
+		m_context << Instruction::SWAP1;
+	}
+	else
+	{
+		m_context << Instruction::DUP1 << Instruction::DUP4 << Instruction::SUB;
+		m_context << Instruction::DUP2;
+	}
 
 	// CALL arguments: outSize, outOff, inSize, inOff (already present up to here)
 	// [value,] addr, gas (stack top)
@@ -1491,6 +1531,15 @@ void ExpressionCompiler::appendExternalFunctionCall(
 		m_context << u256(0);
 	m_context << dupInstruction(m_context.baseToCurrentStackOffset(contractStackPos));
 
+	bool existenceChecked = false;
+	// Check the the target contract exists (has code) for non-low-level calls.
+	if (funKind == FunctionKind::External || funKind == FunctionKind::CallCode || funKind == FunctionKind::DelegateCall)
+	{
+		m_context << Instruction::DUP1 << Instruction::EXTCODESIZE << Instruction::ISZERO;
+		m_context.appendConditionalJumpTo(m_context.errorTag());
+		existenceChecked = true;
+	}
+
 	if (_functionType.gasSet())
 		m_context << dupInstruction(m_context.baseToCurrentStackOffset(gasStackPos));
 	else
@@ -1500,7 +1549,7 @@ void ExpressionCompiler::appendExternalFunctionCall(
 		u256 gasNeededByCaller = sof::GasCosts::callGas + 10;
 		if (_functionType.valueSet())
 			gasNeededByCaller += sof::GasCosts::callValueTransferGas;
-		if (!isCallCode && !isDelegateCall)
+		if (!isCallCode && !isDelegateCall && !existenceChecked)
 			gasNeededByCaller += sof::GasCosts::callNewAccountGas; // we never know
 		m_context <<
 			gasNeededByCaller <<
@@ -1541,6 +1590,14 @@ void ExpressionCompiler::appendExternalFunctionCall(
 		utils().fetchFreeMemoryPointer();
 		utils().loadFromMemoryDynamic(IntegerType(160), false, true, false);
 		utils().convertType(IntegerType(160), FixedBytesType(20));
+	}
+	else if (funKind == FunctionKind::ECRecover)
+	{
+		// Output is 32 bytes before input / free mem pointer.
+		// Failing ecrecover cannot be detected, so we clear output before the call.
+		m_context << u256(32);
+		utils().fetchFreeMemoryPointer();
+		m_context << Instruction::SUB << Instruction::MLOAD;
 	}
 	else if (!_functionType.returnParameterTypes().empty())
 	{

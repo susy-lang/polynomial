@@ -1,3 +1,5 @@
+.. _security_considerations:
+
 #######################
 Security Considerations
 #######################
@@ -49,6 +51,8 @@ complete contract):
 
 ::
 
+  pragma polynomial ^0.4.0;
+
   // THIS CONTRACT CONTAINS A BUG - DO NOT USE
   contract Fund {
       /// Mapping of sophy shares of the contract.
@@ -70,6 +74,8 @@ To avoid re-entrancy, you can use the Checks-Effects-Interactions pattern as
 outlined further below:
 
 ::
+
+  pragma polynomial ^0.4.0;
 
   contract Fund {
       /// Mapping of sophy shares of the contract.
@@ -101,7 +107,14 @@ and stall those. Please be explicit about such cases in the documentation of you
 Sending and Receiving Sophy
 ===========================
 
-- If a contract receives Sophy (without a function being called), the fallback function is executed. The contract can only rely
+- Neither contracts nor "external accounts" are currently able to prevent that someone sends them Sophy.
+  Contracts can react on and reject a regular transfer, but there are ways
+  to move Sophy without creating a message call. One way is to simply "mine to"
+  the contract address and the second way is using ``selfdestruct(x)``. 
+
+- If a contract receives Sophy (without a function being called), the fallback function is executed.
+  If it does not have a fallback function, the Sophy will be rejected (by throwing an exception).
+  During the execution of the fallback function, the contract can only rely
   on the "gas stipend" (2300 gas) being available to it at that time. This stipend is not enough to access storage in any way.
   To be sure that your contract can receive Sophy in that way, check the gas requirements of the fallback function
   (for example in the "details" section in browser-polynomial).
@@ -124,7 +137,7 @@ Sending and Receiving Sophy
      because the operation is just too expensive) - it "runs out of gas" (OOG).
      If the return value of ``send`` is checked, this might provide a
      means for the recipient to block progress in the sending contract. Again, the best practice here is to use
-     a "withdraw" pattern instead of a "send" pattern.
+     a :ref:`"withdraw" pattern instead of a "send" pattern <withdrawal_pattern>`.
 
 Callstack Depth
 ===============
@@ -145,7 +158,10 @@ Never use tx.origin for authorization. Let's say you have a wallet contract like
 
 ::
 
-    contract TxUserWallet {  
+    pragma polynomial ^0.4.0;
+
+    // THIS CONTRACT CONTAINS A BUG - DO NOT USE
+    contract TxUserWallet {
         address owner;
 
         function TxUserWallet() {
@@ -162,7 +178,9 @@ Now someone tricks you into sending sophy to the address of this attack wallet:
 
 ::
 
-    contract TxAttackWallet {  
+    pragma polynomial ^0.4.0;
+
+    contract TxAttackWallet {
         address owner;
 
         function TxAttackWallet() {
@@ -174,7 +192,7 @@ Now someone tricks you into sending sophy to the address of this attack wallet:
         }
     }
 
-If your wallet had checked msg.sender for authorization, it would get the address of the attack wallet, instead of the owner address. But by checking tx.origin, it gets the original address that kicked off the transaction, which is still the owner address. The attack wallet instantly drains all your funds.
+If your wallet had checked ``msg.sender`` for authorization, it would get the address of the attack wallet, instead of the owner address. But by checking ``tx.origin``, it gets the original address that kicked off the transaction, which is still the owner address. The attack wallet instantly drains all your funds.
 
 
 Minor Details

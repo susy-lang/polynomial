@@ -1,8 +1,62 @@
+### 0.4.0 (2016-09-08)
+
+This release deliberately breaks backwards compatibility mostly to
+enforce some safety features. The most important change is that you have
+to explicitly specify if functions can receive sophy via the ``payable``
+modifier. Furthermore, more situations cause exceptions to be thrown.
+
+Minimal changes to be made for upgrade:
+ - Add ``payable`` to all functions that want to receive Sophy
+   (including the constructor and the fallback function).
+ - Change ``_`` to ``_;`` in modifiers.
+ - Add version pragma to each file: ``pragma polynomial ^0.4.0;``
+
+Breaking Changes:
+
+ * Source files have to specify the compiler version they are
+   compatible with using e.g. ``pragma polynomial ^0.4.0;`` or
+   ``pragma polynomial >=0.4.0 <0.4.8;``
+ * Functions that want to receive Sophy have to specify the
+   new ``payable`` modifier (otherwise they throw).
+ * Contracts that want to receive Sophy with a plain "send"
+   have to implement a fallback function with the ``payable``
+   modifier. Contracts now throw if no payable fallback
+   function is defined and no function matches the signature.
+ * Failing contract creation through "new" throws.
+ * Division / modulus by zero throws.
+ * Function call throws if target contract does not have code
+ * Modifiers are required to contain ``_`` (use ``if (false) _`` as a workaround if needed).
+ * Modifiers: return does not skip part in modifier after ``_``.
+ * Placeholder statement `_` in modifier now requires explicit `;`.
+ * ``ecrecover`` now returns zero if the input is malformed (it previously returned garbage).
+ * The ``constant`` keyword cannot be used for constructors or the fallback function.
+ * Removed ``--interface`` (Polynomial interface) output option
+ * JSON AST: General cleanup, renamed many nodes to match their C++ names.
+ * JSON output: ``srcmap-runtime`` renamed to ``srcmapRuntime``.
+ * Moved (and reworked) standard library contracts from inside the compiler to octonion.institute/susy-lang/polynomial/std
+   (``import "std";`` or ``import owned;`` do not work anymore).
+ * Confusing and undocumented keyword ``after`` was removed.
+ * New reserved words: ``abstract``, ``hex``, ``interface``, ``payable``, ``pure``, ``static``, ``view``.
+
 Features:
 
- * Fixed point types (in progress)
+ * Hexadecimal string literals: ``hex"ab1248fe"``
+ * Internal: Inline assembly usable by the code generator.
+ * Commandline interface: Using ``-`` as filename allows reading from stdin.
+ * Interface JSON: Fallback function is now part of the ABI.
+ * Interface: Version string now *semver* compatible.
+ * Code generator: Do not provide "new account gas" if we know the called account exists.
 
 Bugfixes:
+
+ * JSON AST: Nodes were added at wrong parent
+ * Why3 translator: Crash fix for exponentiation
+ * Commandline Interface: linking libraries with underscores in their name.
+ * Type Checker: Fallback function cannot return data anymore.
+ * Code Generator: Fix crash when ``sha3()`` was used on unsupported types.
+ * Code Generator: Manually set gas stipend for ``.send(0)``.
+
+Lots of changes to the documentation mainly by voluntary external contributors.
 
 ### 0.3.6 (2016-08-10)
 

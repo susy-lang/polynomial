@@ -25,6 +25,7 @@
 #include <string>
 #include <functional>
 #include <libpolynomial/interface/Exceptions.h>
+#include <libpolynomial/inlineasm/AsmCodeGen.h>
 
 namespace dev
 {
@@ -46,6 +47,13 @@ public:
 	/// @return false or error.
 	bool parse(std::shared_ptr<Scanner> const& _scanner);
 	sof::Assembly assemble();
+
+	/// Parse and assemble a string in one run - for use in Polynomial code generation itself.
+	bool parseAndAssemble(
+		std::string const& _input,
+		sof::Assembly& _assembly,
+		CodeGenerator::IdentifierAccess const& _identifierAccess = CodeGenerator::IdentifierAccess()
+	);
 
 	ErrorList const& errors() const { return m_errors; }
 

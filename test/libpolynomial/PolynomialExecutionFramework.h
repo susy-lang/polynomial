@@ -33,6 +33,7 @@
 
 #include <libpolynomial/interface/CompilerStack.h>
 #include <libpolynomial/interface/Exceptions.h>
+#include <libpolynomial/interface/SourceReferenceFormatter.h>
 
 namespace dev
 {
@@ -66,9 +67,21 @@ public:
 		std::map<std::string, Address> const& _libraryAddresses = std::map<std::string, Address>()
 	)
 	{
-		m_compiler.reset(false, m_addStandardSources);
-		m_compiler.addSource("", _sourceCode);
-		SOF_TEST_REQUIRE_NO_THROW(m_compiler.compile(m_optimize, m_optimizeRuns), "Compiling contract failed");
+		// Silence compiler version warning
+		std::string sourceCode = "pragma polynomial >=0.0;\n" + _sourceCode;
+		m_compiler.reset(false);
+		m_compiler.addSource("", sourceCode);
+		if (!m_compiler.compile(m_optimize, m_optimizeRuns))
+		{
+			for (auto const& error: m_compiler.errors())
+				SourceReferenceFormatter::printExceptionInformation(
+					std::cerr,
+					*error,
+					(error->type() == Error::Type::Warning) ? "Warning" : "Error",
+					[&](std::string const& _sourceName) -> polynomial::Scanner const& { return m_compiler.scanner(_sourceName); }
+				);
+			BOOST_ERROR("Compiling contract failed");
+		}
 		sof::LinkerObject obj = m_compiler.object(_contractName);
 		obj.link(_libraryAddresses);
 		BOOST_REQUIRE(obj.linkReferences.empty());
@@ -279,7 +292,6 @@ protected:
 
 	size_t m_optimizeRuns = 200;
 	bool m_optimize = false;
-	bool m_addStandardSources = false;
 	dev::polynomial::CompilerStack m_compiler;
 	Address m_sender;
 	Address m_contractAddress;

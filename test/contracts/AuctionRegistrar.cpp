@@ -24,7 +24,6 @@
 #include <tuple>
 #include <boost/test/unit_test.hpp>
 #include <libdevcore/ABI.h>
-#include <libdevcore/Hash.h>
 #include <test/libpolynomial/PolynomialExecutionFramework.h>
 
 using namespace std;
@@ -40,7 +39,7 @@ namespace
 {
 
 static char const* registrarCode = R"DELIMITER(
-//pol
+pragma polynomial ^0.3.5;
 
 contract NameRegister {
 	function addr(string _name) constant returns (address o_owner);
@@ -116,11 +115,6 @@ contract GlobalRegistrar is Registrar, AuctionSystem {
 		// TODO: Populate with hall-of-fame.
 	}
 
-	function() {
-		// prevent people from just sending funds to the registrar
-		throw;
-	}
-
 	function onAuctionEnd(string _name) internal {
 		var auction = m_auctions[_name];
 		var record = m_toRecord[_name];
@@ -131,15 +125,13 @@ contract GlobalRegistrar is Registrar, AuctionSystem {
 		if (previousOwner != 0) {
 			if (!record.owner.send(auction.sumOfBids - auction.highestBid / 100))
 				throw;
-		}
-		else
-		{
+		} else {
 			if (!auction.highestBidder.send(auction.highestBid - auction.secondHighestBid))
 				throw;
 		}
 	}
 
-	function reserve(string _name) external {
+	function reserve(string _name) external payable {
 		if (bytes(_name).length == 0)
 			throw;
 		bool needAuction = requiresAuction(_name);
@@ -148,9 +140,7 @@ contract GlobalRegistrar is Registrar, AuctionSystem {
 			if (now < m_toRecord[_name].renewalDate)
 				throw;
 			bid(_name, msg.sender, msg.value);
-		}
-		else
-		{
+		} else {
 			Record record = m_toRecord[_name];
 			if (record.owner != 0)
 				throw;
@@ -163,7 +153,7 @@ contract GlobalRegistrar is Registrar, AuctionSystem {
 		return bytes(_name).length < c_freeBytes;
 	}
 
-	modifier onlyrecordowner(string _name) { if (m_toRecord[_name].owner == msg.sender) _ }
+	modifier onlyrecordowner(string _name) { if (m_toRecord[_name].owner == msg.sender) _; }
 
 	function transfer(string _name, address _newOwner) onlyrecordowner(_name) {
 		m_toRecord[_name].owner = _newOwner;
@@ -231,7 +221,7 @@ protected:
 		if (!s_compiledRegistrar)
 		{
 			m_optimize = true;
-			m_compiler.reset(false, m_addStandardSources);
+			m_compiler.reset(false);
 			m_compiler.addSource("", registrarCode);
 			SOF_TEST_REQUIRE_NO_THROW(m_compiler.compile(m_optimize, m_optimizeRuns), "Compiling contract failed");
 			s_compiledRegistrar.reset(new bytes(m_compiler.object("GlobalRegistrar").bytecode));

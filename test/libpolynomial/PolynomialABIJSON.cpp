@@ -35,11 +35,11 @@ namespace test
 class JSONInterfaceChecker
 {
 public:
-	JSONInterfaceChecker(): m_compilerStack(false) {}
+	JSONInterfaceChecker(): m_compilerStack() {}
 
 	void checkInterface(std::string const& _code, std::string const& _expectedInterfaceString)
 	{
-		SOF_TEST_REQUIRE_NO_THROW(m_compilerStack.parse(_code), "Parsing contract failed");
+		SOF_TEST_REQUIRE_NO_THROW(m_compilerStack.parse("pragma polynomial >=0.0;\n" + _code), "Parsing contract failed");
 		std::string generatedInterfaceString = m_compilerStack.metadata("", DocumentationType::ABIInterface);
 		Json::Value generatedInterface;
 		m_reader.parse(generatedInterfaceString, generatedInterface);
@@ -68,6 +68,7 @@ BOOST_AUTO_TEST_CASE(basic_test)
 	{
 		"name": "f",
 		"constant": false,
+		"payable" : false,
 		"type": "function",
 		"inputs": [
 		{
@@ -107,6 +108,7 @@ BOOST_AUTO_TEST_CASE(multiple_methods)
 	{
 		"name": "f",
 		"constant": false,
+		"payable" : false,
 		"type": "function",
 		"inputs": [
 		{
@@ -124,6 +126,7 @@ BOOST_AUTO_TEST_CASE(multiple_methods)
 	{
 		"name": "g",
 		"constant": false,
+		"payable" : false,
 		"type": "function",
 		"inputs": [
 		{
@@ -153,6 +156,7 @@ BOOST_AUTO_TEST_CASE(multiple_params)
 	{
 		"name": "f",
 		"constant": false,
+		"payable" : false,
 		"type": "function",
 		"inputs": [
 		{
@@ -188,6 +192,7 @@ BOOST_AUTO_TEST_CASE(multiple_methods_order)
 	{
 		"name": "c",
 		"constant": false,
+		"payable" : false,
 		"type": "function",
 		"inputs": [
 		{
@@ -205,6 +210,7 @@ BOOST_AUTO_TEST_CASE(multiple_methods_order)
 	{
 		"name": "f",
 		"constant": false,
+		"payable" : false,
 		"type": "function",
 		"inputs": [
 		{
@@ -235,6 +241,7 @@ BOOST_AUTO_TEST_CASE(const_function)
 	{
 		"name": "foo",
 		"constant": false,
+		"payable" : false,
 		"type": "function",
 		"inputs": [
 		{
@@ -256,6 +263,7 @@ BOOST_AUTO_TEST_CASE(const_function)
 	{
 		"name": "boo",
 		"constant": true,
+		"payable" : false,
 		"type": "function",
 		"inputs": [{
 			"name": "a",
@@ -273,15 +281,6 @@ BOOST_AUTO_TEST_CASE(const_function)
 	checkInterface(sourceCode, interface);
 }
 
-BOOST_AUTO_TEST_CASE(exclude_fallback_function)
-{
-	char const* sourceCode = "contract test { function() {} }";
-
-	char const* interface = "[]";
-
-	checkInterface(sourceCode, interface);
-}
-
 BOOST_AUTO_TEST_CASE(events)
 {
 	char const* sourceCode = "contract test {\n"
@@ -293,6 +292,7 @@ BOOST_AUTO_TEST_CASE(events)
 	{
 		"name": "f",
 		"constant": false,
+		"payable" : false,
 		"type": "function",
 		"inputs": [
 		{
@@ -370,6 +370,7 @@ BOOST_AUTO_TEST_CASE(inherited)
 	{
 		"name": "baseFunction",
 		"constant": false,
+		"payable" : false,
 		"type": "function",
 		"inputs":
 		[{
@@ -385,6 +386,7 @@ BOOST_AUTO_TEST_CASE(inherited)
 	{
 		"name": "derivedFunction",
 		"constant": false,
+		"payable" : false,
 		"type": "function",
 		"inputs":
 		[{
@@ -438,6 +440,7 @@ BOOST_AUTO_TEST_CASE(empty_name_input_parameter_with_named_one)
 	{
 		"name": "f",
 		"constant": false,
+		"payable" : false,
 		"type": "function",
 		"inputs": [
 		{
@@ -478,6 +481,7 @@ BOOST_AUTO_TEST_CASE(empty_name_return_parameter)
 	{
 		"name": "f",
 		"constant": false,
+		"payable" : false,
 		"type": "function",
 		"inputs": [
 		{
@@ -545,6 +549,7 @@ BOOST_AUTO_TEST_CASE(return_param_in_abi)
 	[
 		{
 			"constant" : false,
+			"payable" : false,
 			"inputs" : [],
 			"name" : "ret",
 			"outputs" : [
@@ -582,6 +587,7 @@ BOOST_AUTO_TEST_CASE(strings_and_arrays)
 	[
 		{
 			"constant" : false,
+			"payable" : false,
 			"name": "f",
 			"inputs": [
 				{ "name": "a", "type": "string" },
@@ -609,6 +615,7 @@ BOOST_AUTO_TEST_CASE(library_function)
 	[
 		{
 			"constant" : false,
+			"payable" : false,
 			"name": "f",
 			"inputs": [
 				{ "name": "b", "type": "test.StructType storage" },
@@ -620,6 +627,76 @@ BOOST_AUTO_TEST_CASE(library_function)
 				{ "name": "f", "type": "test.StructType storage" }
 			],
 			"type" : "function"
+		}
+	]
+	)";
+	checkInterface(sourceCode, interface);
+}
+
+BOOST_AUTO_TEST_CASE(include_fallback_function)
+{
+	char const* sourceCode = R"(
+		contract test {
+			function() {}
+		}
+	)";
+
+	char const* interface = R"(
+	[
+		{
+			"payable": false,
+			"type" : "fallback"
+		}
+	]
+	)";
+	checkInterface(sourceCode, interface);
+}
+
+BOOST_AUTO_TEST_CASE(payable_function)
+{
+	char const* sourceCode = R"(
+		contract test {
+			function f() {}
+			function g() payable {}
+		}
+	)";
+
+	char const* interface = R"(
+	[
+		{
+			"constant" : false,
+			"payable": false,
+			"inputs": [],
+			"name": "f",
+			"outputs": [],
+			"type" : "function"
+		},
+		{
+			"constant" : false,
+			"payable": true,
+			"inputs": [],
+			"name": "g",
+			"outputs": [],
+			"type" : "function"
+		}
+	]
+	)";
+	checkInterface(sourceCode, interface);
+}
+
+BOOST_AUTO_TEST_CASE(payable_fallback_unction)
+{
+	char const* sourceCode = R"(
+		contract test {
+			function () payable {}
+		}
+	)";
+
+	char const* interface = R"(
+	[
+		{
+			"payable": true,
+			"type" : "fallback"
 		}
 	]
 	)";

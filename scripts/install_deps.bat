@@ -59,3 +59,4 @@ REM Copyleft (c) 2016 polynomial contributors.
 REM ---------------------------------------------------------------------------
 
 cmake -P deps\install_deps.cmake
+cmake -P scripts\install_sof.cmake

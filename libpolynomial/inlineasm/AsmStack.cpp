@@ -24,6 +24,7 @@
 #include <memory>
 #include <libsvmasm/Assembly.h>
 #include <libsvmasm/SourceLocation.h>
+#include <libpolynomial/parsing/Scanner.h>
 #include <libpolynomial/inlineasm/AsmParser.h>
 #include <libpolynomial/inlineasm/AsmCodeGen.h>
 
@@ -32,7 +33,7 @@ using namespace dev;
 using namespace dev::polynomial;
 using namespace dev::polynomial::assembly;
 
-bool InlineAssemblyStack::parse(const std::shared_ptr<Scanner>& _scanner)
+bool InlineAssemblyStack::parse(shared_ptr<Scanner> const& _scanner)
 {
 	m_parserResult = make_shared<Block>();
 	Parser parser(m_errors);
@@ -47,5 +48,24 @@ sof::Assembly InlineAssemblyStack::assemble()
 {
 	CodeGenerator codeGen(*m_parserResult, m_errors);
 	return codeGen.assemble();
+}
+
+bool InlineAssemblyStack::parseAndAssemble(
+	string const& _input,
+	sof::Assembly& _assembly,
+	CodeGenerator::IdentifierAccess const& _identifierAccess
+)
+{
+	ErrorList errors;
+	auto scanner = make_shared<Scanner>(CharStream(_input), "--CODEGEN--");
+	auto parserResult = Parser(errors).parse(scanner);
+	if (!errors.empty())
+		return false;
+
+	CodeGenerator(*parserResult, errors).assemble(_assembly, _identifierAccess);
+
+	// At this point, the assembly might be messed up, but we should throw an
+	// internal compiler error anyway.
+	return errors.empty();
 }
 

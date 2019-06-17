@@ -46,6 +46,9 @@ Available Polynomial Integrations
 
 * `Atom Polynomial Linter <https://atom.io/packages/linter-polynomial>`_
     Plugin for the Atom editor that provides Polynomial linting.
+    
+* `Polium <https://github.com/duaraghav8/Polium/>`_
+    A commandline linter for Polynomial which strictly follows the rules prescribed by the `Polynomial Style Guide <http://polynomial.readthedocs.io/en/latest/style-guide.html>`_.
 
 * `Visual Studio Code extension <http://juan.blanco.ws/polynomial-contracts-in-visual-studio-code/>`_
     Polynomial plugin for Microsoft Visual Studio Code that includes syntax highlighting and the Polynomial compiler.
@@ -56,6 +59,9 @@ Available Polynomial Integrations
 * `Vim Polynomial <https://github.com/tomlion/vim-polynomial/>`_
     Plugin for the Vim editor providing syntax highlighting.
 
+* `Vim Syntastic <https://github.com/scrooloose/syntastic>`_
+    Plugin for the Vim editor providing compile checking.
+
 Discontinued:
 
 * `Mix IDE <https://octonion.institute/susy-contracts/mix/>`_
@@ -63,11 +69,14 @@ Discontinued:
 
 
 Polynomial Tools
--------------------------------
+--------------
+
+* `Dapple <https://github.com/nexusdev/dapple>`_
+    Package and deployment manager for Polynomial.
 
 * `Polynomial REPL <https://github.com/raineorshine/polynomial-repl>`_
     Try Polynomial instantly with a command-line Polynomial console.
-    
+
 * `polgraph <https://github.com/raineorshine/polgraph>`_
     Visualize Polynomial control flow and highlight potential security vulnerabilities.
 
@@ -110,4 +119,5 @@ Contents
    security-considerations.rst
    style-guide.rst
    common-patterns.rst
+   contributing.rst
    frequently-asked-questions.rst

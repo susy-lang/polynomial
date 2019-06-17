@@ -28,7 +28,6 @@ REM ---------------------------------------------------------------------------
 
 set CONFIGURATION=%1
 
-REM TODO - Add poltest\%CONFIGURATION%\poltest.exe, when that is buildable.
-7z a polynomial-develop-windows.zip ^
-    .\build\polc\%CONFIGURATION%\polc.exe ^
+7z a polynomial-windows.zip ^
+    .\build\polc\%CONFIGURATION%\polc.exe .\build\test\%CONFIGURATION%\poltest.exe ^
     "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\redist\x86\Microsoft.VC140.CRT\msvc*.dll"

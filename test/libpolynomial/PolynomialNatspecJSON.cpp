@@ -37,7 +37,7 @@ namespace test
 class DocumentationChecker
 {
 public:
-	DocumentationChecker(): m_compilerStack(false) {}
+	DocumentationChecker(): m_compilerStack() {}
 
 	void checkNatspec(
 		std::string const& _code,
@@ -46,7 +46,7 @@ public:
 	)
 	{
 		std::string generatedDocumentationString;
-		SOF_TEST_REQUIRE_NO_THROW(m_compilerStack.parse(_code), "Parsing failed");
+		SOF_TEST_REQUIRE_NO_THROW(m_compilerStack.parse("pragma polynomial >=0.0;\n" + _code), "Parsing failed");
 
 		if (_userDocumentation)
 			generatedDocumentationString = m_compilerStack.metadata("", DocumentationType::NatspecUser);
