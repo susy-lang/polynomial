@@ -60,16 +60,26 @@ SyntaxTest::SyntaxTest(string const& _filename, langutil::SVMVersion _svmVersion
 	file.exceptions(ios::badbit);
 
 	m_source = parseSourceAndSettings(file);
+	if (m_settings.count("optimize-yul"))
+	{
+		m_optimiseYul = true;
+		m_validatedSettings["optimize-yul"] = "true";
+		m_settings.erase("optimize-yul");
+	}
 	m_expectations = parseExpectations(file);
 }
 
-bool SyntaxTest::run(ostream& _stream, string const& _linePrefix, bool _formatted)
+TestCase::TestResult SyntaxTest::run(ostream& _stream, string const& _linePrefix, bool _formatted)
 {
 	string const versionPragma = "pragma polynomial >=0.0;\n";
 	compiler().reset();
 	compiler().setSources({{"", versionPragma + m_source}});
 	compiler().setSVMVersion(m_svmVersion);
-
+	compiler().setOptimiserSettings(
+		m_optimiseYul ?
+		OptimiserSettings::full() :
+		OptimiserSettings::minimal()
+	);
 	if (compiler().parse())
 		compiler().analyze();
 
@@ -92,7 +102,7 @@ bool SyntaxTest::run(ostream& _stream, string const& _linePrefix, bool _formatte
 		});
 	}
 
-	return printExpectationAndError(_stream, _linePrefix, _formatted);
+	return printExpectationAndError(_stream, _linePrefix, _formatted) ? TestResult::Success : TestResult::Failure;
 }
 
 bool SyntaxTest::printExpectationAndError(ostream& _stream, string const& _linePrefix, bool _formatted)

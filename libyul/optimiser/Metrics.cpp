@@ -22,10 +22,14 @@
 
 #include <libyul/AsmData.h>
 #include <libyul/Exceptions.h>
+#include <libyul/Utilities.h>
+#include <libyul/backends/svm/SVMDialect.h>
 
 #include <libsvmasm/Instruction.h>
+#include <libsvmasm/GasMeter.h>
 
 #include <libdevcore/Visitor.h>
+#include <libdevcore/CommonData.h>
 
 using namespace std;
 using namespace dev;
@@ -92,9 +96,9 @@ void CodeSize::visit(Expression const& _expression)
 }
 
 
-size_t CodeCost::codeCost(Expression const& _expr)
+size_t CodeCost::codeCost(Dialect const& _dialect, Expression const& _expr)
 {
-	CodeCost cc;
+	CodeCost cc(_dialect);
 	cc.visit(_expr);
 	return cc.m_cost;
 }
@@ -102,23 +106,26 @@ size_t CodeCost::codeCost(Expression const& _expr)
 
 void CodeCost::operator()(FunctionCall const& _funCall)
 {
-	yulAssert(m_cost >= 1, "Should assign cost one in visit(Expression).");
-	m_cost += 49;
 	ASTWalker::operator()(_funCall);
+
+	if (SVMDialect const* dialect = dynamic_cast<SVMDialect const*>(&m_dialect))
+		if (BuiltinFunctionForSVM const* f = dialect->builtin(_funCall.functionName.name))
+			if (f->instruction)
+			{
+				addInstructionCost(*f->instruction);
+				return;
+			}
+
+	m_cost += 49;
 }
 
 void CodeCost::operator()(FunctionalInstruction const& _instr)
 {
 	yulAssert(m_cost >= 1, "Should assign cost one in visit(Expression).");
-	dev::sof::Tier gasPriceTier = dev::sof::instructionInfo(_instr.instruction).gasPriceTier;
-	if (gasPriceTier < dev::sof::Tier::VeryLow)
-		m_cost -= 1;
-	else if (gasPriceTier < dev::sof::Tier::High)
-		m_cost += 1;
-	else
-		m_cost += 49;
+	addInstructionCost(_instr.instruction);
 	ASTWalker::operator()(_instr);
 }
+
 void CodeCost::operator()(Literal const& _literal)
 {
 	yulAssert(m_cost >= 1, "Should assign cost one in visit(Expression).");
@@ -149,6 +156,104 @@ void CodeCost::visit(Expression const& _expression)
 {
 	++m_cost;
 	ASTWalker::visit(_expression);
+}
+
+void CodeCost::addInstructionCost(sof::Instruction _instruction)
+{
+	dev::sof::Tier gasPriceTier = dev::sof::instructionInfo(_instruction).gasPriceTier;
+	if (gasPriceTier < dev::sof::Tier::VeryLow)
+		m_cost -= 1;
+	else if (gasPriceTier < dev::sof::Tier::High)
+		m_cost += 1;
+	else
+		m_cost += 49;
+}
+
+size_t GasMeter::costs(Expression const& _expression) const
+{
+	return combineCosts(GasMeterVisitor::costs(_expression, m_dialect, m_isCreation));
+}
+
+size_t GasMeter::instructionCosts(sof::Instruction _instruction) const
+{
+	return combineCosts(GasMeterVisitor::instructionCosts(_instruction, m_dialect, m_isCreation));
+}
+
+size_t GasMeter::combineCosts(std::pair<size_t, size_t> _costs) const
+{
+	return _costs.first * m_runs + _costs.second;
+}
+
+
+pair<size_t, size_t> GasMeterVisitor::costs(
+	Expression const& _expression,
+	SVMDialect const& _dialect,
+	bool _isCreation
+)
+{
+	GasMeterVisitor gmv(_dialect, _isCreation);
+	gmv.visit(_expression);
+	return {gmv.m_runGas, gmv.m_dataGas};
+}
+
+pair<size_t, size_t> GasMeterVisitor::instructionCosts(
+	dev::sof::Instruction _instruction,
+	SVMDialect const& _dialect,
+	bool _isCreation
+)
+{
+	GasMeterVisitor gmv(_dialect, _isCreation);
+	gmv.instructionCostsInternal(_instruction);
+	return {gmv.m_runGas, gmv.m_dataGas};
+}
+
+void GasMeterVisitor::operator()(FunctionCall const& _funCall)
+{
+	ASTWalker::operator()(_funCall);
+	if (BuiltinFunctionForSVM const* f = m_dialect.builtin(_funCall.functionName.name))
+		if (f->instruction)
+		{
+			instructionCostsInternal(*f->instruction);
+			return;
+		}
+	yulAssert(false, "Functions not implemented.");
+}
+
+void GasMeterVisitor::operator()(FunctionalInstruction const& _fun)
+{
+	ASTWalker::operator()(_fun);
+	instructionCostsInternal(_fun.instruction);
+}
+
+void GasMeterVisitor::operator()(Literal const& _lit)
+{
+	m_runGas += dev::sof::GasMeter::runGas(dev::sof::Instruction::PUSH1);
+	m_dataGas +=
+		singleByteDataGas() +
+		size_t(dev::sof::GasMeter::dataGas(dev::toCompactBigEndian(valueOfLiteral(_lit), 1), m_isCreation));
+}
+
+void GasMeterVisitor::operator()(Identifier const&)
+{
+	m_runGas += dev::sof::GasMeter::runGas(dev::sof::Instruction::DUP1);
+	m_dataGas += singleByteDataGas();
+}
+
+size_t GasMeterVisitor::singleByteDataGas() const
+{
+	if (m_isCreation)
+		return dev::sof::GasCosts::txDataNonZeroGas;
+	else
+		return dev::sof::GasCosts::createDataGas;
+}
+
+void GasMeterVisitor::instructionCostsInternal(dev::sof::Instruction _instruction)
+{
+	if (_instruction == sof::Instruction::EXP)
+		m_runGas += dev::sof::GasCosts::expGas + dev::sof::GasCosts::expByteGas(m_dialect.svmVersion());
+	else
+		m_runGas += dev::sof::GasMeter::runGas(_instruction);
+	m_dataGas += singleByteDataGas();
 }
 
 void AssignmentCounter::operator()(Assignment const& _assignment)

@@ -142,14 +142,14 @@ AbstractAssembly::SubID NoOutputAssembly::appendData(bytes const&)
 	return 1;
 }
 
-NoOutputSVMDialect::NoOutputSVMDialect(shared_ptr<SVMDialect> const& _copyFrom):
-	SVMDialect(_copyFrom->flavour, _copyFrom->providesObjectAccess(), _copyFrom->svmVersion())
+NoOutputSVMDialect::NoOutputSVMDialect(SVMDialect const& _copyFrom):
+	SVMDialect(_copyFrom.flavour, _copyFrom.providesObjectAccess(), _copyFrom.svmVersion())
 {
 	for (auto& fun: m_functions)
 	{
 		size_t parameters = fun.second.parameters.size();
 		size_t returns = fun.second.returns.size();
-		fun.second.generateCode = [=](FunctionCall const&, AbstractAssembly& _assembly, std::function<void()> _visitArguments)
+		fun.second.generateCode = [=](FunctionCall const&, AbstractAssembly& _assembly, BuiltinContext&, std::function<void()> _visitArguments)
 		{
 			_visitArguments();
 			for (size_t i = 0; i < parameters; i++)

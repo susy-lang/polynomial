@@ -1,6 +1,4 @@
-if (OSSFUZZ)
-    add_subdirectory(ossfuzz)
-endif()
+add_subdirectory(ossfuzz)
 
 add_subdirectory(yulInterpreter)
 add_executable(yulrun yulrun.cpp)
@@ -20,6 +18,7 @@ add_executable(ipoltest
 	../TestCase.cpp
 	../libpolynomial/util/TestFileParser.cpp
 	../libpolynomial/util/TestFunctionCall.cpp
+	../libpolynomial/GasTest.cpp
 	../libpolynomial/SyntaxTest.cpp
 	../libpolynomial/SemanticTest.cpp
 	../libpolynomial/AnalysisFramework.cpp

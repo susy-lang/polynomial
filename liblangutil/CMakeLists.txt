@@ -6,6 +6,7 @@ set(sources
 	ErrorReporter.cpp
 	ErrorReporter.h
 	SVMVersion.h
+	SVMVersion.cpp
 	Exceptions.cpp
 	Exceptions.h
 	ParserBase.cpp

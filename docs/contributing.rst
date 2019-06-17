@@ -96,7 +96,7 @@ The option ``--no-smt`` disables the tests that require ``libz3`` and
 ``--no-ipc`` disables those that require ``alsof``.
 
 If you want to run the ipc tests (that test the semantics of the generated code),
-you need to install `alsof <https://octonion.institute/susy-cpp/alsof/releases/download/v1.6.0-rc.1/alsof-1.6.0-rc.1-linux-x86_64.tar.gz>`_ and run it in testing mode: ``alsof --db memorydb --test -d /tmp/testsof``.
+you need to install `alsof <https://octonion.institute/susy-cpp/alsof/releases/download/v1.6.0/alsof-1.6.0-linux-x86_64.tar.gz>`_ and run it in testing mode: ``alsof --db memorydb --test -d /tmp/testsof``.
 
 To run the actual tests, use: ``./scripts/poltest.sh --ipcpath /tmp/testsof/graviton.ipc``.
 

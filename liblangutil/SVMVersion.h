@@ -20,10 +20,13 @@
 
 #pragma once
 
+#include <libsvmasm/Instruction.h>
+
 #include <string>
 
 #include <boost/optional.hpp>
 #include <boost/operators.hpp>
+
 
 namespace langutil
 {
@@ -78,6 +81,8 @@ public:
 	bool hasCreate2() const { return *this >= constantinople(); }
 	bool hasExtCodeHash() const { return *this >= constantinople(); }
 
+	bool hasOpcode(dev::sof::Instruction _opcode) const;
+
 	/// whether we have to retain the costs for the call opcode itself (false),
 	/// or whether we can just forward easily all remaining gas (true).
 	bool canOvsrchargeGasForCall() const { return *this >= tangerineWhistle(); }
@@ -89,6 +94,5 @@ private:
 
 	Version m_version = Version::Petersburg;
 };
-
 
 }

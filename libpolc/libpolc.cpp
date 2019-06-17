@@ -21,10 +21,11 @@
  */
 
 #include <libpolc/libpolc.h>
-#include <libdevcore/Common.h>
-#include <libdevcore/JSON.h>
 #include <libpolynomial/interface/StandardCompiler.h>
 #include <libpolynomial/interface/Version.h>
+#include <libyul/YulString.h>
+#include <libdevcore/Common.h>
+#include <libdevcore/JSON.h>
 
 #include <string>
 
@@ -100,6 +101,9 @@ extern char const* polynomial_compile(char const* _input, CStyleReadFileCallback
 }
 extern void polynomial_free() noexcept
 {
+	// This is called right before each compilation, but not at the end, so additional memory
+	// can be freed here.
+	yul::YulStringRepository::reset();
 	s_outputBuffer.clear();
 }
 }

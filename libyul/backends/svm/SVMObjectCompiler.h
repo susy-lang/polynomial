@@ -29,16 +29,16 @@ struct SVMDialect;
 class SVMObjectCompiler
 {
 public:
-	static void compile(Object& _object, AbstractAssembly& _assembly, SVMDialect& _dialect, bool _svm15, bool _optimize);
+	static void compile(Object& _object, AbstractAssembly& _assembly, SVMDialect const& _dialect, bool _svm15, bool _optimize);
 private:
-	SVMObjectCompiler(AbstractAssembly& _assembly, SVMDialect& _dialect, bool _svm15):
+	SVMObjectCompiler(AbstractAssembly& _assembly, SVMDialect const& _dialect, bool _svm15):
 		m_assembly(_assembly), m_dialect(_dialect), m_svm15(_svm15)
 	{}
 
 	void run(Object& _object, bool _optimize);
 
 	AbstractAssembly& m_assembly;
-	SVMDialect& m_dialect;
+	SVMDialect const& m_dialect;
 	bool m_svm15 = false;
 };
 

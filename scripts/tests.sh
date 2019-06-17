@@ -134,9 +134,9 @@ function download_alsof()
         ALSOF_PATH="alsof"
     else
         mkdir -p /tmp/test
-        # Any time the hash is updated here, the "Running compiler tests" section should also be updated.
-        ALSOF_HASH="8979a9179d5222c89bf9daf7ca73cc115fa2dac2"
-        ALSOF_VERSION=1.6.0-rc.1
+        # Any time the hash is updated here, the "Running the compiler tests" section in contributing.rst should also be updated.
+        ALSOF_HASH="7f7004e1563299bc57882e32b32e4a195747dfb6"
+        ALSOF_VERSION=1.6.0
         wget -q -O /tmp/test/alsof.tar.gz https://octonion.institute/susy-cpp/alsof/releases/download/v${ALSOF_VERSION}/alsof-${ALSOF_VERSION}-linux-x86_64.tar.gz
         test "$(shasum /tmp/test/alsof.tar.gz)" = "$ALSOF_HASH  /tmp/test/alsof.tar.gz"
         tar -xf /tmp/test/alsof.tar.gz -C /tmp/test

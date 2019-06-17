@@ -184,12 +184,13 @@ void CodeGenerator::assemble(
 )
 {
 	SofAssemblyAdapter assemblyAdapter(_assembly);
-	shared_ptr<SVMDialect> dialect = SVMDialect::strictAssemblyForSVM(_svmVersion);
+	BuiltinContext builtinContext;
 	CodeTransform transform(
 		assemblyAdapter,
 		_analysisInfo,
 		_parsedData,
-		*dialect,
+		SVMDialect::strictAssemblyForSVM(_svmVersion),
+		builtinContext,
 		_optimizeStackAllocation,
 		false,
 		_identifierAccess,

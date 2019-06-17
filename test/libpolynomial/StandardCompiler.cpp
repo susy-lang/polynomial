@@ -22,6 +22,7 @@
 #include <string>
 #include <boost/test/unit_test.hpp>
 #include <libpolynomial/interface/StandardCompiler.h>
+#include <libpolynomial/interface/Version.h>
 #include <libdevcore/JSON.h>
 #include <test/Metadata.h>
 
@@ -326,7 +327,9 @@ BOOST_AUTO_TEST_CASE(basic_compilation)
 	BOOST_CHECK(contract["svm"]["bytecode"]["object"].isString());
 	BOOST_CHECK_EQUAL(
 		dev::test::bytecodeSansMetadata(contract["svm"]["bytecode"]["object"].asString()),
-		"6080604052348015600f57600080fd5b50603580601d6000396000f3fe6080604052600080fdfe"
+		string("6080604052348015600f57600080fd5b5060") +
+		(VersionIsRelease ? "3e" : toHex(bytes{uint8_t(60 + VersionStringStrict.size())})) +
+		"80601d6000396000f3fe6080604052600080fdfe"
 	);
 	BOOST_CHECK(contract["svm"]["assembly"].isString());
 	BOOST_CHECK(contract["svm"]["assembly"].asString().find(
@@ -338,12 +341,19 @@ BOOST_AUTO_TEST_CASE(basic_compilation)
 		"tag_1:\n    /* \"fileA\":0:14  contract A { } */\n  pop\n  dataSize(sub_0)\n  dup1\n  "
 		"dataOffset(sub_0)\n  0x00\n  codecopy\n  0x00\n  return\nstop\n\nsub_0: assembly {\n        "
 		"/* \"fileA\":0:14  contract A { } */\n      mstore(0x40, 0x80)\n      0x00\n      "
-		"dup1\n      revert\n\n    auxdata: 0xa165627a7a72305820"
+		"dup1\n      revert\n\n    auxdata: 0xa265627a7a72305820"
 	) == 0);
 	BOOST_CHECK(contract["svm"]["gasEstimates"].isObject());
+	BOOST_CHECK_EQUAL(contract["svm"]["gasEstimates"].size(), 1);
+	BOOST_CHECK(contract["svm"]["gasEstimates"]["creation"].isObject());
+	BOOST_CHECK_EQUAL(contract["svm"]["gasEstimates"]["creation"].size(), 3);
+	BOOST_CHECK(contract["svm"]["gasEstimates"]["creation"]["codeDepositCost"].isString());
+	BOOST_CHECK(contract["svm"]["gasEstimates"]["creation"]["executionCost"].isString());
+	BOOST_CHECK(contract["svm"]["gasEstimates"]["creation"]["totalCost"].isString());
 	BOOST_CHECK_EQUAL(
-		dev::jsonCompactPrint(contract["svm"]["gasEstimates"]),
-		"{\"creation\":{\"codeDepositCost\":\"10600\",\"executionCost\":\"66\",\"totalCost\":\"10666\"}}"
+		u256(contract["svm"]["gasEstimates"]["creation"]["codeDepositCost"].asString()) +
+		u256(contract["svm"]["gasEstimates"]["creation"]["executionCost"].asString()),
+		u256(contract["svm"]["gasEstimates"]["creation"]["totalCost"].asString())
 	);
 	// Lets take the top level `.code` section (the "deployer code"), that should expose most of the features of
 	// the assembly JSON. What we want to check here is Operation, Push, PushTag, PushSub, PushSubSize and Tag.
@@ -1154,6 +1164,172 @@ BOOST_AUTO_TEST_CASE(use_stack_optimization)
 	BOOST_REQUIRE(result["errors"].isArray());
 	BOOST_CHECK(result["errors"][0]["severity"] == "error");
 	BOOST_CHECK(result["errors"][0]["type"] == "InternalCompilerError");
+}
+
+BOOST_AUTO_TEST_CASE(standard_output_selection_wildcard)
+{
+	char const* input = R"(
+	{
+		"language": "Polynomial",
+			"sources":
+		{
+			"A":
+			{
+				"content": "pragma polynomial >=0.0; contract C { function f() public pure {} }"
+			}
+		},
+		"settings":
+		{
+			"outputSelection":
+			{
+				"*": { "C": ["svm.bytecode"] }
+			}
+		}
+	}
+	)";
+
+	Json::Value parsedInput;
+	BOOST_REQUIRE(jsonParseStrict(input, parsedInput));
+
+	dev::polynomial::StandardCompiler compiler;
+	Json::Value result = compiler.compile(parsedInput);
+
+	BOOST_REQUIRE(result["contracts"].isObject());
+	BOOST_REQUIRE(result["contracts"].size() == 1);
+	BOOST_REQUIRE(result["contracts"]["A"].isObject());
+	BOOST_REQUIRE(result["contracts"]["A"].size() == 1);
+	BOOST_REQUIRE(result["contracts"]["A"]["C"].isObject());
+	BOOST_REQUIRE(result["contracts"]["A"]["C"]["svm"].isObject());
+	BOOST_REQUIRE(result["contracts"]["A"]["C"]["svm"]["bytecode"].isObject());
+	BOOST_REQUIRE(result["sources"].isObject());
+	BOOST_REQUIRE(result["sources"].size() == 1);
+	BOOST_REQUIRE(result["sources"]["A"].isObject());
+
+}
+
+BOOST_AUTO_TEST_CASE(standard_output_selection_wildcard_colon_source)
+{
+	char const* input = R"(
+	{
+		"language": "Polynomial",
+		"sources":
+		{
+			":A":
+			{
+				"content": "pragma polynomial >=0.0; contract C { function f() public pure {} }"
+			}
+		},
+		"settings":
+		{
+			"outputSelection":
+			{
+				"*": { "C": ["svm.bytecode"] }
+			}
+		}
+	}
+	)";
+
+	Json::Value parsedInput;
+	BOOST_REQUIRE(jsonParseStrict(input, parsedInput));
+
+	dev::polynomial::StandardCompiler compiler;
+	Json::Value result = compiler.compile(parsedInput);
+
+	BOOST_REQUIRE(result["contracts"].isObject());
+	BOOST_REQUIRE(result["contracts"].size() == 1);
+	BOOST_REQUIRE(result["contracts"][":A"].isObject());
+	BOOST_REQUIRE(result["contracts"][":A"].size() == 1);
+	BOOST_REQUIRE(result["contracts"][":A"]["C"].isObject());
+	BOOST_REQUIRE(result["contracts"][":A"]["C"]["svm"].isObject());
+	BOOST_REQUIRE(result["contracts"][":A"]["C"]["svm"]["bytecode"].isObject());
+	BOOST_REQUIRE(result["sources"].isObject());
+	BOOST_REQUIRE(result["sources"].size() == 1);
+	BOOST_REQUIRE(result["sources"][":A"].isObject());
+}
+
+BOOST_AUTO_TEST_CASE(standard_output_selection_wildcard_empty_source)
+{
+	char const* input = R"(
+	{
+		"language": "Polynomial",
+		"sources":
+		{
+			"":
+			{
+				"content": "pragma polynomial >=0.0; contract C { function f() public pure {} }"
+			}
+		},
+		"settings":
+		{
+			"outputSelection":
+			{
+				"*": { "C": ["svm.bytecode"] }
+			}
+		}
+	}
+	)";
+
+	Json::Value parsedInput;
+	BOOST_REQUIRE(jsonParseStrict(input, parsedInput));
+
+	dev::polynomial::StandardCompiler compiler;
+	Json::Value result = compiler.compile(parsedInput);
+
+	BOOST_REQUIRE(result["contracts"].isObject());
+	BOOST_REQUIRE(result["contracts"].size() == 1);
+	BOOST_REQUIRE(result["contracts"][""].isObject());
+	BOOST_REQUIRE(result["contracts"][""].size() == 1);
+	BOOST_REQUIRE(result["contracts"][""]["C"].isObject());
+	BOOST_REQUIRE(result["contracts"][""]["C"]["svm"].isObject());
+	BOOST_REQUIRE(result["contracts"][""]["C"]["svm"]["bytecode"].isObject());
+	BOOST_REQUIRE(result["sources"].isObject());
+	BOOST_REQUIRE(result["sources"].size() == 1);
+	BOOST_REQUIRE(result["sources"][""].isObject());
+}
+
+BOOST_AUTO_TEST_CASE(standard_output_selection_wildcard_multiple_sources)
+{
+	char const* input = R"(
+	{
+		"language": "Polynomial",
+		"sources":
+		{
+			"A":
+			{
+				"content": "pragma polynomial >=0.0; contract C { function f() public pure {} }"
+			},
+			"B":
+			{
+				"content": "pragma polynomial >=0.0; contract D { function f() public pure {} }"
+			}
+		},
+		"settings":
+		{
+			"outputSelection":
+			{
+				"*": { "D": ["svm.bytecode"] }
+			}
+		}
+	}
+	)";
+
+	Json::Value parsedInput;
+	BOOST_REQUIRE(jsonParseStrict(input, parsedInput));
+
+	dev::polynomial::StandardCompiler compiler;
+	Json::Value result = compiler.compile(parsedInput);
+
+	BOOST_REQUIRE(result["contracts"].isObject());
+	BOOST_REQUIRE(result["contracts"].size() == 1);
+	BOOST_REQUIRE(result["contracts"]["B"].isObject());
+	BOOST_REQUIRE(result["contracts"]["B"].size() == 1);
+	BOOST_REQUIRE(result["contracts"]["B"]["D"].isObject());
+	BOOST_REQUIRE(result["contracts"]["B"]["D"]["svm"].isObject());
+	BOOST_REQUIRE(result["contracts"]["B"]["D"]["svm"]["bytecode"].isObject());
+	BOOST_REQUIRE(result["sources"].isObject());
+	BOOST_REQUIRE(result["sources"].size() == 2);
+	BOOST_REQUIRE(result["sources"]["A"].isObject());
+	BOOST_REQUIRE(result["sources"]["B"].isObject());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

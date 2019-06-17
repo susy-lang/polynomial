@@ -57,7 +57,7 @@ private:
 	/// Generates code for and returns the name of the function.
 	std::string generateFunction(FunctionDefinition const& _function);
 
-	std::string constructorCode(FunctionDefinition const& _constructor);
+	std::string constructorCode(ContractDefinition const& _contract);
 	std::string deployCode(ContractDefinition const& _contract);
 	std::string callValueCheck();
 
@@ -68,7 +68,7 @@ private:
 
 	std::string memoryInit();
 
-	void resetContext();
+	void resetContext(ContractDefinition const& _contract);
 
 	langutil::SVMVersion const m_svmVersion;
 	OptimiserSettings const m_optimiserSettings;

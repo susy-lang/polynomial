@@ -81,7 +81,7 @@ private:
  */
 struct NoOutputSVMDialect: public SVMDialect
 {
-	explicit NoOutputSVMDialect(std::shared_ptr<SVMDialect> const& _copyFrom);
+	explicit NoOutputSVMDialect(SVMDialect const& _copyFrom);
 };
 
 

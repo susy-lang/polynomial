@@ -29,6 +29,7 @@
 #include <liblangutil/Scanner.h>
 #include <liblangutil/SemVerHandler.h>
 #include <liblangutil/SourceLocation.h>
+#include <libyul/backends/svm/SVMDialect.h>
 #include <cctype>
 #include <vector>
 
@@ -1039,21 +1040,22 @@ ASTPointer<InlineAssembly> Parser::parseInlineAssembly(ASTPointer<ASTString> con
 	SourceLocation location{position(), -1, source()};
 
 	expectToken(Token::Assembly);
+	yul::Dialect const& dialect = yul::SVMDialect::looseAssemblyForSVM(m_svmVersion);
 	if (m_scanner->currentToken() == Token::StringLiteral)
 	{
 		if (m_scanner->currentLiteral() != "svmasm")
 			fatalParserError("Only \"svmasm\" supported.");
+		// This can be used in the future to set the dialect.
 		m_scanner->next();
 	}
 
-	// Using latest SVM Version for now, it will be run again later.
-	yul::Parser asmParser(m_errorReporter, yul::SVMDialect::looseAssemblyForSVM(SVMVersion{}));
+	yul::Parser asmParser(m_errorReporter, dialect);
 	shared_ptr<yul::Block> block = asmParser.parse(m_scanner, true);
 	if (block == nullptr)
 		BOOST_THROW_EXCEPTION(FatalError());
 
 	location.end = block->location.end;
-	return make_shared<InlineAssembly>(location, _docString, block);
+	return make_shared<InlineAssembly>(location, _docString, dialect, block);
 }
 
 ASTPointer<IfStatement> Parser::parseIfStatement(ASTPointer<ASTString> const& _docString)

@@ -24,6 +24,7 @@
 
 #include <libpolynomial/ast/AST.h>
 #include <liblangutil/ParserBase.h>
+#include <liblangutil/SVMVersion.h>
 
 namespace langutil
 {
@@ -38,7 +39,13 @@ namespace polynomial
 class Parser: public langutil::ParserBase
 {
 public:
-	explicit Parser(langutil::ErrorReporter& _errorReporter): ParserBase(_errorReporter) {}
+	explicit Parser(
+		langutil::ErrorReporter& _errorReporter,
+		langutil::SVMVersion _svmVersion
+	):
+		ParserBase(_errorReporter),
+		m_svmVersion(_svmVersion)
+	{}
 
 	ASTPointer<SourceUnit> parse(std::shared_ptr<langutil::Scanner> const& _scanner);
 
@@ -181,6 +188,7 @@ private:
 
 	/// Flag that signifies whether '_' is parsed as a PlaceholderStatement or a regular identifier.
 	bool m_insideModifier = false;
+	langutil::SVMVersion m_svmVersion;
 };
 
 }

@@ -57,7 +57,7 @@ struct MachineAssemblyObject
 class AssemblyStack
 {
 public:
-	enum class Language { Yul, Assembly, StrictAssembly };
+	enum class Language { Yul, Assembly, StrictAssembly, EWasm };
 	enum class Machine { SVM, SVM15, eWasm };
 
 	AssemblyStack():
@@ -99,7 +99,7 @@ private:
 
 	void compileSVM(yul::AbstractAssembly& _assembly, bool _svm15, bool _optimize) const;
 
-	void optimize(yul::Object& _object);
+	void optimize(yul::Object& _object, bool _isCreation);
 
 	Language m_language = Language::Assembly;
 	langutil::SVMVersion m_svmVersion;

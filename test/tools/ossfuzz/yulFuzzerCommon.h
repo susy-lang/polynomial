@@ -15,6 +15,7 @@
 	along with polynomial.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include <test/tools/yulInterpreter/Interpreter.h>
+#include <libyul/backends/svm/SVMDialect.h>
 
 namespace yul
 {
@@ -27,6 +28,7 @@ struct yulFuzzerUtil
 	static void interpret(
 		std::ostream& _os,
 		std::shared_ptr<yul::Block> _ast,
+		Dialect const& _dialect,
 		size_t _maxSteps = maxSteps,
 		size_t _maxTraceSize = maxTraceSize,
 		size_t _maxMemory = maxMemory

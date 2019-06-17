@@ -19,6 +19,7 @@
 
 #include <test/TestCase.h>
 #include <test/libpolynomial/ASTJSONTest.h>
+#include <test/libpolynomial/GasTest.h>
 #include <test/libpolynomial/SyntaxTest.h>
 #include <test/libpolynomial/SemanticTest.h>
 #include <test/libpolynomial/SMTCheckerJSONTest.h>
@@ -58,7 +59,8 @@ Testsuite const g_interactiveTestsuites[] = {
 	{"Semantic",            "libpolynomial", "semanticTests",       false, true,  &SemanticTest::create},
 	{"JSON AST",            "libpolynomial", "ASTJSON",             false, false, &ASTJSONTest::create},
 	{"SMT Checker",         "libpolynomial", "smtCheckerTests",     true,  false, &SyntaxTest::create},
-	{"SMT Checker JSON",    "libpolynomial", "smtCheckerTestsJSON", true,  false, &SMTCheckerTest::create}
+	{"SMT Checker JSON",    "libpolynomial", "smtCheckerTestsJSON", true,  false, &SMTCheckerTest::create},
+	{"Gas Estimates",       "libpolynomial", "gasTests",            false, false, &GasTest::create}
 };
 
 }

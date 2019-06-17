@@ -44,36 +44,10 @@ string const dev::polynomial::VersionStringStrict =
 	(string(POL_VERSION_PRERELEASE).empty() ? "" : "-" + string(POL_VERSION_PRERELEASE)) +
 	(string(POL_VERSION_COMMIT).empty() ? "" : "+" + string(POL_VERSION_COMMIT));
 
-bytes dev::polynomial::binaryVersion()
-{
-	bytes ret{0};
-	size_t i = 0;
-	auto parseDecimal = [&]()
-	{
-		size_t ret = 0;
-		polAssert('0' <= VersionString[i] && VersionString[i] <= '9', "");
-		for (; i < VersionString.size() && '0' <= VersionString[i] && VersionString[i] <= '9'; ++i)
-			ret = ret * 10 + (VersionString[i] - '0');
-		return ret;
-	};
-	ret.push_back(uint8_t(parseDecimal()));
-	polAssert(i < VersionString.size() && VersionString[i] == '.', "");
-	++i;
-	ret.push_back(uint8_t(parseDecimal()));
-	polAssert(i < VersionString.size() && VersionString[i] == '.', "");
-	++i;
-	ret.push_back(uint8_t(parseDecimal()));
-	polAssert(i < VersionString.size() && (VersionString[i] == '-' || VersionString[i] == '+'), "");
-	++i;
-	size_t commitpos = VersionString.find("commit.");
-	polAssert(commitpos != string::npos, "");
-	i = commitpos + 7;
-	polAssert(i + 7 < VersionString.size(), "");
-	bytes commitHash = fromHex(VersionString.substr(i, 8));
-	polAssert(!commitHash.empty(), "");
-	ret += commitHash;
-	polAssert(ret.size() == 1 + 3 + 4, "");
+bytes const dev::polynomial::VersionCompactBytes = {
+	SOF_PROJECT_VERSION_MAJOR,
+	SOF_PROJECT_VERSION_MINOR,
+	SOF_PROJECT_VERSION_PATCH
+};
 
-	return ret;
-}
-
+bool const dev::polynomial::VersionIsRelease = string(POL_VERSION_PRERELEASE).empty();

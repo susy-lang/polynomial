@@ -20,10 +20,11 @@ Fourier
 
 *We recommend Fourier for small contracts and for quickly learning Polynomial.*
 
-`Access Fourier online <https://fourier.superstring.io/>`_, you don't need to install anything.
+`Access Fourier online <https://fourier.superstring.io/>`_, you do not need to install anything.
 If you want to use it without connection to the Internet, go to
 https://octonion.institute/susy-go/fourier-live/tree/gh-pages and download the ``.zip`` file as
-explained on that page.
+explained on that page. Fourier is also a convenient option for testing nightly builds
+without installing multiple Polynomial versions.
 
 Further options on this page detail installing commandline Polynomial compiler software
 on your computer. Choose a commandline compiler if you are working on a larger contract
@@ -60,17 +61,36 @@ Please refer to the polc-js repository for instructions.
 Docker
 ======
 
-We provide up to date docker builds for the compiler. The ``stable``
-repository contains released versions while the ``nightly``
-repository contains potentially unstable changes in the develop branch.
+Docker images of Polynomial builds are available using the ``polc`` image from the ``sophon`` organisation.
+Use the ``stable`` tag for the latest released version, and ``nightly`` for potentially unstable changes in the develop branch.
+
+The Docker image runs the compiler executable, so you can pass all compiler arguments to it.
+For example, the command below pulls the stable version of the ``polc`` image (if you do not have it already),
+and runs it in a new container, passing the ``--help`` argument.
 
 .. code-block:: bash
 
-    docker run sophon/polc:stable --version
+    docker run sophon/polc:stable --help
 
-Currently, the docker image only contains the compiler executable,
-so you have to do some additional work to link in the source and
-output directories.
+You can also specify release build versions in the tag, for example, for the 0.5.4 release.
+
+.. code-block:: bash
+
+    docker run sophon/polc:0.5.4 --help
+
+To use the Docker image to compile Polynomial files on the host machine mount a
+local folder for input and output, and specify the contract to compile. For example.
+
+.. code-block:: bash
+
+    docker run -v /local/path:/sources sophon/polc:stable -o /sources/output --abi --bin /sources/Contract.pol
+
+You can also use the standard JSON interface (which is recommended when using the compiler with tooling).
+When using this interface it is not necessary to mount any directories.
+
+.. code-block:: bash
+
+    docker run sophon/polc:stable --standard-json < input.json > output.json
 
 Binary Packages
 ===============

@@ -27,7 +27,6 @@
 #include <libyul/AsmAnalysis.h>
 #include <libyul/AsmAnalysisInfo.h>
 #include <libyul/AsmData.h>
-#include <libyul/backends/svm/SVMDialect.h>
 
 #include <liblangutil/ErrorReporter.h>
 
@@ -707,7 +706,7 @@ bool TypeChecker::visit(InlineAssembly const& _inlineAssembly)
 		*_inlineAssembly.annotation().analysisInfo,
 		m_errorReporter,
 		Error::Type::SyntaxError,
-		yul::SVMDialect::looseAssemblyForSVM(m_svmVersion),
+		_inlineAssembly.dialect(),
 		identifierAccess
 	);
 	if (!analyzer.analyze(_inlineAssembly.operations()))

@@ -35,13 +35,25 @@ using Type = YulString;
 struct FunctionCall;
 struct Object;
 
+/**
+ * Context used during code generation.
+ */
+struct BuiltinContext
+{
+	Object const* currentObject = nullptr;
+	/// Mapping from named objects to abstract assembly sub IDs.
+	std::map<YulString, AbstractAssembly::SubID> subIDs;
+};
+
 struct BuiltinFunctionForSVM: BuiltinFunction
 {
+	boost::optional<dev::sof::Instruction> instruction;
 	/// Function to generate code for the given function call and append it to the abstract
-	/// assembly. The third parameter is called to visit (and generate code for) the arguments
+	/// assembly. The fourth parameter is called to visit (and generate code for) the arguments
 	/// from right to left.
-	std::function<void(FunctionCall const&, AbstractAssembly&, std::function<void()>)> generateCode;
+	std::function<void(FunctionCall const&, AbstractAssembly&, BuiltinContext&, std::function<void()>)> generateCode;
 };
+
 
 /**
  * Yul dialect for SVM as a backend.
@@ -50,40 +62,24 @@ struct BuiltinFunctionForSVM: BuiltinFunction
  */
 struct SVMDialect: public Dialect
 {
+	/// Constructor, should only be used internally. Use the factory functions below.
 	SVMDialect(AsmFlavour _flavour, bool _objectAccess, langutil::SVMVersion _svmVersion);
 
 	/// @returns the builtin function of the given name or a nullptr if it is not a builtin function.
 	BuiltinFunctionForSVM const* builtin(YulString _name) const override;
 
-	static std::shared_ptr<SVMDialect> looseAssemblyForSVM(langutil::SVMVersion _version);
-	static std::shared_ptr<SVMDialect> strictAssemblyForSVM(langutil::SVMVersion _version);
-	static std::shared_ptr<SVMDialect> strictAssemblyForSVMObjects(langutil::SVMVersion _version);
-	static std::shared_ptr<SVMDialect> yulForSVM(langutil::SVMVersion _version);
+	static SVMDialect const& looseAssemblyForSVM(langutil::SVMVersion _version);
+	static SVMDialect const& strictAssemblyForSVM(langutil::SVMVersion _version);
+	static SVMDialect const& strictAssemblyForSVMObjects(langutil::SVMVersion _version);
+	static SVMDialect const& yulForSVM(langutil::SVMVersion _version);
 
 	langutil::SVMVersion svmVersion() const { return m_svmVersion; }
 
 	bool providesObjectAccess() const { return m_objectAccess; }
 
-	/// Sets the mapping of current sub assembly IDs. Used during code generation.
-	void setSubIDs(std::map<YulString, AbstractAssembly::SubID> _subIDs);
-	/// Sets the current object. Used during code generation.
-	void setCurrentObject(Object const* _object);
-
 protected:
-	void addFunction(
-		std::string _name,
-		size_t _params,
-		size_t _returns,
-		bool _movable,
-		bool _literalArguments,
-		std::function<void(FunctionCall const&, AbstractAssembly&, std::function<void()>)> _generateCode
-	);
-
-	bool m_objectAccess;
-	langutil::SVMVersion m_svmVersion;
-	Object const* m_currentObject = nullptr;
-	/// Mapping from named objects to abstract assembly sub IDs.
-	std::map<YulString, AbstractAssembly::SubID> m_subIDs;
+	bool const m_objectAccess;
+	langutil::SVMVersion const m_svmVersion;
 	std::map<YulString, BuiltinFunctionForSVM> m_functions;
 };
 

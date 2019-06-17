@@ -25,6 +25,7 @@
 
 #include <libpolynomial/interface/ReadFile.h>
 #include <libpolynomial/interface/OptimiserSettings.h>
+#include <libpolynomial/interface/Version.h>
 
 #include <liblangutil/ErrorReporter.h>
 #include <liblangutil/SVMVersion.h>
@@ -261,6 +262,8 @@ public:
 	/// @returns a JSON representing the estimated gas usage for contract creation, internal and external functions
 	Json::Value gasEstimates(std::string const& _contractName) const;
 
+	/// Overwrites the release/prerelease flag. Should only be used for testing.
+	void overwriteReleaseFlag(bool release) { m_release = release; }
 private:
 	/// The state per source unit. Filled gradually during parsing.
 	struct Source
@@ -269,9 +272,11 @@ private:
 		std::shared_ptr<SourceUnit> ast;
 		h256 mutable keccak256HashCached;
 		h256 mutable swarmHashCached;
+		std::string mutable ipfsUrlCached;
 		void reset() { *this = Source(); }
 		h256 const& keccak256() const;
 		h256 const& swarmHash() const;
+		std::string const& ipfsUrl() const;
 	};
 
 	/// The state per contract. Filled gradually during compilation.
@@ -333,7 +338,7 @@ private:
 	std::string createMetadata(Contract const& _contract) const;
 
 	/// @returns the metadata CBOR for the given serialised metadata JSON.
-	static bytes createCBORMetadata(std::string const& _metadata, bool _experimentalMode);
+	bytes createCBORMetadata(std::string const& _metadata, bool _experimentalMode);
 
 	/// @returns the computer source mapping string.
 	std::string computeSourceMapping(sof::AssemblyItems const& _items) const;
@@ -382,6 +387,7 @@ private:
 	langutil::ErrorReporter m_errorReporter;
 	bool m_metadataLiteralSources = false;
 	State m_stackState = Empty;
+	bool m_release = VersionIsRelease;
 };
 
 }

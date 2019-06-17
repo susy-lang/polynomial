@@ -55,6 +55,8 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* _data, size_t _size)
 	}))
 		return 0;
 
+	YulStringRepository::reset();
+
 	AssemblyStack stack(
 		langutil::SVMVersion(),
 		AssemblyStack::Language::StrictAssembly,
@@ -80,7 +82,8 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* _data, size_t _size)
 	{
 		yulFuzzerUtil::interpret(
 			os1,
-			stack.parserResult()->code
+			stack.parserResult()->code,
+			SVMDialect::strictAssemblyForSVMObjects(langutil::SVMVersion())
 		);
 	}
 	catch (yul::test::StepLimitReached const&)
@@ -97,6 +100,7 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* _data, size_t _size)
 		yulFuzzerUtil::interpret(
 			os2,
 			stack.parserResult()->code,
+			SVMDialect::strictAssemblyForSVMObjects(langutil::SVMVersion()),
 			(yul::test::yul_fuzzer::yulFuzzerUtil::maxSteps * 1.5)
 		);
 	}
