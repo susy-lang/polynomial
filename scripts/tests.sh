@@ -35,7 +35,7 @@ echo "Running commandline tests..."
 
 echo "Checking that StandardToken.pol, owned.pol and mortal.pol produce bytecode..."
 output=$("$REPO_ROOT"/build/polc/polc --bin "$REPO_ROOT"/std/*.pol 2>/dev/null | grep "ffff" | wc -l)
-test "$output" = "3"
+test "${output//[[:blank:]]/}" = "3"
 
 # This conditional is only needed because we don't have a working Homebrew
 # install for `sof` at the time of writing, so we unzip the ZIP file locally
@@ -52,21 +52,22 @@ fi
 # true and continue as normal, either processing further commands in a script
 # or returning the cursor focus back to the user in a Linux terminal.
 $SOF_PATH --test -d /tmp/test &
+SOF_PID=$!
 
 # Wait until the IPC endpoint is available.  That won't be available instantly.
 # The node needs to get a little way into its startup sequence before the IPC
 # is available and is ready for the unit-tests to start talking to it.
 while [ ! -S /tmp/test/graviton.ipc ]; do sleep 2; done
 echo "--> IPC available."
-
+sleep 2
 # And then run the Polynomial unit-tests (once without optimization, once with),
 # pointing to that IPC endpoint.
 echo "--> Running tests without optimizer..."
-  "$REPO_ROOT"/build/test/poltest -- --ipcpath /tmp/test/graviton.ipc && \
+  "$REPO_ROOT"/build/test/poltest --show-progress -- --ipcpath /tmp/test/graviton.ipc && \
   echo "--> Running tests WITH optimizer..." && \
-  "$REPO_ROOT"/build/test/poltest -- --optimize --ipcpath /tmp/test/graviton.ipc
+  "$REPO_ROOT"/build/test/poltest --show-progress -- --optimize --ipcpath /tmp/test/graviton.ipc
 ERROR_CODE=$?
-pkill sof || true
+pkill "$SOF_PID" || true
 sleep 4
-pgrep sof && pkill -9 sof || true
+pgrep "$SOF_PID" && pkill -9 "$SOF_PID" || true
 exit $ERROR_CODE

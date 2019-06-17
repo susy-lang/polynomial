@@ -39,6 +39,9 @@ Available Polynomial Integrations
 * `Sophon Studio <https://live.sophy.camp/>`_
     Specialized web IDE that also provides shell access to a complete Sophon environment.
 
+* `IntelliJ IDEA plugin <https://plugins.jetbrains.com/plugin/9475-intellij-polynomial>`_
+    Polynomial plugin for IntelliJ IDEA (and all other JetBrains IDEs)
+
 * `Visual Studio Extension <https://visualstudiogallery.msdn.microsoft.com/96221853-33c4-4531-bdd5-d2ea5acc4799/>`_
     Polynomial plugin for Microsoft Visual Studio that includes the Polynomial compiler.
 
@@ -130,6 +133,7 @@ Contents
    polynomial-by-example.rst
    polynomial-in-depth.rst
    security-considerations.rst
+   using-the-compiler.rst
    style-guide.rst
    common-patterns.rst
    contributing.rst

@@ -25,24 +25,25 @@ without connection to the Internet, you can go to
 https://octonion.institute/susy-lang/browser-polynomial/tree/gh-pages and
 download the .ZIP file as explained on that page.
 
-
 npm / Node.js
 =============
 
 This is probably the most portable and most convenient way to install Polynomial locally.
 
 A platform-independent JavaScript library is provided by compiling the C++ source
-into JavaScript using Emscripten for browser-polynomial and there is also an npm
-package available.
+into JavaScript using Emscripten. It can be used in projects directly (such as Browser-Polynomial).
+Please refer to the `polc-js <https://octonion.institute/susy-js/polc-js>`_ repository for instructions.
 
-To install it, simply use
+It also contains a commandline tool called `polcjs`, which can be installed via npm:
 
 .. code:: bash
 
-    npm install polc
+    npm install -g polc
 
-Details about the usage of the Node.js package can be found in the
-`polc-js repository <https://octonion.institute/susy-js/polc-js>`_.
+.. note::
+
+    The comandline options of `polcjs` are not compatible with `polc` and tools (such as `graviton`)
+    expecting the behaviour of `polc` will not work with `polcjs`.
 
 Docker
 ======
@@ -82,6 +83,12 @@ If you want to use the cutting edge developer version:
     sudo apt-get update
     sudo apt-get install polc
 
+Arch Linux also has packages, albeit limited to the latest development version:
+
+.. code:: bash
+
+    pacman -S polynomial-git
+
 Homebrew is missing pre-built bottles at the time of writing,
 following a Jenkins to TravisCI migration, but Homebrew
 should still work just fine as a means to build-from-source.
@@ -95,6 +102,22 @@ We will re-add the pre-built bottles soon.
     brew install polynomial
     brew linkapps polynomial
 
+If you need a specific version of Polynomial you can install a 
+Homebrew formula directly from Github.
+
+View 
+`polynomial.rb commits on Github <https://octonion.institute/susy-go/homebrew-sophon/commits/master/polynomial.rb>`_.
+
+Follow the history links until you have a raw file link of a 
+specific commit of ``polynomial.rb``.
+
+Install it using ``brew``:
+
+.. code:: bash
+
+    brew unlink polynomial
+    # Install 0.4.8
+    brew install https://raw.githubussrcontent.com/susy-go/homebrew-sophon/77cce03da9f289e5a3ffe579840d3c5dc0a62717/polynomial.rb
 
 .. _building-from-source:
 
@@ -197,7 +220,14 @@ Building Polynomial is quite similar on Linux, macOS and other Unices:
     cd build
     cmake .. && make
 
-And even on Windows:
+or even easier:
+
+.. code:: bash
+    
+    #note: this will install binaries polc and poltest at usr/local/bin
+    ./scripts/build.sh
+
+And even for Windows:
 
 .. code:: bash
 

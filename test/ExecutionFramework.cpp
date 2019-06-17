@@ -82,6 +82,8 @@ void ExecutionFramework::sendMessage(bytes const& _data, bool _isCreation, u256 
 	m_rpc.test_mineBlocks(1);
 	RPCSession::TransactionReceipt receipt(m_rpc.sof_getTransactionReceipt(txHash));
 
+	m_blockNumber = u256(receipt.blockNumber);
+
 	if (_isCreation)
 	{
 		m_contractAddress = Address(receipt.contractAddress);
@@ -125,7 +127,13 @@ void ExecutionFramework::sendSophy(Address const& _to, u256 const& _value)
 
 size_t ExecutionFramework::currentTimestamp()
 {
-	auto latestBlock = m_rpc.rpcCall("sof_getBlockByNumber", {"\"latest\"", "false"});
+	auto latestBlock = m_rpc.sof_getBlockByNumber("latest", false);
+	return size_t(u256(latestBlock.get("timestamp", "invalid").asString()));
+}
+
+size_t ExecutionFramework::blockTimestamp(u256 _number)
+{
+	auto latestBlock = m_rpc.sof_getBlockByNumber(toString(_number), false);
 	return size_t(u256(latestBlock.get("timestamp", "invalid").asString()));
 }
 

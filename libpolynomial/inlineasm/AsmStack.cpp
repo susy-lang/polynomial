@@ -21,12 +21,18 @@
  */
 
 #include <libpolynomial/inlineasm/AsmStack.h>
-#include <memory>
-#include <libsvmasm/Assembly.h>
-#include <libsvmasm/SourceLocation.h>
-#include <libpolynomial/parsing/Scanner.h>
+
 #include <libpolynomial/inlineasm/AsmParser.h>
 #include <libpolynomial/inlineasm/AsmCodeGen.h>
+#include <libpolynomial/inlineasm/AsmPrinter.h>
+#include <libpolynomial/inlineasm/AsmAnalysis.h>
+
+#include <libpolynomial/parsing/Scanner.h>
+
+#include <libsvmasm/Assembly.h>
+#include <libsvmasm/SourceLocation.h>
+
+#include <memory>
 
 using namespace std;
 using namespace dev;
@@ -40,8 +46,15 @@ bool InlineAssemblyStack::parse(shared_ptr<Scanner> const& _scanner)
 	auto result = parser.parse(_scanner);
 	if (!result)
 		return false;
+
 	*m_parserResult = std::move(*result);
-	return true;
+	AsmAnalyzer::Scopes scopes;
+	return (AsmAnalyzer(scopes, m_errors))(*m_parserResult);
+}
+
+string InlineAssemblyStack::toString()
+{
+	return AsmPrinter()(*m_parserResult);
 }
 
 sof::Assembly InlineAssemblyStack::assemble()
